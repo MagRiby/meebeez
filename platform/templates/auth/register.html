@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}إنشاء حساب{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-4">إنشاء حساب جديد</h3>
+
+                <div id="register-error" class="alert alert-danger d-none"></div>
+
+                <form id="register-form">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">الاسم</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">كلمة المرور</label>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نوع الحساب</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="role" id="role-client" value="client" checked>
+                            <label class="btn btn-outline-primary" for="role-client">عميل</label>
+                            <input type="radio" class="btn-check" name="role" id="role-owner" value="business_owner">
+                            <label class="btn btn-outline-primary" for="role-owner">صاحب عمل</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">إنشاء حساب</button>
+                </form>
+
+                <p class="text-center mt-3">
+                    لديك حساب؟ <a href="/login">تسجيل الدخول</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorDiv = document.getElementById('register-error');
+    errorDiv.classList.add('d-none');
+
+    const data = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role: document.querySelector('input[name="role"]:checked').value,
+    };
+
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (res.ok) {
+            localStorage.setItem('token', result.token);
+            window.location.href = result.user.role === 'business_owner' ? '/dashboard' : '/portal';
+        } else {
+            errorDiv.textContent = result.error;
+            errorDiv.classList.remove('d-none');
+        }
+    } catch (err) {
+        errorDiv.textContent = 'حدث خطأ في الاتصال';
+        errorDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

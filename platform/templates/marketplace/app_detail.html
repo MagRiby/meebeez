@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body text-center p-5">
+                <i class="{{ app.icon }} fa-4x text-primary mb-3"></i>
+                <h2>{{ app.name }}</h2>
+                <p class="lead text-muted">{{ app.description }}</p>
+                <hr>
+                <p>ابدأ عملك باستخدام تطبيق <strong>{{ app.name }}</strong> في دقائق.</p>
+                <button class="btn btn-lg btn-success" id="deploy-btn" onclick="deployApp()">
+                    <i class="fas fa-rocket me-2"></i>نشر الآن
+                </button>
+                <div id="deploy-form" class="mt-4 d-none">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="tenant-name" placeholder="اسم مشروعك">
+                    </div>
+                    <div id="deploy-error" class="alert alert-danger d-none"></div>
+                    <button class="btn btn-primary" onclick="createTenant()">إنشاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deployApp() {
+    document.getElementById('deploy-btn').classList.add('d-none');
+    document.getElementById('deploy-form').classList.remove('d-none');
+}
+
+async function createTenant() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+
+    const errorDiv = document.getElementById('deploy-error');
+    errorDiv.classList.add('d-none');
+
+    const name = document.getElementById('tenant-name').value.trim();
+    if (!name) {
+        errorDiv.textContent = 'يرجى إدخال اسم المشروع';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+
+    const res = await fetch('/api/tenants', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ name, app_slug: '{{ app.slug }}' }),
+    });
+    const result = await res.json();
+
+    if (res.ok) {
+        window.location.href = '/dashboard';
+    } else {
+        errorDiv.textContent = result.error;
+        errorDiv.classList.remove('d-none');
+    }
+}
+</script>
+{% endblock %}

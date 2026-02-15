@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">لوحة التحكم</h2>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h5>مشاريعك</h5>
+        <div id="tenants-list">
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">إنشاء مشروع جديد</h5>
+                <form id="create-tenant-form">
+                    <div class="mb-3">
+                        <label for="tenant-name" class="form-label">اسم المشروع</label>
+                        <input type="text" class="form-control" id="tenant-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="app-slug" class="form-label">نوع التطبيق</label>
+                        <select class="form-select" id="app-slug" required>
+                            <option value="">اختر...</option>
+                        </select>
+                    </div>
+                    <div id="create-error" class="alert alert-danger d-none"></div>
+                    <button type="submit" class="btn btn-success w-100">إنشاء</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const token = localStorage.getItem('token');
+const headers = { 'Content-Type': 'application/json' };
+if (token) headers['Authorization'] = 'Bearer ' + token;
+
+async function loadApps() {
+    const res = await fetch('/api/apps');
+    const apps = await res.json();
+    const select = document.getElementById('app-slug');
+    apps.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.slug;
+        opt.textContent = a.name;
+        select.appendChild(opt);
+    });
+}
+
+async function loadTenants() {
+    const res = await fetch('/api/tenants', { headers });
+    if (!res.ok) {
+        document.getElementById('tenants-list').innerHTML =
+            '<p class="text-muted">يرجى تسجيل الدخول لعرض مشاريعك</p>';
+        return;
+    }
+    const tenants = await res.json();
+    const container = document.getElementById('tenants-list');
+
+    if (tenants.length === 0) {
+        container.innerHTML = '<p class="text-muted">لا توجد مشاريع بعد. أنشئ مشروعك الأول!</p>';
+        return;
+    }
+
+    container.innerHTML = tenants.map(t => `
+        <div class="card mb-2">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">${t.name}</h6>
+                    <small class="text-muted">${t.app_type} &middot; ${t.status}</small>
+                </div>
+                <a href="/t/${t.slug}/${t.app_type}/" class="btn btn-sm btn-outline-primary">فتح</a>
+            </div>
+        </div>
+    `).join('');
+}
+
+document.getElementById('create-tenant-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorDiv = document.getElementById('create-error');
+    errorDiv.classList.add('d-none');
+
+    const data = {
+        name: document.getElementById('tenant-name').value,
+        app_slug: document.getElementById('app-slug').value,
+    };
+
+    const res = await fetch('/api/tenants', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+    });
+    const result = await res.json();
+
+    if (res.ok) {
+        loadTenants();
+        document.getElementById('create-tenant-form').reset();
+    } else {
+        errorDiv.textContent = result.error;
+        errorDiv.classList.remove('d-none');
+    }
+});
+
+loadApps();
+loadTenants();
+</script>
+{% endblock %}

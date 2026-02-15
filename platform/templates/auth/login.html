@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل الدخول{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-4">تسجيل الدخول</h3>
+
+                <div id="login-error" class="alert alert-danger d-none"></div>
+
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">كلمة المرور</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">دخول</button>
+                </form>
+
+                <p class="text-center mt-3">
+                    ليس لديك حساب؟ <a href="/register">إنشاء حساب</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorDiv = document.getElementById('login-error');
+    errorDiv.classList.add('d-none');
+
+    const data = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+    };
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (res.ok) {
+            localStorage.setItem('token', result.token);
+            window.location.href = result.user.role === 'business_owner' ? '/dashboard' : '/portal';
+        } else {
+            errorDiv.textContent = result.error;
+            errorDiv.classList.remove('d-none');
+        }
+    } catch (err) {
+        errorDiv.textContent = 'حدث خطأ في الاتصال';
+        errorDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}
