@@ -15,10 +15,6 @@ barber_bp = Blueprint(
     "barber",
     __name__,
     url_prefix="/t/<tenant_slug>/barber",
-    template_folder=os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "templates", "barber",
-    ),
 )
 
 
@@ -53,19 +49,19 @@ def index(tenant_slug):
 @barber_bp.route("/login", methods=["GET", "POST"])
 def barber_login(tenant_slug):
     if request.method == "GET":
-        return render_template("login.html", tenant_slug=tenant_slug)
+        return render_template("barber/login.html", tenant_slug=tenant_slug)
 
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
 
     if not username or not password:
-        return render_template("login.html", tenant_slug=tenant_slug, error="Username and password are required")
+        return render_template("barber/login.html", tenant_slug=tenant_slug, error="Username and password are required")
 
     db = get_barber_db(tenant_slug)
     user = db.execute("SELECT * FROM users WHERE username=? AND is_active=1", (username,)).fetchone()
 
     if not user or not check_password_hash(user["password_hash"], password):
-        return render_template("login.html", tenant_slug=tenant_slug, error="Invalid credentials")
+        return render_template("barber/login.html", tenant_slug=tenant_slug, error="Invalid credentials")
 
     session["barber_user_id"] = user["id"]
     session["barber_role"] = user["role"]
@@ -89,7 +85,7 @@ def barber_logout(tenant_slug):
 @login_required()
 def dashboard(tenant_slug):
     return render_template(
-        "dashboard.html",
+        "barber/dashboard.html",
         tenant_slug=tenant_slug,
         role=session.get("barber_role"),
         username=session.get("barber_username"),
