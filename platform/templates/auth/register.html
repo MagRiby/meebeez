@@ -1,43 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}إنشاء حساب{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-5">
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h3 class="card-title text-center mb-4">إنشاء حساب جديد</h3>
+                <h3 class="card-title text-center mb-4">Create Account</h3>
 
                 <div id="register-error" class="alert alert-danger d-none"></div>
 
                 <form id="register-form">
                     <div class="mb-3">
-                        <label for="name" class="form-label">الاسم</label>
+                        <label for="name" class="form-label">Name</label>
                         <input type="text" class="form-control" id="name" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <label for="email" class="form-label">Email</label>
                         <input type="email" class="form-control" id="email" name="email" required>
                     </div>
                     <div class="mb-3">
-                        <label for="password" class="form-label">كلمة المرور</label>
+                        <label for="password" class="form-label">Password</label>
                         <input type="password" class="form-control" id="password" name="password" required minlength="6">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">نوع الحساب</label>
+                        <label class="form-label">Account Type</label>
                         <div class="btn-group w-100" role="group">
                             <input type="radio" class="btn-check" name="role" id="role-client" value="client" checked>
-                            <label class="btn btn-outline-primary" for="role-client">عميل</label>
+                            <label class="btn btn-outline-primary" for="role-client">Client</label>
                             <input type="radio" class="btn-check" name="role" id="role-owner" value="business_owner">
-                            <label class="btn btn-outline-primary" for="role-owner">صاحب عمل</label>
+                            <label class="btn btn-outline-primary" for="role-owner">Business Owner</label>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">إنشاء حساب</button>
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
                 </form>
 
                 <p class="text-center mt-3">
-                    لديك حساب؟ <a href="/login">تسجيل الدخول</a>
+                    Already have an account? <a href="/login">Login</a>
                 </p>
             </div>
         </div>
@@ -75,7 +75,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
             errorDiv.classList.remove('d-none');
         }
     } catch (err) {
-        errorDiv.textContent = 'حدث خطأ في الاتصال';
+        errorDiv.textContent = 'Connection error';
         errorDiv.classList.remove('d-none');
     }
 });

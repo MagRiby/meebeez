@@ -11,16 +11,16 @@
                 <h2>{{ app.name }}</h2>
                 <p class="lead text-muted">{{ app.description }}</p>
                 <hr>
-                <p>ابدأ عملك باستخدام تطبيق <strong>{{ app.name }}</strong> في دقائق.</p>
+                <p>Start your business with the <strong>{{ app.name }}</strong> app in minutes.</p>
                 <button class="btn btn-lg btn-success" id="deploy-btn" onclick="deployApp()">
-                    <i class="fas fa-rocket me-2"></i>نشر الآن
+                    <i class="fas fa-rocket me-2"></i>Deploy Now
                 </button>
                 <div id="deploy-form" class="mt-4 d-none">
                     <div class="mb-3">
-                        <input type="text" class="form-control" id="tenant-name" placeholder="اسم مشروعك">
+                        <input type="text" class="form-control" id="tenant-name" placeholder="Your project name">
                     </div>
                     <div id="deploy-error" class="alert alert-danger d-none"></div>
-                    <button class="btn btn-primary" onclick="createTenant()">إنشاء</button>
+                    <button class="btn btn-primary" onclick="createTenant()">Create</button>
                 </div>
             </div>
         </div>
@@ -47,7 +47,7 @@ async function createTenant() {
 
     const name = document.getElementById('tenant-name').value.trim();
     if (!name) {
-        errorDiv.textContent = 'يرجى إدخال اسم المشروع';
+        errorDiv.textContent = 'Please enter a project name';
         errorDiv.classList.remove('d-none');
         return;
     }

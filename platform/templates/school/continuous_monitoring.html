@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#2563eb">
+    <title>المراقبة المستمرة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="/static/mobile.css" rel="stylesheet">
+    <style>
+        body { background: var(--color-bg, #f1f5f9); }
+        .monitor-table th, .monitor-table td { text-align: center; vertical-align: middle; }
+        .exam-active { background-color: #e6ffe6; }
+        .exam-inactive { background-color: #ffe6e6; }
+        .exam-actions button { margin-left: 4px; margin-right: 4px; }
+        .grade-input { width: 60px; text-align: center; }
+        /* Super badge button schema */
+        .btn-badge-purple {
+            background: #611987 !important;
+            color: #fff !important;
+            border: 1.5px solid #611987 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            padding: 4px 18px !important;
+            font-weight: bold;
+        }
+        .btn-badge-purple:hover, .btn-badge-purple:focus {
+            background: #4d106e !important;
+            border-color: #4d106e !important;
+            color: #fff !important;
+        }
+        .btn-badge-black {
+            background: #111 !important;
+            color: #fff !important;
+            border: 1.5px solid #111 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            padding: 4px 18px !important;
+            font-weight: bold;
+        }
+        .btn-badge-black:hover, .btn-badge-black:focus {
+            background: #333 !important;
+            border-color: #333 !important;
+            color: #fff !important;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <h2 class="mb-4 text-center">المراقبة المستمرة - <span id="class-name"></span></h2>
+    <!-- Publication Dates Row -->
+    <div id="pub-dates-row" class="mb-4">
+      <div class="row g-2 align-items-end">
+  <div class="col-md-3 col-6">
+    <label class="form-label">بداية نشر الدورة 1</label>
+    <input type="date" class="form-control pub-date-input" id="dawra1_pub_start">
+    <label class="form-label mt-2">نهاية نشر الدورة 1</label>
+    <input type="date" class="form-control pub-date-input" id="dawra1_pub_end">
+  </div>
+  <div class="col-md-3 col-6">
+    <label class="form-label">بداية نشر الدورة 2</label>
+    <input type="date" class="form-control pub-date-input" id="dawra2_pub_start">
+    <label class="form-label mt-2">نهاية نشر الدورة 2</label>
+    <input type="date" class="form-control pub-date-input" id="dawra2_pub_end">
+  </div>
+  <div class="col-md-3 col-6">
+    <label class="form-label">بداية نشر الدورة 3</label>
+    <input type="date" class="form-control pub-date-input" id="dawra3_pub_start">
+    <label class="form-label mt-2">نهاية نشر الدورة 3</label>
+    <input type="date" class="form-control pub-date-input" id="dawra3_pub_end">
+  </div>
+  <div class="col-md-3 col-6">
+    <label class="form-label">بداية نشر نهاية السنة</label>
+    <input type="date" class="form-control pub-date-input" id="year_pub_start">
+    <label class="form-label mt-2">نهاية نشر نهاية السنة</label>
+    <input type="date" class="form-control pub-date-input" id="year_pub_end">
+  </div>
+</div>
+      </div>
+      <div id="pub-dates-feedback" class="mt-2" style="min-height:24px;"></div>
+    </div>
+    <!-- Dawra Tabs -->
+    <ul class="nav nav-tabs justify-content-center mb-4" id="dawraTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="dawra1-tab" data-bs-toggle="tab" data-bs-target="#dawra1-pane" type="button" role="tab" aria-controls="dawra1-pane" aria-selected="true">الدورة الأولى</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="dawra2-tab" data-bs-toggle="tab" data-bs-target="#dawra2-pane" type="button" role="tab" aria-controls="dawra2-pane" aria-selected="false">الدورة الثانية</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="dawra3-tab" data-bs-toggle="tab" data-bs-target="#dawra3-pane" type="button" role="tab" aria-controls="dawra3-pane" aria-selected="false">الدورة الثالثة</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="year-tab" data-bs-toggle="tab" data-bs-target="#year-pane" type="button" role="tab" aria-controls="year-pane" aria-selected="false">نهاية السنة</button>
+      </li>
+    </ul>
+    <div class="tab-content" id="dawraTabsContent">
+      <div class="tab-pane show active" id="dawra1-pane" role="tabpanel" aria-labelledby="dawra1-tab">
+        <div id="dawra1-content"></div>
+      </div>
+      <div class="tab-pane" id="dawra2-pane" role="tabpanel" aria-labelledby="dawra2-tab">
+        <div id="dawra2-content"></div>
+      </div>
+      <div class="tab-pane" id="dawra3-pane" role="tabpanel" aria-labelledby="dawra3-tab">
+        <div id="dawra3-content"></div>
+      </div>
+      <div class="tab-pane" id="year-pane" role="tabpanel" aria-labelledby="year-tab">
+        <div id="year-content"></div>
+      </div>
+    </div>
+</div>
+
+<!-- Modal for adding/editing exam -->
+<div class="modal fade" id="examModal" tabindex="-1" aria-labelledby="examModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="examModalLabel">إضافة/تعديل اختبار</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <form id="exam-form">
+          <div class="mb-3">
+            <label for="exam-name" class="form-label">اسم الاختبار</label>
+            <input type="text" class="form-control" id="exam-name" name="exam_name" required>
+          </div>
+          <div class="mb-3">
+            <label for="exam-weight" class="form-label mt-2">الوزن (Weight)</label>
+            <input type="number" class="form-control" id="exam-weight" min="0" step="any" value="1">
+          </div>
+          <div class="mb-3">
+            <label for="exam-subject" class="form-label">المادة<span style="color:red">*</span></label>
+            <select class="form-select" id="exam-subject" name="exam_subject" required>
+              <option value="">اختر المادة</option>
+            </select>
+          </div>
+          <input type="hidden" id="exam-id" name="exam_id">
+<!-- Dawra is always set by tab, never by user -->
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="submit" class="btn btn-primary" id="save-exam-btn">حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// [REMOVED LOG] 'Continuous Monitoring JS loaded');
+const classId = {{ class_id|tojson }};
+document.getElementById('class-name').textContent = 'الصف ' + {{ class_name|tojson }};
+
+let exams = [];
+let students = [];
+let currentDawra = 1; // 1, 2, or 3
+
+// Utility: show modal
+async function showExamModal(exam = null) {
+    console.log('[showExamModal] called', { exam });
+    // If editing, infer final mode from exam
+    if (exam) {
+        examModalFinalMode = exam.is_final == 1;
+        console.log('[showExamModal] edit mode, examModalFinalMode:', examModalFinalMode);
+    }
+
+    document.getElementById('exam-form').reset();
+    document.getElementById('exam-id').value = exam ? exam.id : '';
+    document.getElementById('exam-name').value = exam ? exam.name : '';
+    document.getElementById('exam-weight').value = (exam && exam.weight !== undefined && exam.weight !== null) ? exam.weight : 1;
+    // Fetch curriculum groups for the class's level
+    const subjectSelect = document.getElementById('exam-subject');
+    subjectSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+    let levelId = null;
+    // Fetch class info to get level_id
+    try {
+        const classRes = await fetch('/classes');
+        const classesJson = await classRes.json();
+        let classesArr = [];
+        if (Array.isArray(classesJson)) {
+            classesArr = classesJson;
+        } else if (Array.isArray(classesJson.classes)) {
+            classesArr = classesJson.classes;
+        } else if (classesJson.grouped && typeof classesJson.grouped === 'object') {
+            // Flatten all arrays in grouped
+            classesArr = Object.values(classesJson.grouped).reduce((acc, arr) => acc.concat(arr), []);
+        }
+        if (!Array.isArray(classesArr)) {
+            console.error('[showExamModal] /classes did not return a usable array:', classesJson);
+            subjectSelect.innerHTML = '<option value="">تعذر تحميل المواد</option>';
+            return;
+        }
+        const thisClass = classesArr.find(cls => cls.id == classId);
+        levelId = thisClass ? thisClass.level_id : null;
+        console.log('[showExamModal] fetched classes:', classesArr, 'thisClass:', thisClass, 'levelId:', levelId);
+    } catch (e) {
+        levelId = null;
+        console.error('[showExamModal] error fetching classes:', e);
+    }
+    if (!levelId) {
+        subjectSelect.innerHTML = '<option value="">تعذر تحميل المواد</option>';
+        console.warn('[showExamModal] NO levelId found, returning early.');
+        return;
+    }
+    // Fetch curriculum groups for this level
+    fetch(`/curriculum_groups?level_id=${levelId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(groups => {
+        subjectSelect.innerHTML = '<option value="">اختر المادة</option>' +
+          groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        // If editing, set the value
+        if (exam && exam.curriculum_group_id) {
+          subjectSelect.value = exam.curriculum_group_id;
+        }
+        console.log('[showExamModal] curriculum groups loaded:', groups);
+      })
+      .catch(e => {
+        console.error('[showExamModal] error fetching curriculum groups:', e);
+      });
+    console.log('[showExamModal] About to show modal');
+    const modal = new bootstrap.Modal(document.getElementById('examModal'));
+    modal.show();
+}
+
+function attachExamButtonListeners(dawra) {
+    // Add Exam
+    document.querySelectorAll(`#dawra${dawra}-content .add-exam-btn`).forEach(btn => {
+        console.log(`[DEBUG] Attaching add-exam-btn listener for dawra`, dawra, btn);
+        btn.onclick = () => {
+            console.log(`[DEBUG] add-exam-btn clicked for dawra`, dawra, btn);
+            currentDawra = parseInt(btn.getAttribute('data-dawra')) || currentDawra;
+            examModalFinalMode = false;
+            showExamModal(null);
+        };
+    });
+    // Add Final Exam
+    document.querySelectorAll(`#dawra${dawra}-content .add-final-exam-btn`).forEach(btn => {
+        console.log(`[DEBUG] Attaching add-final-exam-btn listener for dawra`, dawra, btn);
+        btn.onclick = () => {
+            console.log(`[DEBUG] add-final-exam-btn clicked for dawra`, dawra, btn);
+            currentDawra = parseInt(btn.getAttribute('data-dawra')) || currentDawra;
+            examModalFinalMode = true;
+            showExamModal(null);
+        };
+    });
+    // Edit Exam
+    document.querySelectorAll(`#dawra${dawra}-content .edit-exam-btn`).forEach(btn => {
+        btn.onclick = () => {
+            const examId = btn.getAttribute('data-id');
+            const exam = exams.find(e => e.id == examId);
+            if (exam) {
+                currentDawra = Number(exam.dawra) || 1;
+                examModalFinalMode = !!exam.is_final;
+                showExamModal(exam);
+            }
+        };
+    });
+    // Delete Exam
+    document.querySelectorAll(`#dawra${dawra}-content .delete-exam-btn`).forEach(btn => {
+        // [REMOVED LOG] '[DEBUG] Attaching delete handler to exam id:', btn.dataset.id);
+        btn.onclick = () => {
+            // [REMOVED LOG] '[DEBUG] Delete button clicked for exam id:', btn.dataset.id);
+            if (!confirm('هل أنت متأكد من الحذف؟')) return;
+            fetch(`/api/exams/${btn.dataset.id}`, { method: 'DELETE' })
+                .then(r => {
+                    // [REMOVED LOG] '[DEBUG] Response from DELETE /api/exams:', r);
+                    return r.json();
+                })
+                .then(data => {
+                    // [REMOVED LOG] '[DEBUG] Response JSON:', data);
+                    loadData();
+                })
+                .catch(err => {
+                    // [REMOVED ERROR] '[DEBUG] Error during delete:', err);
+                });
+        };
+    });
+}
+
+
+
+
+document.getElementById('save-exam-btn').onclick = function(e) {
+    // Always use currentDawra for new/edit exam
+
+    e.preventDefault();
+    const id = document.getElementById('exam-id').value;
+    const name = document.getElementById('exam-name').value.trim();
+    const subjectId = document.getElementById('exam-subject').value;
+    const is_final = examModalFinalMode ? 1 : 0;
+    const weight = parseFloat(document.getElementById('exam-weight').value) || 1.0;
+    // Read is_year_final from hidden input
+    const isYearFinalInput = document.getElementById('exam-is-year-final');
+    let is_year_final = 0;
+    if (isYearFinalInput && isYearFinalInput.value === '1') {
+        is_year_final = 1;
+    }
+
+    if (!name) return alert('يرجى إدخال اسم الاختبار');
+    if (!subjectId) return alert('يرجى اختيار المادة');
+    // Detect if this is a year final exam
+    const postBody = {
+        name,
+        curriculum_group_id: subjectId,
+        is_final,
+        weight,
+        dawra: is_year_final ? null : currentDawra,
+        is_year_final
+    };
+    if (id) {
+        fetch(`/api/exams/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postBody)
+        }).then(r => r.json()).then(() => {
+            bootstrap.Modal.getInstance(document.getElementById('examModal')).hide();
+            loadData();
+        });
+    } else {
+        fetch(`/api/exams/${classId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postBody)
+        }).then(r => r.json()).then(() => {
+            bootstrap.Modal.getInstance(document.getElementById('examModal')).hide();
+            loadData();
+        });
+    }
+};
+
+function examActionsHtml(exam) {
+    return `
+      <div class="exam-actions d-flex justify-content-center">
+        <button class="btn btn-sm btn-warning me-1 edit-exam-btn" data-id="${exam.id}">تعديل</button>
+        <button class="btn btn-sm btn-danger me-1 delete-exam-btn" data-id="${exam.id}">حذف</button>
+      </div>
+    `;
+}
+
+// Robust retry logic for setting innerHTML
+function safeSetInnerHTML(dawraContentId, html, dawra, attempt = 1) {
+    console.log(`[safeSetInnerHTML] CALLED | dawraContentId: ${dawraContentId} | dawra: ${dawra} | attempt: ${attempt}`);
+    console.trace(`[safeSetInnerHTML] Stack trace for dawra ${dawra}, attempt ${attempt}`);
+    const dawraContent = document.getElementById(dawraContentId);
+    if (dawraContent) {
+        console.log(`[safeSetInnerHTML] SUCCESS | Found element:`, dawraContent, '| outerHTML:', dawraContent.outerHTML ? dawraContent.outerHTML.substring(0, 200) : 'no outerHTML');
+        console.log(`[safeSetInnerHTML] Setting innerHTML (first 100 chars):`, html.substring(0, 100));
+        dawraContent.innerHTML = html;
+    } else if (attempt < 5) {
+        console.warn(`[safeSetInnerHTML] RETRYING | dawraContentId: ${dawraContentId} | dawra: ${dawra} | attempt: ${attempt}`);
+        setTimeout(() => safeSetInnerHTML(dawraContentId, html, dawra, attempt + 1), 50);
+    } else {
+        console.error(`[safeSetInnerHTML] FAILED after 5 attempts | dawraContentId: ${dawraContentId} | dawra: ${dawra}`);
+        console.trace(`[safeSetInnerHTML] FINAL Stack trace for dawra ${dawra}, attempt ${attempt}`);
+    }
+}
+
+
+// dawra: 1, 2, or 3
+function renderTable(dawra = 1) {
+    console.trace('renderTable call stack for dawra:', dawra);
+    // Guard: Only render if the pane is visible
+    const dawraPane = document.getElementById(`dawra${dawra}-pane`);
+    if (!dawraPane || !dawraPane.classList.contains('active')) {
+        console.log(`renderTable: dawra${dawra}-pane is not active, skipping render.`);
+        return;
+    }
+    console.log('=== renderTable called for dawra:', dawra, 'currentDawra:', currentDawra);
+    for (let i = 1; i <= 3; i++) {
+        console.log(`dawra${i}-content exists:`, !!document.getElementById(`dawra${i}-content`));
+    }
+    const dawraContentId = `dawra${dawra}-content`;
+    // Only query dawraContent right before using it
+    console.log('Trying to set innerHTML for:', dawraContentId, 'Exists:', !!document.getElementById(dawraContentId));
+    // ... build html here ...
+    // Ensure only ONE declaration of html in this function!
+    // (existing code that builds the html string)
+    // ...
+    // After html is built:
+    // Filter exams by dawra (strict number comparison), EXCLUDE year final exams
+    const dawraExams = exams.filter(e => Number(e.dawra || 1) === Number(dawra) && !e.is_year_final);
+    // Split exams by is_final
+    const finalExams = dawraExams.filter(e => e.is_final == 1);
+    const regularExams = dawraExams.filter(e => !e.is_final || e.is_final == 0);
+    // [REMOVED DEBUG] `[DEBUG] Dawra ${dawra} regular exams:`, regularExams);
+
+    // --- Render into correct Dawra content container ---
+    // Already declared dawraContentId and dawraContent at the top of this function.
+    // No need to redeclare here.
+
+    // --- Per-student per-subject averages calculation ---
+    let avgHtml = '';
+    if (students.length && dawraExams.length) {
+        avgHtml += '<div class="table-responsive" style="max-width:900px;margin:auto"><table class="table table-bordered bg-white">';
+        avgHtml += '<thead><tr><th style="background:#e3f0fa;text-align:center;vertical-align:middle;">اسم الطالب</th><th>المادة</th><th>المعدل</th></tr></thead><tbody>';
+        students.forEach(stu => {
+            // Find all subjects for this dawra for this student
+            const subjects = [...new Set(dawraExams.map(exam => exam.subject_name).filter(Boolean))];
+            if (subjects.length) {
+                subjects.forEach((subj, idx) => {
+                    const avg = getDawraSubjectAverageFromTable(stu, subj, dawra);
+                    avgHtml += `<tr><td style=\"background:#e3f0fa;text-align:center;vertical-align:middle;\">${idx===0 ? stu.name : ''}</td><td>${subj}</td><td>${avg !== null ? avg : '-'}</td></tr>`;
+                });
+            } else {
+                avgHtml += `<tr><td style=\"background:#e3f0fa;text-align:center;vertical-align:middle;\">${stu.name}</td><td colspan=\"2\">لا توجد درجات لحساب المعدل</td></tr>`;
+            }
+        });
+        avgHtml += '</tbody></table></div>';
+    } else {
+        avgHtml = '<div class="text-center text-muted">لا توجد بيانات درجات لحساب المعدلات.</div>';
+    }
+
+    // Build the HTML for this dawra
+    let examRowHtml = `<th style=\"background:#e3f0fa\"></th>` + regularExams.map(exam => `
+        <th class=\"${exam.status==='active'?'exam-active':'exam-inactive'}\">
+            <div>
+                ${exam.name}
+                ${exam.subject_name ? `<span style=\"font-size:0.95em;color:#611987;\"> - ${exam.subject_name}</span>` : ''}
+            </div>
+            ${examActionsHtml(exam)}
+        </th>`).join('');
+    let tbodyHtml = students.map(stu => {
+        let tds = regularExams.map(exam => {
+            const grade = stu.grades[exam.id] || '';
+            return `<td><input type=\"text\" class=\"form-control grade-input\" data-student=\"${stu.id}\" data-exam=\"${exam.id}\" value=\"${grade}\"></td>`;
+        }).join('');
+        return `<tr><td style=\"background:#e3f0fa;text-align:center;vertical-align:middle;\">${stu.name}</td>${tds}</tr>`;
+    }).join('');
+    let finalExamRowHtml = `<th style=\"background:#e3f0fa\"></th>` + finalExams.map(exam => `
+        <th class=\"${exam.status==='active'?'exam-active':'exam-inactive'}\">
+            <div>
+                ${exam.name}
+                ${exam.subject_name ? `<span style=\"font-size:0.95em;color:#611987;\"> - ${exam.subject_name}</span>` : ''}
+            </div>
+            ${examActionsHtml(exam)}
+        </th>`).join('');
+    let finalTbodyHtml = students.map(stu => {
+        let tds = finalExams.map(exam => {
+            const grade = stu.grades[exam.id] || '';
+            return `<td><input type=\"text\" class=\"form-control grade-input\" data-student=\"${stu.id}\" data-exam=\"${exam.id}\" value=\"${grade}\"></td>`;
+        }).join('');
+        return `<tr><td style=\"background:#e3f0fa;text-align:center;vertical-align:middle;\">${stu.name}</td>${tds}</tr>`;
+    }).join('');
+    let html = '';
+    html += `<div class=\"mb-3 d-flex justify-content-between align-items-center\">
+        <div>
+            <button class=\"btn btn-success add-exam-btn\" data-dawra=\"${dawra}\">إضافة اختبار</button>
+        </div>
+        <div>
+            <span class=\"fw-bold\">عدد الطلاب: <span class=\"student-count\">${students.length}</span></span>
+        </div>
+    </div>`;
+    html += `<div class=\"table-responsive\">
+        <table class=\"table table-bordered monitor-table bg-white\">
+            <thead>
+                <tr id=\"main-header-row\">
+                    <th id=\"student-col-header\" style=\"background:#e3f0fa;text-align:center;vertical-align:middle;\">اسم الطالب</th>
+                    <th id=\"exams-header\" class=\"exam-header\" colspan=\"${regularExams.length || 1}\" style=\"text-align:center;vertical-align:middle;\">الاختبارات</th>
+                </tr>
+                <tr id=\"exam-row\">${examRowHtml}</tr>
+            </thead>
+            <tbody id=\"students-table-body-dawra${dawra}\">${tbodyHtml}</tbody>
+        </table>
+    </div>`;
+    html += `<div class=\"mb-3 d-flex justify-content-between align-items-center\">
+        <div>
+            <button class=\"btn btn-info add-final-exam-btn\" data-dawra=\"${dawra}\">إضافة اختبار نهائي</button>
+        </div>
+    </div>`;
+    html += `<div class=\"table-responsive\">
+        <table class=\"table table-bordered monitor-table bg-white\">
+            <thead>
+                <tr id=\"final-main-header-row\">
+                    <th style=\"background:#e3f0fa;text-align:center;vertical-align:middle;\">اسم الطالب</th>
+                    <th id=\"final-exams-header\" class=\"exam-header\" colspan=\"${finalExams.length || 1}\" style=\"text-align:center;vertical-align:middle;\">الاختبار النهائي</th>
+                </tr>
+                <tr id=\"final-exam-row\">${finalExamRowHtml}</tr>
+            </thead>
+            <tbody id=\"final-students-table-body\">${finalTbodyHtml}</tbody>
+        </table>
+    </div>`;
+    html += `<div class=\"mt-4\">${avgHtml}</div>`;
+    // Use robust retry logic to set innerHTML
+    const dawraContent = document.getElementById(dawraContentId);
+    if (!dawraContent) {
+        console.warn(`[renderTable] SKIP: dawraContentId ${dawraContentId} does not exist in DOM. Skipping render for dawra ${dawra}.`);
+        return;
+    }
+    console.log(`[renderTable] About to call safeSetInnerHTML | dawraContentId: ${dawraContentId} | html preview:`, html.substring(0, 100));
+    safeSetInnerHTML(dawraContentId, html, dawra);
+
+    // Attach event listeners after rendering
+    setTimeout(() => {
+        attachExamButtonListeners(dawra);
+        // Attach onchange handler for all grade inputs (including finals)
+        const dawraContent = document.getElementById(dawraContentId);
+        if (dawraContent) {
+            // Defensive: update student count if element exists
+            const countEl = dawraContent.querySelector('.student-count');
+            if (countEl) countEl.textContent = students.length;
+            // Defensive: attach onchange to all grade inputs if they exist
+            const gradeInputs = dawraContent.querySelectorAll('.grade-input');
+            if (gradeInputs && gradeInputs.length > 0) {
+                gradeInputs.forEach(input => {
+                    input.onchange = () => {
+                        input.classList.add('table-warning');
+                    };
+                });
+            }
+        }
+    }, 0);
+
+
+    // Append averages table to the dawra tab content
+    html += `<div class=\"mt-4\">${avgHtml}</div>`;
+
+    // Exams header
+    // Set 'الاختبارات' colspan dynamically
+    const examsHeader = document.getElementById('exams-header');
+    examsHeader.colSpan = Math.max(regularExams.length, 1);
+    // Render exam headers with an empty th first for alignment
+    examRow = document.getElementById('exam-row');
+    examRow.innerHTML = `<th style=\"background:#e3f0fa\"></th>` + regularExams.map(exam => `
+        <th class="${exam.status==='active'?'exam-active':'exam-inactive'}">
+            <div>
+                ${exam.name}
+                ${exam.subject_name ? `<span style=\"font-size:0.95em;color:#611987;\"> - ${exam.subject_name}</span>` : ''}
+            </div>
+            ${examActionsHtml(exam)}
+        </th>`).join('');
+    // Students rows
+    tbody = document.getElementById('students-table-body');
+    tbody.innerHTML = students.map(stu => {
+        let tds = regularExams.map(exam => {
+            const grade = stu.grades[exam.id] || '';
+            return `<td><input type="text" class="form-control grade-input" data-student="${stu.id}" data-exam="${exam.id}" value="${grade}"></td>`;
+        }).join('');
+        return `<tr><td style="background:#e3f0fa;text-align:center;vertical-align:middle;">${stu.name}</td>${tds}</tr>`;
+    }).join('');
+    dawraContent.querySelector('.student-count').textContent = students.length;
+
+    // Attach final exam actions
+    document.querySelectorAll('.edit-exam-btn').forEach(btn => {
+        btn.onclick = () => {
+            const exam = exams.find(e => e.id == btn.dataset.id);
+            showExamModal(exam);
+        };
+    });
+    document.querySelectorAll('.delete-exam-btn').forEach(btn => {
+        btn.onclick = () => {
+            if (!confirm('هل أنت متأكد من الحذف؟')) return;
+            fetch(`/api/exams/${btn.dataset.id}`, { method: 'DELETE' })
+                .then(r => r.json()).then(() => loadData());
+        };
+    });
+    // Attach exam actions
+    document.querySelectorAll('.edit-exam-btn').forEach(btn => {
+        btn.onclick = () => {
+            const exam = exams.find(e => e.id == btn.dataset.id);
+            showExamModal(exam);
+        };
+    });
+    document.querySelectorAll('.delete-exam-btn').forEach(btn => {
+        btn.onclick = () => {
+            if (!confirm('هل أنت متأكد من الحذف؟')) return;
+            fetch(`/api/exams/${btn.dataset.id}`, { method: 'DELETE' })
+                .then(r => r.json()).then(() => loadData());
+        };
+    });
+    document.querySelectorAll('.toggle-status-exam-btn').forEach(btn => {
+        btn.onclick = () => {
+            const exam = exams.find(e => e.id == btn.dataset.id);
+            const newStatus = exam.status === 'active' ? 'inactive' : 'active';
+            fetch(`/api/exams/${exam.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            }).then(r => r.json()).then(() => loadData());
+        };
+    });
+    // Inline grade editing
+    tbody.querySelectorAll('.grade-input').forEach(input => {
+        input.onchange = () => {
+            input.classList.add('table-warning');
+        };
+    });
+}
+
+// Listen for dawra tab changes and render the correct table
+// This must be inside DOMContentLoaded to ensure the tabs exist
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function (event) {
+            // Extract dawra number from data-bs-target, e.g. "#dawra2-pane"
+            const target = event.target.getAttribute('data-bs-target');
+            const dawraMatch = target && target.match(/dawra(\d+)-pane/);
+            if (dawraMatch) {
+                const dawra = Number(dawraMatch[1]);
+                renderTable(dawra);
+            } else if (target === '#year-pane') {
+                renderYearTab();
+            }
+        });
+    });
+});
+
+// Helper: Compute dawra/subject average for a student, using exact logic from dawra tab
+function getDawraSubjectAverageFromTable(stu, subject, dawra) {
+    // 1. Filter exams for this dawra, include regular and dawra final exams, exclude year finals
+    const dawraExams = exams.filter(e => 
+        Number(e.dawra || 1) === Number(dawra)
+        && (e.is_year_final == false || e.is_year_final == null || e.is_year_final === undefined || e.is_year_final === 0)
+        && e.subject_name === subject
+        && (e.is_final == false || e.is_final == null || e.is_final === undefined || e.is_final === 0 || e.is_final == true || e.is_final == 1)
+    );
+    // 2. Collect grades/weights for this subject
+    let items = [];
+    dawraExams.forEach(exam => {
+        let val = stu.grades[exam.id];
+        let weight = (exam.weight !== undefined && exam.weight !== null && !isNaN(exam.weight)) ? parseFloat(exam.weight) : 1.0;
+        if (val !== undefined && val !== null && val !== '' && !isNaN(val)) {
+            items.push({grade: parseFloat(val), weight: weight});
+        }
+    });
+    // 3. Weighted average
+    let weightedSum = 0, totalWeight = 0;
+    items.forEach(item => {
+        weightedSum += item.grade * item.weight;
+        totalWeight += item.weight;
+    });
+    // 4. Return avg or null
+    if (totalWeight > 0) return (weightedSum / totalWeight).toFixed(2);
+    return null;
+}
+
+function renderYearTab() {
+    const yearContent = document.getElementById('year-content');
+    if (!yearContent) return;
+
+    // 1. Year final exams (is_year_final: true)
+    const yearFinalExams = exams.filter(e => e.is_year_final == 1 || e.is_year_final === true);
+    let finalExamHtml = '<div class="mb-2 text-end"><button class="btn btn-success" id="add-year-final-exam-btn">إضافة اختبار نهائي للسنة</button></div>';
+    // Always render the table, even if no year final exams
+    finalExamHtml += '<div class="table-responsive" style="max-width:900px;margin:auto"><table class="table table-bordered bg-white">';
+    // Table header: student name, then each exam with name and actions, no separate actions column
+    finalExamHtml += '<thead><tr><th style="background:#e3f0fa;text-align:center;vertical-align:middle;">اسم الطالب</th>';
+    if (yearFinalExams.length) {
+        yearFinalExams.forEach(exam => {
+            finalExamHtml += `<th style="text-align:center;vertical-align:middle;">
+                <div>
+                    <span>${exam.name}${exam.subject_name ? ' - ' + exam.subject_name : ''}</span>
+                </div>
+                <div class="mt-1">
+                    <button class="btn btn-sm btn-warning me-1 edit-year-exam-btn" data-exam-id="${exam.id}">تعديل</button>
+                    <button class="btn btn-sm btn-danger delete-year-exam-btn" data-exam-id="${exam.id}">حذف</button>
+                </div>
+            </th>`;
+        });
+    } else {
+        finalExamHtml += '<th>لا يوجد اختبار نهائي للسنة</th>';
+    }
+    finalExamHtml += '</tr></thead><tbody>';
+    // Table body: student name, then one cell per exam (grade input)
+    students.forEach(stu => {
+        finalExamHtml += `<tr><td style="background:#e3f0fa;text-align:center;vertical-align:middle;">${stu.name}</td>`;
+        if (yearFinalExams.length) {
+            yearFinalExams.forEach(exam => {
+                const grade = stu.grades[exam.id] ?? '';
+                finalExamHtml += `<td><input type="text" class="form-control grade-input year-final-input" data-student="${stu.id}" data-exam="${exam.id}" value="${grade}"></td>`;
+            });
+        } else {
+            finalExamHtml += '<td class="text-center text-muted">—</td>';
+        }
+        finalExamHtml += '</tr>';
+    });
+    finalExamHtml += '</tbody></table></div>';
+    // 2. Dawra averages per student, per subject
+    let summaryHtml = '';
+    if (students.length) {
+        summaryHtml += '<div class="table-responsive mt-4" style="max-width:900px;margin:auto"><table class="table table-bordered bg-white">';
+        summaryHtml += '<thead><tr><th style="background:#e3f0fa">اسم الطالب</th><th style="background:#e3f0fa">المادة</th>';
+        for (let d = 1; d <= 3; d++) summaryHtml += `<th>معدل الدورة ${d}</th>`;
+        summaryHtml += '<th>درجة نهاية السنة</th><th>معدل السنة</th></tr></thead><tbody>';
+        students.forEach(stu => {
+            let subjects = new Set();
+            exams.forEach(exam => {
+                if (exam.subject_name) {
+                    if (stu.grades[exam.id] !== undefined && stu.grades[exam.id] !== null && stu.grades[exam.id] !== '') {
+                        subjects.add(exam.subject_name);
+                    }
+                }
+            });
+            // If no subjects, still show one row
+            if (subjects.size === 0) subjects = new Set(['-']);
+            let subjArr = Array.from(subjects);
+            subjArr.forEach((subject, subjIdx) => {
+                summaryHtml += `<tr>`;
+                if (subjIdx === 0) {
+                    summaryHtml += `<td style="background:#e3f0fa" rowspan="${subjArr.length}">${stu.name}</td>`;
+                }
+                summaryHtml += `<td>${subject}</td>`;
+                let dawraSubjectAverages = [];
+                for (let d = 1; d <= 3; d++) {
+                    const avg = getDawraSubjectAverageFromTable(stu, subject, d);
+                    dawraSubjectAverages.push(avg !== null ? parseFloat(avg) : null);
+                    summaryHtml += `<td>${avg !== null ? avg : '-'}</td>`;
+                }
+                // Year final exam grade for this subject (average if multiple year finals for this subject)
+                let yearFinalVals = yearFinalExams.filter(e => e.subject_name === subject).map(exam => {
+                    let val = stu.grades[exam.id];
+                    return (val !== undefined && val !== null && val !== '' && !isNaN(val)) ? parseFloat(val) : null;
+                }).filter(v => v !== null);
+                let yearFinalAvg = yearFinalVals.length ? (yearFinalVals.reduce((a,b)=>a+b,0)/yearFinalVals.length).toFixed(2) : null;
+                summaryHtml += `<td>${yearFinalAvg !== null ? yearFinalAvg : '<span class=\"text-muted\">لا يوجد</span>'}</td>`;
+                // Year average for this subject
+                let allForYearAvg = dawraSubjectAverages.filter(v => v !== null);
+                if (yearFinalAvg !== null) allForYearAvg.push(parseFloat(yearFinalAvg));
+                let yearAvg = allForYearAvg.length ? (allForYearAvg.reduce((a,b)=>a+b,0)/allForYearAvg.length).toFixed(2) : '-';
+                summaryHtml += `<td>${yearAvg}${yearFinalAvg === null ? ' <span class=\"text-muted\">(لا يوجد نهائي سنة)</span>' : ''}</td>`;
+                summaryHtml += '</tr>';
+            });
+        });
+        summaryHtml += '</tbody></table></div>';
+    }
+
+    yearContent.innerHTML = `<h5 class="mb-3 text-center">جدول اختبار نهاية السنة</h5>${finalExamHtml}<h5 class="mt-4 mb-3 text-center">ملخص المعدلات السنوية</h5>${summaryHtml}`;
+    // Attach onchange and blur handler for year final inputs (seamless save like dawra tabs)
+    yearContent.querySelectorAll('.year-final-input').forEach(input => {
+        input.onchange = () => { input.classList.add('table-warning'); };
+        input.onblur = () => {
+            if (input.classList.contains('table-warning')) {
+                saveGrades();
+            }
+        };
+        // Also save on Enter key (already handled globally, but for robustness):
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                input.blur(); // triggers onblur which saves
+            }
+        });
+    });
+    // Attach click handler for add-year-final-exam-btn
+    const addYearBtn = document.getElementById('add-year-final-exam-btn');
+    if (addYearBtn) {
+        addYearBtn.onclick = function() {
+            showExamModal({
+                id: null,
+                name: '',
+                subject_name: '',
+                weight: 1,
+                is_final: false,
+                is_year_final: true,
+                dawra: null // Not applicable
+            }, true); // true = year final mode
+        };
+    }
+    // Attach handlers for edit/delete buttons
+    yearContent.querySelectorAll('.edit-year-exam-btn').forEach(btn => {
+        btn.onclick = function() {
+            const examId = btn.getAttribute('data-exam-id');
+            const exam = exams.find(e => e.id == examId);
+            showExamModal(exam, true); // true = year final mode
+        };
+    });
+    yearContent.querySelectorAll('.delete-year-exam-btn').forEach(btn => {
+        btn.onclick = function() {
+            const examId = btn.getAttribute('data-exam-id');
+            if (confirm('هل أنت متأكد من حذف هذا الاختبار؟')) {
+                fetch(`/api/exams/${examId}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(resp => {
+                        if (resp.success) loadData();
+                        else alert(resp.error || 'حدث خطأ أثناء الحذف');
+                    });
+            }
+        };
+    });
+}
+
+// Patch showExamModal to support year final mode (hides dawra/is_final fields)
+const origShowExamModal = window.showExamModal || showExamModal;
+window.showExamModal = function(exam, yearFinalMode) {
+    origShowExamModal(exam);
+    if (yearFinalMode) {
+        // Hide dawra and is_final fields in modal
+        const dawraField = document.querySelector('#exam-dawra');
+        const isFinalField = document.querySelector('#exam-is-final');
+        if (dawraField) dawraField.closest('.mb-3').style.display = 'none';
+        if (isFinalField) isFinalField.closest('.form-check').style.display = 'none';
+        // Set is_year_final hidden input if needed
+        let isYearFinalInput = document.querySelector('#exam-is-year-final');
+        if (!isYearFinalInput) {
+            isYearFinalInput = document.createElement('input');
+            isYearFinalInput.type = 'hidden';
+            isYearFinalInput.id = 'exam-is-year-final';
+            isYearFinalInput.name = 'is_year_final';
+            isYearFinalInput.value = '1';
+            document.querySelector('#exam-form').appendChild(isYearFinalInput);
+        } else {
+            isYearFinalInput.value = '1';
+        }
+    } else {
+        // Show dawra and is_final fields if not year final
+        const dawraField = document.querySelector('#exam-dawra');
+        const isFinalField = document.querySelector('#exam-is-final');
+        if (dawraField) dawraField.closest('.mb-3').style.display = '';
+        if (isFinalField) isFinalField.closest('.form-check').style.display = '';
+        let isYearFinalInput = document.querySelector('#exam-is-year-final');
+        if (isYearFinalInput) isYearFinalInput.value = '';
+    }
+};
+
+
+function loadData() {
+    // [REMOVED LOG] 'loadData called');
+    // [REMOVED LOG] 'Fetching /api/grades/' + classId);
+    fetch(`/api/grades/${classId}`)
+        .then(r => {
+            // [REMOVED LOG] 'Fetch response:', r);
+            if (!r.ok) {
+                // [REMOVED ERROR] 'Fetch failed with status', r.status);
+                return Promise.reject('Fetch failed');
+            }
+            return r.json();
+        })
+        .then(data => {
+            // [REMOVED LOG] '[DEBUG] Raw data from /api/grades:', data);
+            if (!data || !Array.isArray(data.exams) || data.exams.length === 0) {
+                // [REMOVED WARN] '[DEBUG] No exams data received or exams array is empty:', data);
+            }
+            exams = data.exams || [];
+            students = data.students;
+            // Refresh the correct tab
+            const activeTab = document.querySelector('.nav-link.active');
+            if (activeTab && activeTab.getAttribute('data-bs-target') === '#year-pane') {
+                renderYearTab();
+            } else {
+                renderTable(currentDawra);
+            }
+        })
+        .catch(err => {
+            // [REMOVED ERROR] 'Error in loadData fetch or processing:', err);
+        });
+}
+
+
+
+
+// Save grades (all changed)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.classList.contains('grade-input')) {
+        saveGrades();
+    }
+});
+
+function saveGrades() {
+    // Gather all changed inputs
+    let changed = Array.from(document.querySelectorAll('.grade-input.table-warning'));
+    if (!changed.length) return;
+    let grades = changed.map(input => ({
+        student_id: input.dataset.student,
+        exam_id: input.dataset.exam,
+        grade: input.value
+    }));
+    fetch(`/api/grades/${classId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grades })
+    }).then(r => r.json()).then(() => {
+        changed.forEach(input => input.classList.remove('table-warning'));
+        loadData();
+    });
+}
+
+document.addEventListener('focusout', function(e) {
+    if (e.target.classList.contains('grade-input') && e.target.classList.contains('table-warning')) {
+        saveGrades();
+    }
+});
+
+let examModalFinalMode = false;
+// All custom JS is now inside DOMContentLoaded to guarantee DOM readiness
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Dawra Tabs switching logic
+    const dawraTabs = document.querySelectorAll('#dawraTabs button[data-bs-toggle="tab"]');
+    dawraTabs.forEach(tabBtn => {
+        tabBtn.addEventListener('shown.bs.tab', function (e) {
+            const dawraId = e.target.id;
+            let dawra = 1;
+            if (dawraId.includes('dawra2')) dawra = 2;
+            else if (dawraId.includes('dawra3')) dawra = 3;
+            currentDawra = dawra;
+            setTimeout(() => {
+                renderTable(dawra);
+            }, 50);
+        });
+    });
+    // Publication dates logic
+    function showPubFeedback(msg, success=true) {
+      const el = document.getElementById('pub-dates-feedback');
+      el.textContent = msg;
+      el.className = success ? 'text-success' : 'text-danger';
+      setTimeout(() => { el.textContent = ''; }, 3000);
+    }
+    function loadPubDates() {
+      fetch(`/classes/${classId}`)
+        .then(r => r.json())
+        .then(cls => {
+          [
+            'dawra1_pub_start','dawra1_pub_end',
+            'dawra2_pub_start','dawra2_pub_end',
+            'dawra3_pub_start','dawra3_pub_end',
+            'year_pub_start','year_pub_end'
+          ].forEach(key => {
+            const inp = document.getElementById(key);
+            if (inp && cls[key]) inp.value = cls[key].slice(0,10);
+            else if (inp) inp.value = '';
+          });
+        });
+    }
+    function savePubDate(field, value) {
+      // Gather all fields
+      const payload = {};
+      [
+        'dawra1_pub_start','dawra1_pub_end',
+        'dawra2_pub_start','dawra2_pub_end',
+        'dawra3_pub_start','dawra3_pub_end',
+        'year_pub_start','year_pub_end'
+      ].forEach(key => {
+        payload[key] = document.getElementById(key).value || null;
+      });
+      fetch(`/classes/${classId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(r => r.json())
+        .then(resp => {
+          if (resp.success) showPubFeedback('تم حفظ تواريخ النشر بنجاح', true);
+          else showPubFeedback('خطأ في الحفظ', false);
+        })
+        .catch(() => showPubFeedback('خطأ في الاتصال بالخادم', false));
+    }
+    // Attach listeners
+    document.querySelectorAll('.pub-date-input').forEach(inp => {
+      inp.addEventListener('change', function() {
+        savePubDate(inp.id, inp.value);
+      });
+    });
+    loadPubDates();
+    // Initial load
+    loadData();
+});
+</script>
+</body>
+</html>

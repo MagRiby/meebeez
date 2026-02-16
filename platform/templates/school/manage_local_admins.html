@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#2563eb">
+    <title>إدارة المدراء المحليين</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="/static/mobile.css" rel="stylesheet">
+    <style>
+        body { background: var(--color-bg, #f1f5f9); }
+        .admin-section { background: var(--color-surface, #fff); border-radius: 1rem; box-shadow: 0 6px 18px rgba(0,0,0,0.04); padding: 2rem; margin: 2rem auto; max-width: 650px; }
+    </style>
+</head>
+<body>
+    <div class="admin-section">
+        <a href="/dashboard" class="btn btn-outline-primary mb-3">العودة إلى لوحة التحكم</a>
+        <h2 class="mb-4">إدارة المدراء المحليين</h2>
+        <form id="add-admin-form" class="row g-2 mb-4">
+        <div class="alert alert-info d-flex align-items-center" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16z"/>
+                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 .877-.252 1.02-.797l.088-.416c.066-.308.118-.438.288-.438.145 0 .176.105.145.255l-.088.416c-.194.897-.105 1.319.808 1.319.545 0 .877-.252 1.02-.797l.738-3.468c.194-.897-.105-1.319-.808-1.319-.545 0-.877.252-1.02.797l-.088.416c-.066.308-.118.438-.288.438-.145 0-.176-.105-.145-.255l.088-.416c.194-.897.105-1.319-.808-1.319z"/>
+                <circle cx="8" cy="4.5" r="1"/>
+            </svg>
+            <div>
+                اختر أحد المدراء المحليين ليكون <b>مدير المدرسة</b> عبر تحديد الدائرة المجاورة. المدير المعيّن سيكون له صلاحيات إضافية في النظام.
+            </div>
+        </div>
+            <div class="col-12 col-md-4">
+                <input class="form-control" name="name" placeholder="اسم المدير" required>
+            </div>
+            <div class="col-12 col-md-4">
+                <input class="form-control" type="email" name="username" placeholder="البريد الإلكتروني" required>
+            </div>
+            <div class="col-12 col-md-4">
+                <input class="form-control" name="password" type="password" placeholder="كلمة المرور" required>
+            </div>
+            <div class="col-12 mt-2">
+                <button type="submit" class="btn btn-success w-100">إضافة</button>
+            </div>
+        </form>
+        <div id="admins-list"></div>
+
+    <!-- Edit Admin Modal -->
+    <div class="modal fade" id="editAdminModal" tabindex="-1" aria-labelledby="editAdminModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-fullscreen-sm-down">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editAdminModalLabel">تعديل بيانات المدير المحلي</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          </div>
+          <div class="modal-body">
+            <form id="edit-admin-form">
+              <input type="hidden" name="id" id="edit-admin-id">
+              <div class="mb-3">
+                <label for="edit-admin-name" class="form-label">اسم المدير</label>
+                <input type="text" class="form-control" id="edit-admin-name" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label for="edit-admin-username" class="form-label">البريد الإلكتروني</label>
+                <input type="email" class="form-control" id="edit-admin-username" name="username" required>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" id="save-edit-admin">حفظ التغييرات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <script>
+    function loadAdmins() {
+        fetch('/api/local_admins').then(r => r.json()).then(admins => {
+            let html = admins.map(a => `
+                <div class='card mb-2'>
+                    <div class='card-body d-flex justify-content-between align-items-center'>
+                        <input type="radio" name="director" ${a.is_director ? 'checked' : ''} onclick="setDirector(${a.id})" title="تعيين كمدير المدرسة">
+                        ${a.is_director ? '<span class="badge bg-success mx-2">مدير المدرسة</span>' : ''}
+                        <span><b>${a.name || ''}</b><br><span class='text-muted' style='font-size:0.9em'>${a.username}</span></span>
+                        <div>
+                            <button class='btn btn-sm btn-primary me-2' onclick='editAdmin(${a.id}, "${a.username}", "${a.name || ''}")'>تعديل</button>
+                            <button class='btn btn-sm btn-danger' onclick='deleteAdmin(${a.id})'>حذف</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('admins-list').innerHTML = html || '<div class="alert alert-info">لا يوجد مدراء محليون.</div>';
+        });
+    }
+    loadAdmins();
+
+    document.getElementById('add-admin-form').onsubmit = function(e) {
+        e.preventDefault();
+        let fd = new FormData(this);
+        fetch('/api/local_admins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: fd.get('name'), username: fd.get('username'), password: fd.get('password') })
+        }).then(r => r.json()).then(resp => {
+            if(resp.success) {
+                this.reset();
+                loadAdmins();
+            } else {
+                alert(resp.error || 'فشل في الإضافة');
+            }
+        });
+    };
+
+    window.editAdmin = function(id, username, name) {
+        document.getElementById('edit-admin-id').value = id;
+        document.getElementById('edit-admin-name').value = name || '';
+        document.getElementById('edit-admin-username').value = username || '';
+        var modal = new bootstrap.Modal(document.getElementById('editAdminModal'));
+        modal.show();
+    };
+
+    document.getElementById('save-edit-admin').onclick = function() {
+        var id = document.getElementById('edit-admin-id').value;
+        var name = document.getElementById('edit-admin-name').value;
+        var username = document.getElementById('edit-admin-username').value;
+        fetch(`/api/local_admins/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, username: username })
+        }).then(r => r.json()).then(resp => {
+            if(resp.success) {
+                var modalEl = document.getElementById('editAdminModal');
+                var modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                loadAdmins();
+            } else {
+                alert(resp.error || 'فشل في التعديل');
+            }
+        });
+    };
+
+
+    window.deleteAdmin = function(id) {
+        if(confirm('هل أنت متأكد من حذف هذا المدير المحلي؟')) {
+            fetch(`/api/local_admins/${id}`, { method: 'DELETE' })
+                .then(r => r.json()).then(resp => {
+                    if(resp.success) loadAdmins();
+                    else alert(resp.error || 'فشل في الحذف');
+                });
+        }
+    };
+    function setDirector(id) {
+        fetch(`/api/local_admins/${id}/set_director`, {method: 'POST'})
+            .then(r => r.json()).then(resp => {
+                if(resp.success) loadAdmins();
+                else alert(resp.error || 'حدث خطأ عند تعيين المدير');
+            });
+    }
+    </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="fas fa-shield-alt me-2"></i>Platform Admin</h2>
+
+<!-- Stats Row -->
+<div class="row mb-4" id="stats-row">
+    <div class="col-md-3">
+        <div class="card text-bg-primary">
+            <div class="card-body">
+                <h6 class="card-title">Total Users</h6>
+                <h3 id="stat-users">--</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-success">
+            <div class="card-body">
+                <h6 class="card-title">Total Tenants</h6>
+                <h3 id="stat-tenants">--</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-info">
+            <div class="card-body">
+                <h6 class="card-title">Free Plans</h6>
+                <h3 id="stat-free">--</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-warning">
+            <div class="card-body">
+                <h6 class="card-title">Paid Plans</h6>
+                <h3 id="stat-paid">--</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs" id="adminTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-users" type="button">Users</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tenants" type="button">Tenants</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-apps" type="button">Apps</button>
+    </li>
+</ul>
+
+<div class="tab-content pt-3">
+    <!-- Users Tab -->
+    <div class="tab-pane fade show active" id="tab-users">
+        <div class="mb-3">
+            <input type="text" class="form-control" id="user-search" placeholder="Search users by name or email..." style="max-width:400px;">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Active</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tenants Tab -->
+    <div class="tab-pane fade" id="tab-tenants">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>App Type</th>
+                        <th>Owner</th>
+                        <th>Plan</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tenants-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Apps Tab -->
+    <div class="tab-pane fade" id="tab-apps">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Slug</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Active</th>
+                    </tr>
+                </thead>
+                <tbody id="apps-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="admin-error" class="alert alert-danger mt-3 d-none"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const token = localStorage.getItem('token');
+const headers = { 'Content-Type': 'application/json' };
+if (token) headers['Authorization'] = 'Bearer ' + token;
+
+function showError(msg) {
+    const el = document.getElementById('admin-error');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+    setTimeout(() => el.classList.add('d-none'), 5000);
+}
+
+// ── Stats ──────────────────────────────────────────────────────────
+async function loadStats() {
+    const res = await fetch('/admin/api/stats', { headers });
+    if (!res.ok) { showError('Failed to load stats. Are you a platform admin?'); return; }
+    const data = await res.json();
+    document.getElementById('stat-users').textContent = data.total_users;
+    document.getElementById('stat-tenants').textContent = data.total_tenants;
+    document.getElementById('stat-free').textContent = data.subscriptions.free || 0;
+    const paid = Object.entries(data.subscriptions)
+        .filter(([k]) => k !== 'free')
+        .reduce((sum, [, v]) => sum + v, 0);
+    document.getElementById('stat-paid').textContent = paid;
+}
+
+// ── Users ──────────────────────────────────────────────────────────
+async function loadUsers(search) {
+    const url = '/admin/api/users' + (search ? '?search=' + encodeURIComponent(search) : '');
+    const res = await fetch(url, { headers });
+    if (!res.ok) return;
+    const users = await res.json();
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = users.map(u => `
+        <tr>
+            <td>${u.id}</td>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>
+                <select class="form-select form-select-sm" style="width:auto;display:inline-block" onchange="changeRole(${u.id}, this.value)">
+                    ${['client','business_owner','platform_admin'].map(r =>
+                        `<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`
+                    ).join('')}
+                </select>
+            </td>
+            <td>
+                <button class="btn btn-sm ${u.is_active ? 'btn-success' : 'btn-secondary'}" onclick="toggleUserActive(${u.id})">
+                    ${u.is_active ? 'Active' : 'Inactive'}
+                </button>
+            </td>
+            <td>${u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}</td>
+        </tr>
+    `).join('');
+}
+
+async function toggleUserActive(id) {
+    const res = await fetch('/admin/api/users/' + id + '/toggle-active', { method: 'PUT', headers });
+    if (!res.ok) { const d = await res.json(); showError(d.error); return; }
+    loadUsers(document.getElementById('user-search').value);
+}
+
+async function changeRole(id, role) {
+    const res = await fetch('/admin/api/users/' + id + '/role', {
+        method: 'PUT', headers, body: JSON.stringify({ role })
+    });
+    if (!res.ok) { const d = await res.json(); showError(d.error); return; }
+    loadUsers(document.getElementById('user-search').value);
+}
+
+let searchTimer;
+document.getElementById('user-search').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadUsers(this.value), 300);
+});
+
+// ── Tenants ────────────────────────────────────────────────────────
+async function loadTenants() {
+    const res = await fetch('/admin/api/tenants', { headers });
+    if (!res.ok) return;
+    const tenants = await res.json();
+    const tbody = document.getElementById('tenants-tbody');
+    tbody.innerHTML = tenants.map(t => `
+        <tr>
+            <td>${t.id}</td>
+            <td>${t.name}</td>
+            <td>${t.app_type}</td>
+            <td>${t.owner_name} (${t.owner_email})</td>
+            <td>${t.plan}</td>
+            <td><span class="badge ${t.status==='active'?'bg-success':'bg-danger'}">${t.status}</span></td>
+            <td>
+                ${t.status === 'active'
+                    ? `<button class="btn btn-sm btn-warning" onclick="suspendTenant(${t.id})">Suspend</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="reactivateTenant(${t.id})">Reactivate</button>`
+                }
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function suspendTenant(id) {
+    await fetch('/admin/api/tenants/' + id + '/suspend', { method: 'PUT', headers });
+    loadTenants();
+    loadStats();
+}
+
+async function reactivateTenant(id) {
+    await fetch('/admin/api/tenants/' + id + '/reactivate', { method: 'PUT', headers });
+    loadTenants();
+    loadStats();
+}
+
+// ── Apps ───────────────────────────────────────────────────────────
+async function loadApps() {
+    const res = await fetch('/admin/api/apps', { headers });
+    if (!res.ok) return;
+    const apps = await res.json();
+    const tbody = document.getElementById('apps-tbody');
+    tbody.innerHTML = apps.map(a => `
+        <tr>
+            <td>${a.id}</td>
+            <td>${a.slug}</td>
+            <td><i class="${a.icon} me-1"></i>${a.name}</td>
+            <td>${a.description}</td>
+            <td>
+                <button class="btn btn-sm ${a.is_active ? 'btn-success' : 'btn-secondary'}" onclick="toggleApp(${a.id})">
+                    ${a.is_active ? 'Active' : 'Inactive'}
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function toggleApp(id) {
+    await fetch('/admin/api/apps/' + id + '/toggle-active', { method: 'PUT', headers });
+    loadApps();
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+loadStats();
+loadUsers('');
+loadTenants();
+loadApps();
+</script>
+{% endblock %}

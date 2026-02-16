@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>لوحة التحكم</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <link href="/static/mobile.css" rel="stylesheet">
+    <style>
+        body { background: var(--color-bg, #f1f5f9); }
+        .dashboard-section { background: var(--color-surface, #fff); border-radius: 1rem; box-shadow: 0 6px 18px rgba(0,0,0,0.04); padding: 2rem; margin: 2rem auto; max-width: 700px; }
+        .user-list { margin-top: 1.5rem; }
+        .user-row { border-bottom: 1px solid #e2e8f0; padding: 0.5rem 0; }
+        .level-edit-section {
+          background: #fffbe6;
+          border: 1px solid #ffe58f;
+          border-radius: 8px;
+          margin: 12px 0;
+          padding: 18px 16px 10px 16px;
+        }
+        .class-section {
+          background: var(--color-surface, #fff);
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          margin: 12px 0;
+          padding: 18px 16px 10px 16px;
+        }
+        .subject-item {
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          border-radius: 6px;
+          margin: 6px 0;
+          padding: 8px 12px;
+          display: flex;
+          align-items: center;
+        }
+        .btn-course-add {
+          background: var(--color-success, #10b981);
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          font-weight: bold;
+          padding: 8px 18px;
+          margin-bottom: 8px;
+          transition: background 0.2s;
+        }
+        .btn-course-add:hover, .btn-course-add:focus {
+          background: #059669;
+          color: #fff;
+        }
+        .group-section {
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 8px;
+          margin: 12px 0;
+          padding: 16px 14px 8px 14px;
+        }
+        .btn-level-add {
+          background: var(--color-accent, #f59e0b);
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          font-weight: bold;
+          padding: 10px 18px;
+          transition: background 0.2s;
+        }
+        .btn-level-add:hover, .btn-level-add:focus {
+          background: #d97706;
+          color: #fff;
+        }
+        .level-details-section {
+          background: #fffbeb;
+          border: 1px solid var(--color-accent, #f59e0b);
+          border-radius: 8px;
+          margin: 12px 0;
+          padding: 18px 16px 10px 16px;
+        }
+        .level-block {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .group-section .d-flex.align-items-center,
+        .subject-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .group-section .btn,
+        .subject-item .btn {
+          margin-left: 0;
+          margin-right: 0;
+        }
+        .level-name,
+        .group-name,
+        .subject-name {
+          font-weight: bold;
+        }
+        .teacher-card,
+        .level-card,
+        .card.mb-2.border-secondary {
+          background: var(--color-surface, #fff) !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 0.75rem !important;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          margin-bottom: 0.5rem !important;
+          padding: 0.5rem 0.75rem !important;
+          min-height: 48px;
+        }
+        .teacher-card .card,
+        .teacher-card .card-body,
+        .level-card .card,
+        .level-card .card-body,
+        .card.mb-2.border-secondary .card,
+        .card.mb-2.border-secondary .card-body {
+          background: transparent !important;
+          padding: 0 !important;
+        }
+        #class-list, .class-list, .class-list-wrapper {
+          background: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
+        .level-card-header {
+          background: var(--color-accent, #f59e0b) !important;
+          color: #fff !important;
+        }
+        .bg-primary {
+          --bs-bg-opacity: 1;
+          background-color: var(--color-accent, #f59e0b) !important;
+        }
+        .student-edit-form {
+          background: var(--color-surface, #fff) !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          margin-top: 0.5rem !important;
+          padding: 0.75rem !important;
+        }
+        .trophy-glow {
+          transform-origin: 50% 50%;
+          animation: trophyPulse 0.8s infinite alternate;
+        }
+        @keyframes trophyPulse {
+          0% { opacity: 0.1; }
+          100% { opacity: 1; }
+        }
+        .trophy-icon svg {
+          display: block;
+        }
+        .trophy-tilt {
+          animation: trophy-tilt-anim 1.2s infinite cubic-bezier(.4,0,.2,1) alternate;
+          transform-origin: 50% 80%; /* Pivot from the base */
+        }
+        @keyframes trophy-tilt-anim {
+          0% { transform: rotate(-10deg); }
+          50% { transform: rotate(10deg); }
+          100% { transform: rotate(-10deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="text-center mb-4" style="padding-top: 24px;">
+        <img src="/static/{{ school_info.logo }}" alt="شعار المدرسة" style="max-height: 80px; margin-bottom: 8px;">
+        <h1 style="font-size:2.1rem; font-weight:bold; margin-bottom:0;">{{ school_info.name }}</h1>
+    </div>
+    <div class="dashboard-section">
+  {% if role in ['super_admin', 'local_admin'] %}
+  <div id="backup-alert-banner" class="backup-alert" style="display:none;">
+    <button class="backup-alert-close" onclick="this.parentElement.style.display='none'" title="إغلاق">&times;</button>
+    <span class="backup-alert-icon">&#9888;</span>
+    <span class="backup-alert-text" id="backup-alert-text"></span>
+    <button class="backup-alert-btn" id="backup-alert-btn">&#128190; نسخ احتياطي الآن</button>
+  </div>
+  {% endif %}
+  <div id="general-announcement-area">
+    <div class="alert alert-info text-center" id="announcement-content">تحميل الإعلان...</div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Fetch and display the current announcement
+      fetch('/api/announcements')
+        .then(r => r.json())
+        .then(data => {
+          const area = document.getElementById('announcement-content');
+          const ann = data.announcement;
+          function isAnnouncementExpired(expiry) {
+            if (!expiry) return false;
+            const now = new Date();
+            const exp = new Date(expiry);
+            return now > exp;
+          }
+          if (ann && ann.text && !isAnnouncementExpired(ann.expiry)) {
+            area.innerHTML = `<div style='font-size:1.1em;'><b>إعلان عام:</b><br>${ann.text}</div><div style='font-size:0.95em;color:#666;'>ساري حتى: ${ann.expiry ? ann.expiry.replace('T', ' ') : ''}</div>`;
+          } else {
+            area.innerHTML = '<span>لا يوجد إعلان عام حالياً</span>';
+          }
+        })
+        .catch(() => {
+          document.getElementById('announcement-content').innerHTML = '<span>تعذر تحميل الإعلان العام</span>';
+        });
+
+      // Announcement modal logic (for admins)
+      const openAnnouncementBtn = document.getElementById('open-announcement-modal-btn');
+      if (openAnnouncementBtn) {
+        openAnnouncementBtn.addEventListener('click', function() {
+          // Pre-fill modal fields with current announcement
+          fetch('/api/announcements')
+            .then(r => r.json())
+            .then(data => {
+              const ann = data.announcement;
+              document.getElementById('announcement-text').value = ann && ann.text ? ann.text : '';
+              document.getElementById('announcement-expiry').value = ann && ann.expiry ? ann.expiry : '';
+            });
+          const modal = new bootstrap.Modal(document.getElementById('generalAnnouncementModal'));
+          modal.show();
+        });
+      }
+      const saveAnnouncementBtn = document.getElementById('save-announcement-btn');
+      if (saveAnnouncementBtn) {
+        saveAnnouncementBtn.addEventListener('click', function() {
+          const text = document.getElementById('announcement-text').value;
+          const expiry = document.getElementById('announcement-expiry').value;
+          if (!text.trim() || !expiry) {
+            alert('يرجى إدخال نص الإعلان وتاريخ الانتهاء.');
+            return;
+          }
+          fetch('/api/announcements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, expiry })
+          }).then(r => r.json()).then(resp => {
+            if (resp.success) {
+              alert('تم حفظ الإعلان بنجاح');
+              document.getElementById('announcement-text').value = '';
+              document.getElementById('announcement-expiry').value = '';
+              const modal = bootstrap.Modal.getInstance(document.getElementById('generalAnnouncementModal'));
+              if (modal) modal.hide();
+              // Refresh announcement display
+              fetch('/api/announcements')
+                .then(r => r.json())
+                .then(data => {
+                  const area = document.getElementById('announcement-content');
+                  const ann = data.announcement;
+                  if (ann && ann.text) {
+                    area.innerHTML = `<div style='font-size:1.1em;'><b>إعلان عام:</b><br>${ann.text}</div><div style='font-size:0.95em;color:#666;'>ساري حتى: ${ann.expiry ? ann.expiry.replace('T', ' ') : ''}</div>`;
+                  } else {
+                    area.innerHTML = '<span>لا يوجد إعلان عام حالياً</span>';
+                  }
+                });
+            } else {
+              alert(resp.error || 'حدث خطأ أثناء الحفظ');
+            }
+          }).catch(() => {
+            alert('حدث خطأ في الاتصال بالخادم');
+          });
+        });
+      }
+    });
+  </script>
+        <h2 class="mb-3">لوحة التحكم ({{ username }}, {{ role }})</h2>
+    <a href="/logout" class="btn btn-secondary mb-4">خروج</a>
+        {% if role == 'super_admin' %}
+        <h4>إدارة المستخدمين</h4>
+        <form id="add-user-form" class="row g-2 mb-4">
+            <div class="col-md-4">
+                <input class="form-control" name="username" placeholder="اسم المستخدم" required>
+            </div>
+            <div class="col-md-4">
+                <input class="form-control" name="password" type="password" placeholder="كلمة المرور" required>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="role" required>
+                    <option value="local_admin">مدير محلي</option>
+                    <option value="teacher">معلم</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-success">إضافة</button>
+            </div>
+        </form>
+        <div id="user-list" class="user-list"></div>
+        <!-- Edit/Delete modal -->
+        <div class="modal fade" id="editUserModal" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">تعديل المستخدم</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="edit-user-form">
+                    <input type="hidden" name="id">
+                    <div class="mb-2">
+                        <label>الدور:</label>
+                        <select class="form-select" name="role">
+                            <option value="local_admin">مدير محلي</option>
+                            <option value="teacher">معلم</option>
+                            <option value="super_admin">مدير أعلى</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label>كلمة مرور جديدة (اختياري):</label>
+                        <input class="form-control" name="password" type="password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </form>
+            </div>
+        </div></div></div>
+        <!-- Delete confirm modal -->
+        <div class="modal fade" id="deleteUserModal" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">حذف المستخدم</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">هل أنت متأكد من حذف هذا المستخدم؟</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">حذف</button>
+            </div>
+        </div></div></div>
+        {% endif %}
+       <!-- {% if role in ['super_admin', 'local_admin', 'teacher'] %} -->
+       {% if role == 'teacher' %}
+        <ul class="nav nav-tabs mb-3 desktop-tabs" id="adminTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button" role="tab">الصفوف</button>
+          </li>
+        </ul>
+        <!-- Mobile bottom nav for teacher -->
+        <nav class="mobile-bottom-nav" id="mobileBottomNav">
+          <button class="bottom-nav-item active" data-bs-toggle="tab" data-bs-target="#classes" type="button">
+            <span class="nav-icon">&#128218;</span>
+            <span>الصفوف</span>
+          </button>
+        </nav>
+          {% elif role == 'local_admin' %}
+          <ul class="nav nav-tabs mb-3 desktop-tabs" id="adminTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button" role="tab">الصفوف</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="levels-tab" data-bs-toggle="tab" data-bs-target="#levels" type="button" role="tab">المستويات</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="teachers-tab" data-bs-toggle="tab" data-bs-target="#teachers" type="button" role="tab">المعلمون</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">الطلاب</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="other-settings-tab" data-bs-toggle="tab" data-bs-target="#other-settings" type="button" role="tab">إعدادات أخرى</button>
+          </li>
+        </ul>
+        <!-- Mobile bottom nav for local_admin -->
+        <nav class="mobile-bottom-nav" id="mobileBottomNav">
+          <button class="bottom-nav-item active" data-bs-toggle="tab" data-bs-target="#classes" type="button">
+            <span class="nav-icon">&#128218;</span>
+            <span>الصفوف</span>
+          </button>
+          <button class="bottom-nav-item" data-bs-toggle="tab" data-bs-target="#levels" type="button">
+            <span class="nav-icon">&#127942;</span>
+            <span>المستويات</span>
+          </button>
+          <button class="bottom-nav-item" data-bs-toggle="tab" data-bs-target="#teachers" type="button">
+            <span class="nav-icon">&#128104;&#8205;&#127891;</span>
+            <span>المعلمون</span>
+          </button>
+          <button class="bottom-nav-item" data-bs-toggle="tab" data-bs-target="#students" type="button">
+            <span class="nav-icon">&#128100;</span>
+            <span>الطلاب</span>
+          </button>
+          <button class="bottom-nav-item" data-bs-toggle="tab" data-bs-target="#other-settings" type="button">
+            <span class="nav-icon">&#9881;</span>
+            <span>إعدادات</span>
+          </button>
+        </nav>
+        {% endif %}
+        {% if role in ['super_admin', 'local_admin', 'teacher'] %} 
+        <div class="tab-content" id="adminTabContent">
+          <!-- Classes Tab -->
+          <div class="tab-pane fade show active" id="classes" role="tabpanel">
+            {% if role in ['local_admin', 'teacher'] %}
+            <div class="tab-help-toggle">
+              <button class="btn btn-help-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#help-classes">
+                &#10068; مساعدة — ماذا يمكنني أن أفعل هنا؟
+              </button>
+            </div>
+            <div class="collapse" id="help-classes">
+              <div class="tab-help-panel">
+                <ul>
+                  <li><b>إضافة صف</b> — استخدم النموذج في الأعلى لإنشاء صف دراسي جديد. اختر المستوى التعليمي المناسب، ثم حدد المعلم المسؤول عن الصف والمعلم الاحتياطي إن وجد، ثم اضغط "إضافة صف".</li>
+                  <li><b>طلاب</b> — اضغط على هذا الزر داخل بطاقة الصف لعرض قائمة بجميع الطلاب المسجلين في هذا الصف. يمكنك من هناك إضافة طلاب جدد أو إزالتهم.</li>
+                  <li><b>تقويم</b> — يفتح تقويم الصف الذي يعرض الأحداث والمواعيد المهمة. يمكنك إضافة أحداث جديدة مثل الاختبارات أو الأنشطة وتعديلها أو حذفها.</li>
+                  <li><b>مراقبة</b> — يفتح صفحة المراقبة المستمرة حيث يمكنك إدخال درجات الطلاب لكل مادة ومتابعة أدائهم خلال الفترات الدراسية المختلفة.</li>
+                  <li><b>واجب</b> — يتيح لك إنشاء واجبات منزلية جديدة للصف وتحديد تاريخ التسليم، ومتابعة حالة تسليم الطلاب لكل واجب.</li>
+                  <li><b>دعم</b> — يعرض المواد الداعمة المرتبطة بمستوى هذا الصف، مثل الملفات التعليمية والموارد الإضافية التي تم رفعها مسبقاً.</li>
+                  <li><b>إعلان</b> — يسمح لك بإرسال إعلان خاص بهذا الصف فقط. سيظهر الإعلان للطلاب والمعلمين المرتبطين بالصف عند دخولهم إلى لوحة التحكم.</li>
+                  <li><b>حضور</b> — يفتح صفحة تسجيل الحضور والغياب اليومي للطلاب. حدد التاريخ ثم ضع علامة بجانب كل طالب حاضر واترك الغائبين بدون علامة.</li>
+                  <li><b>تعديل / حذف</b> — زر "تعديل" يسمح لك بتغيير اسم الصف أو المستوى أو المعلم المسؤول. زر "حذف" يزيل الصف نهائياً مع جميع بياناته — يرجى الحذر عند استخدامه.</li>
+                </ul>
+              </div>
+            </div>
+            {% endif %}
+            {% if role in ['super_admin', 'local_admin'] %}
+            <form id="add-class-form" class="mb-3">
+  <div class="row g-2 mb-1">
+    <div class="col-md-6">
+      <input class="form-control" name="name" placeholder="اسم الصف" required>
+    </div>
+    <div class="col-md-6">
+      <select class="form-select" name="level_id" id="level-select">
+        <option value="">اختر المستوى</option>
+      </select>
+    </div>
+  </div>
+  <div class="row g-2">
+    <div class="col-md-5">
+      <select class="form-select" name="teacher_id" id="teacher-select">
+        <option value="">غير محدد</option>
+      </select>
+    </div>
+    <div class="col-md-5">
+      <select class="form-select" name="backup_teacher_id" id="backup-teacher-select">
+        <option value="">اختر معلم احتياطي</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-grid">
+      <button type="submit" class="btn btn-success">إضافة صف</button>
+    </div>
+  </div>
+</form>
+            {% endif %}
+            <div class="mb-3">
+  <label for="group-by-select" class="form-label">تجميع حسب:</label>
+  <select id="group-by-select" class="form-select" style="max-width:200px;display:inline-block;">
+    <option value="none">بدون تجميع</option>
+    <option value="level">المستوى</option>
+    <option value="teacher">المعلم</option>
+    <option value="assistant">معلم احتياطي</option>
+  </select>
+</div>
+<div id="class-list"></div>
+            <div id="class-details-section" style="display:none;">
+              <hr>
+              <h6>تفاصيل الصف: <span id="current-class-name"></span></h6>
+              <div id="class-level-curriculum-section">
+                <h6>المنهج الخاص بالمستوى</h6>
+                <div id="class-level-curriculum-list"></div>
+              </div>
+              <!-- Add Students -->
+              <form id="add-class-student-form" class="row g-2 mb-3">
+                <div class="col-md-10">
+                  <input class="form-control" name="name" placeholder="اسم الطالب" required>
+                </div>
+                <div class="col-md-2">
+                  <button type="submit" class="btn btn-info w-100">إضافة طالب</button>
+                </div>
+              </form>
+              <div id="class-student-list"></div>
+            </div>
+          </div>
+          <!-- Levels Tab -->
+          <div class="tab-pane fade" id="levels" role="tabpanel">
+            {% if role == 'local_admin' %}
+            <div class="tab-help-toggle">
+              <button class="btn btn-help-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#help-levels">
+                &#10068; مساعدة — ماذا يمكنني أن أفعل هنا؟
+              </button>
+            </div>
+            <div class="collapse" id="help-levels">
+              <div class="tab-help-panel">
+                <ul>
+                  <li><b>إضافة مستوى</b> — اكتب اسم المستوى التعليمي الجديد في الحقل (مثلاً: "المستوى الأول" أو "المستوى المتقدم") ثم اضغط "إضافة مستوى". المستويات تُستخدم لتصنيف الصفوف وربطها بالمناهج المناسبة.</li>
+                  <li><b>مواد داعمة</b> — اضغط على هذا الزر داخل بطاقة المستوى لرفع ملفات تعليمية داعمة (مثل ملفات PDF أو صور أو مقاطع صوتية). هذه المواد ستكون متاحة لجميع الصفوف المرتبطة بهذا المستوى.</li>
+                  <li><b>مناهج</b> — يفتح قسم إدارة المناهج الدراسية لهذا المستوى. يمكنك إنشاء مجموعات مناهج وإضافة مواد دراسية داخل كل مجموعة، وتعديل أو حذف المواد والمجموعات حسب الحاجة.</li>
+                  <li><b>تعديل / حذف</b> — زر "تعديل" يسمح بتغيير اسم المستوى. زر "حذف" يزيل المستوى نهائياً — تأكد أولاً من عدم وجود صفوف مرتبطة به قبل الحذف.</li>
+                </ul>
+              </div>
+            </div>
+            {% endif %}
+            <!-- Add Level Form -->
+            <form id="add-level-form" class="row g-2 mb-3">
+              <div class="col-md-10">
+                <input class="form-control" name="name" placeholder="اسم المستوى" required>
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-warning w-100">إضافة مستوى</button>
+              </div>
+            </form>
+            <div id="levels-container"></div>
+          </div>
+          <!-- Teachers Tab -->
+          <div class="tab-pane fade" id="teachers" role="tabpanel">
+            {% if role == 'local_admin' %}
+            <div class="tab-help-toggle">
+              <button class="btn btn-help-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#help-teachers">
+                &#10068; مساعدة — ماذا يمكنني أن أفعل هنا؟
+              </button>
+            </div>
+            <div class="collapse" id="help-teachers">
+              <div class="tab-help-panel">
+                <ul>
+                  <li><b>إضافة معلم</b> — استخدم النموذج في الأعلى لتسجيل معلم جديد. أدخل البريد الإلكتروني (سيكون اسم المستخدم لتسجيل الدخول)، واسم المعلم الكامل، وكلمة مرور مؤقتة. بعد الإضافة، يمكن للمعلم تسجيل الدخول والوصول إلى صفوفه.</li>
+                  <li><b>معلومات</b> — اضغط على هذا الزر بجانب اسم المعلم لعرض تفاصيله الكاملة، بما في ذلك رقم الهاتف والملاحظات الخاصة والتنبيهات المرسلة إليه. يمكنك من هنا أيضاً تعديل هذه البيانات.</li>
+                  <li><b>تعديل / حذف</b> — زر "تعديل" يسمح بتغيير اسم المعلم أو بريده الإلكتروني أو كلمة المرور. زر "حذف" يزيل حساب المعلم نهائياً — سيتم إلغاء ربطه بجميع الصفوف المرتبطة به، لذا يُنصح بتعيين معلم بديل أولاً.</li>
+                </ul>
+              </div>
+            </div>
+            {% endif %}
+            <form id="add-teacher-form" class="row g-2 mb-3">
+              <div class="col-md-6 mb-2">
+                <input class="form-control" name="username" placeholder="البريد الإلكتروني للمعلم (سيكون اسم المستخدم)" type="email" required>
+              </div>
+              <div class="col-md-6 mb-2">
+                <input class="form-control" name="name" placeholder="اسم المعلم" required>
+              </div>
+              <div class="col-md-6 mb-2">
+                <input class="form-control" name="password" type="password" placeholder="كلمة المرور" required>
+              </div>
+              <div class="col-md-6 mb-2 d-flex align-items-end justify-content-end">
+                <button type="submit" class="btn btn-primary w-100">إضافة</button>
+              </div>
+            </form>
+            <div id="teacher-list"></div>
+          </div>
+          <!-- Students Tab -->
+          <div class="tab-pane fade" id="students" role="tabpanel">
+            {% if role == 'local_admin' %}
+            <div class="tab-help-toggle">
+              <button class="btn btn-help-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#help-students">
+                &#10068; مساعدة — ماذا يمكنني أن أفعل هنا؟
+              </button>
+            </div>
+            <div class="collapse" id="help-students">
+              <div class="tab-help-panel">
+                <ul>
+                  <li><b>إضافة طالب</b> — استخدم النموذج في الأعلى لتسجيل طالب جديد. أدخل اسم المستخدم (يستخدمه الطالب لتسجيل الدخول)، واسم الطالب الكامل، وكلمة مرور. بعد الإضافة، يمكنك إلحاق الطالب بصف من تبويب "الصفوف".</li>
+                  <li><b>بحث</b> — اكتب في حقل البحث للعثور على طالب معين بسرعة. يمكنك البحث بالاسم الكامل أو الجزئي أو باسم المستخدم. النتائج تظهر فوراً أثناء الكتابة.</li>
+                  <li><b>تجميع حسب الصف</b> — فعّل خانة "تجميع حسب الصف" بجانب حقل البحث لعرض الطلاب مصنفين حسب صفوفهم بدلاً من القائمة العادية. هذا مفيد لمعرفة توزيع الطلاب على الصفوف.</li>
+                  <li><b>القدرات</b> — اضغط على هذا الزر بجانب اسم الطالب لعرض صفحة تفصيلية بقدراته وتقييماته في المواد المختلفة، بما في ذلك الشارات والإنجازات التي حصل عليها.</li>
+                  <li><b>بطاقة الدرجات</b> — يعرض بطاقة درجات شاملة للطالب تتضمن جميع درجاته في المواد والاختبارات والمراقبة المستمرة، مع المعدل العام والملاحظات.</li>
+                  <li><b>تعديل / حذف</b> — زر "تعديل" يسمح بتغيير اسم الطالب أو اسم المستخدم أو كلمة المرور. زر "حذف" يزيل الطالب نهائياً من النظام مع جميع درجاته وبياناته — يرجى الحذر الشديد عند استخدامه.</li>
+                </ul>
+              </div>
+            </div>
+            {% endif %}
+            <form id="add-student-form" class="row g-2 mb-3">
+              <div class="col-md-3">
+                <input class="form-control" name="username" placeholder="اسم المستخدم للطالب" required>
+              </div>
+              <div class="col-md-3">
+                <input class="form-control" name="name" placeholder="اسم الطالب" required>
+              </div>
+              <div class="col-md-3">
+                <input class="form-control" name="password" type="password" placeholder="كلمة المرور" required>
+              </div>
+              <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">إضافة</button>
+              </div>
+            </form>
+
+            <div class="mb-3">
+              <div class="input-group mb-3">
+                <input id="backend-student-search2" class="form-control" type="text" placeholder="ابحث عن طالب بالاسم أو اسم المستخدم..." autocomplete="off">
+                <div class="input-group-text">
+                  <input id="group-by-class-checkbox" type="checkbox" class="form-check-input ms-2">
+                  <label for="group-by-class-checkbox" class="form-check-label ms-1">تجميع حسب الصف</label>
+                </div>
+              </div>
+            </div>
+            <div id="student-list"></div>
+          </div>
+          <!-- Other Settings Tab -->
+          <div class="tab-pane fade" id="other-settings" role="tabpanel">
+            {% if role == 'local_admin' %}
+            <div class="tab-help-toggle">
+              <button class="btn btn-help-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#help-other-settings">
+                &#10068; مساعدة — ماذا يمكنني أن أفعل هنا؟
+              </button>
+            </div>
+            <div class="collapse" id="help-other-settings">
+              <div class="tab-help-panel">
+                <ul>
+                  <li><b>إعلان عام</b> — اضغط هذا الزر لإنشاء إعلان عام جديد أو تعديل الإعلان الحالي. الإعلان يظهر لجميع المستخدمين (معلمين وطلاب) عند دخولهم لوحة التحكم. يمكنك تحديد تاريخ انتهاء صلاحية الإعلان.</li>
+                  <li><b>شارات مميزة</b> — ينقلك إلى صفحة إدارة الشارات المميزة. يمكنك إنشاء شارات جديدة بأيقونات وألوان مختلفة، وتعيينها للطلاب المتميزين كنوع من التحفيز والمكافأة.</li>
+                  <li><b>إدارة المدراء المحليين</b> — ينقلك إلى صفحة إدارة حسابات المدراء المحليين. يمكنك إضافة مدراء جدد أو تعديل صلاحياتهم أو إزالتهم. المدراء المحليون لديهم نفس صلاحياتك في إدارة المدرسة.</li>
+                  <li><b>معلومات المدرسة</b> — ينقلك إلى صفحة تعديل بيانات المدرسة الأساسية، مثل اسم المدرسة وشعارها (اللوغو) ومعلومات الاتصال. هذه البيانات تظهر في واجهة جميع المستخدمين.</li>
+                  <li><b>تحميل نسخة احتياطية</b> — يقوم بتنزيل ملف مضغوط يحتوي على نسخة كاملة من قاعدة البيانات وجميع الملفات المرفوعة (صور، مستندات، إلخ). يُنصح بأخذ نسخة احتياطية بشكل دوري للحفاظ على بياناتك.</li>
+                  <li><b>إرسال النسخة بالبريد</b> — يرسل النسخة الاحتياطية مباشرة إلى بريدك الإلكتروني المسجل في النظام. مفيد إذا كنت تريد الاحتفاظ بنسخة خارجية دون تنزيل الملف يدوياً.</li>
+                </ul>
+              </div>
+            </div>
+            {% endif %}
+  {% if role in ['super_admin', 'local_admin'] %}
+    <button class="btn btn-warning mb-3 w-100" id="open-announcement-modal-btn">إعلان عام</button>
+    {% include 'announcement-modal.html' %}
+  {% endif %}
+            <a href="/super_badges" class="btn btn-warning mb-3 w-100">شارات مميزة</a>
+            <a href="/manage_local_admins" class="btn btn-warning mb-3 w-100">إدارة المدراء المحليين</a>
+<a href="/school_info" class="btn btn-warning mb-3 w-100">معلومات المدرسة</a>
+  {% if role in ['super_admin', 'local_admin'] %}
+  <hr>
+  <h5 class="mb-3">&#128190; النسخ الاحتياطي</h5>
+  <p class="text-muted mb-2" style="font-size:0.9rem;">قم بتنزيل نسخة احتياطية تحتوي على قاعدة البيانات وجميع الملفات المرفوعة.</p>
+  <a href="/api/backup/download" class="btn btn-success mb-2 w-100" id="download-backup-btn">&#128229; تحميل نسخة احتياطية</a>
+  <button class="btn btn-outline-primary mb-2 w-100" id="email-backup-btn">&#9993; إرسال النسخة بالبريد الإلكتروني</button>
+  <div id="backup-status-msg" style="display:none;" class="alert mt-2"></div>
+  {% endif %}
+
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Calendar Modal -->
+        <div id="calendarModal" class="modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title">التقويم للصف <span id="calendar-class-name"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="class-calendar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Event Modal -->
+<div id="eventModal" class="modal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title" id="eventModalLabel">إدارة الحدث</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="eventForm">
+          <div class="mb-2">
+            <label class="form-label">عنوان الحدث</label>
+            <input type="text" class="form-control" id="event-title" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">الوصف</label>
+            <textarea class="form-control" id="event-desc"></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">تاريخ البدء</label>
+            <input type="datetime-local" class="form-control" id="event-start" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">تاريخ الانتهاء</label>
+            <input type="datetime-local" class="form-control" id="event-end">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">اللون</label>
+            <input type="color" class="form-control form-control-color" id="event-color" value="#3788d8">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">تكرار</label>
+            <select class="form-select" id="event-recurrence">
+              <option value="none">بدون تكرار</option>
+              <option value="weekly">أسبوعي</option>
+              <option value="monthly">شهري</option>
+            </select>
+          </div>
+          <div class="mb-2" id="recurrence-end-date-wrapper" style="display:none;">
+            <label class="form-label">تاريخ الانتهاء للتكرار</label>
+            <input type="date" class="form-control" id="event-recurrence-end">
+          </div>
+          <input type="hidden" id="event-id">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="delete-event-btn" style="display:none">حذف</button>
+        <button type="button" class="btn btn-primary" id="save-event-btn">حفظ</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+        </div>
+        {% endif %}
+        <!-- {% if role == 'teacher' %} -->
+        <!-- <h4>إدارة الطلاب</h4> -->
+        <!-- Placeholder for teacher actions -->
+        <!-- <div class="alert alert-info">ميزات المعلم ستظهر هنا.</div> -->
+        <!-- {% endif %} -->
+        <!-- Removed yellow trophy icon as requested -->
+        <!-- Animated Trophy SVG Icon for Top Level -->
+        <!-- Removed yellow trophy icon as requested -->
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+ 
+      document.addEventListener('DOMContentLoaded', function() {
+        
+      });
+      
+    document.addEventListener('DOMContentLoaded', function() {
+      
+      try {
+        const searchInput = document.getElementById('backend-student-search2');
+        const groupByCheckbox = document.getElementById('group-by-class-checkbox');
+        if (searchInput && groupByCheckbox) {
+          searchInput.addEventListener('input', fetchAndRenderStudents);
+          groupByCheckbox.addEventListener('change', fetchAndRenderStudents);
+          fetchAndRenderStudents();
+        }
+      } catch (e) {
+
+      }
+      });
+      {% if role == 'super_admin' %}
+      let usersCache = [];
+      function loadUsers() {
+          fetch('/list_users').then(r => r.json()).then(users => {
+              usersCache = users;
+              let html = users.map(u => `<div class='user-row'><b>${u.username}</b> - <span class='badge bg-primary'>${u.role}</span> <button class='btn btn-sm btn-secondary ms-2' onclick='editUser(${u.id})'>تعديل</button> <button class='btn btn-sm btn-danger' onclick='deleteUser(${u.id})'>حذف</button></div>`).join('');
+              document.getElementById('user-list').innerHTML = html;
+          });
+      }
+      loadUsers();
+      // Add user
+      document.getElementById('add-user-form').onsubmit = function(e) {
+          e.preventDefault();
+          let fd = new FormData(this);
+          fetch('/create_user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  username: fd.get('username'),
+                  password: fd.get('password'),
+                  role: fd.get('role')
+              })
+          }).then(r => r.json()).then(resp => {
+              if(resp.success) {
+                  loadUsers();
+                  this.reset();
+              } else {
+                  alert(resp.error || 'خطأ أثناء إضافة المستخدم');
+              }
+          });
+      };
+      // Edit user logic
+      window.editUser = function(id) {
+          let user = usersCache.find(u => u.id === id);
+          let modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+          let form = document.getElementById('edit-user-form');
+          form.id.value = user.id;
+          form.role.value = user.role;
+          form.password.value = '';
+          modal.show();
+      };
+      document.getElementById('edit-user-form').onsubmit = function(e) {
+          e.preventDefault();
+          let fd = new FormData(this);
+          fetch('/update_user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  id: fd.get('id'),
+                  role: fd.get('role'),
+                  password: fd.get('password')
+              })
+          }).then(r => r.json()).then(resp => {
+              if(resp.success) {
+                  loadUsers();
+                  bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+              } else {
+                  alert(resp.error || 'خطأ أثناء التحديث');
+              }
+          });
+      };
+      // Delete user logic
+      let deleteUserId = null;
+      window.deleteUser = function(id) {
+          deleteUserId = id;
+          let modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+          modal.show();
+      };
+      document.getElementById('confirm-delete-btn').onclick = function() {
+          fetch('/delete_user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: deleteUserId })
+          }).then(r => r.json()).then(resp => {
+              if(resp.success) {
+                  loadUsers();
+                  bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+              } else {
+                  alert(resp.error || 'خطأ أثناء الحذف');
+              }
+          });
+      };
+      {% endif %}
+      {% if role in ['super_admin', 'local_admin', 'teacher'] %}
+      // --- Classes Management ---
+      function buildClassCardHtml(cls) {
+        return `
+          <div class="class-card-compact" data-class-id="${cls.id}" data-level-id="${cls.level_id}" data-teacher-id="${cls.teacher_id}" data-backup-id="${cls.backup_teacher_id}">
+            <div class="class-card-header">
+              <div>
+                <div class="class-card-title">الصف <span class="class-name">${cls.name}</span></div>
+                <div class="class-card-meta">
+                  <span class="badge-level">${cls.level_name || 'غير محدد'}</span>
+                  &middot; المعلم: ${cls.teacher_name || 'غير محدد'}
+                </div>
+              </div>
+              <span class="class-card-chevron">&#9660;</span>
+            </div>
+            <div class="class-card-body">
+              <div class="announcement-ticket-container"></div>
+              <div class="class-toolbar">
+                <button class="toolbar-btn show-students-btn"><span class="toolbar-icon">&#128101;</span>طلاب</button>
+                <button class="toolbar-btn calendar-btn" data-class-id="${cls.id}"><span class="toolbar-icon">&#128197;</span>تقويم</button>
+                <button class="toolbar-btn continuous-monitoring-btn" data-class-id="${cls.id}"><span class="toolbar-icon">&#128202;</span>مراقبة</button>
+                <button class="toolbar-btn homework-btn" data-class-id="${cls.id}" data-bs-toggle="modal" data-bs-target="#homeworkModal"><span class="toolbar-icon">&#128221;</span>واجب</button>
+                <button class="toolbar-btn toolbar-btn-accent" onclick="openClassSupportMaterialModal(${cls.id}, ${cls.level_id})"><span class="toolbar-icon">&#128218;</span>دعم</button>
+                <button class="toolbar-btn announcement-btn"><span class="toolbar-icon">&#128226;</span>إعلان</button>
+                <button class="toolbar-btn attendance-btn" data-class-id="${cls.id}"><span class="toolbar-icon">&#9989;</span>حضور</button>
+              </div>
+              <div class="class-card-actions">
+                <button class="btn-edit-class edit-class-btn">&#9998; تعديل</button>
+                <button class="btn-delete-class delete-class-btn">&#128465; حذف</button>
+              </div>
+              <div class="students-list" style="display:none;"></div>
+            </div>
+          </div>
+        `;
+      }
+      window.loadClasses = function() {
+        const groupBy = document.getElementById('group-by-select').value;
+        fetch(`/classes?group_by=${groupBy}`)
+          .then(r => r.json())
+          .then(data => {
+            let html = '';
+            if (groupBy === 'none') {
+              (data.flat || []).forEach(cls => {
+                html += buildClassCardHtml(cls);
+              });
+            } else {
+              const grouped = data.grouped;
+              for (const group in grouped) {
+                html += `<div class="group-section mb-2"><h4>${group}</h4>`;
+                grouped[group].forEach(cls => {
+                  html += buildClassCardHtml(cls);
+                });
+                html += `</div>`;
+              }
+            }
+            document.getElementById('class-list').innerHTML = html;
+            attachClassCardHandlers();
+          });
+        }
+        document.getElementById('group-by-select').addEventListener('change', loadClasses);
+        // Initial load (safe)
+        document.addEventListener('DOMContentLoaded', function() {
+          const groupSelect = document.getElementById('group-by-select');
+          if (groupSelect) {
+            groupSelect.value = 'none';
+          }
+          window.loadClasses();
+        });
+
+// --- Classes Management ---
+function attachClassCardHandlers() {
+  const container = document.getElementById('class-list');
+  if (!container) return;
+
+  // Expand/collapse toggle (one at a time)
+  container.querySelectorAll('.class-card-header').forEach(header => {
+    header.onclick = function() {
+      const card = header.closest('.class-card-compact');
+      const wasExpanded = card.classList.contains('expanded');
+      // Collapse all within class-list
+      container.querySelectorAll('.class-card-compact.expanded').forEach(c => c.classList.remove('expanded'));
+      // Toggle this one
+      if (!wasExpanded) card.classList.add('expanded');
+    };
+  });
+
+  // Delete class
+  container.querySelectorAll('.delete-class-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const classDiv = this.closest('.class-card-compact');
+      const classId = classDiv.getAttribute('data-class-id');
+      if (!confirm('هل أنت متأكد من حذف هذا الصف؟')) return;
+      fetch(`/classes/${classId}`, { method: 'DELETE' }).then(r => r.json()).then(resp => {
+        if(resp.success) {
+          window.loadClasses();
+        } else {
+          alert(resp.error || 'حدث خطأ أثناء حذف الصف');
+        }
+      });
+    };
+  });
+  // Edit class
+  container.querySelectorAll('.edit-class-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const classDiv = this.closest('.class-card-compact');
+      const classId = classDiv.getAttribute('data-class-id');
+      const nameSpan = classDiv.querySelector('.class-name');
+      const currentName = nameSpan.textContent.trim();
+      const currentLevelId = classDiv.getAttribute('data-level-id');
+      const currentTeacherId = classDiv.getAttribute('data-teacher-id');
+      const currentBackupId = classDiv.getAttribute('data-backup-id');
+      const originalHTML = classDiv.innerHTML;
+      Promise.all([
+        fetch('/levels').then(r => r.json()),
+        fetch('/teachers').then(r => r.json())
+      ]).then(([levels, teachers]) => {
+        let levelOptions = levels.map(l => `<option value="${l.id}"${String(l.id)===String(currentLevelId)?' selected':''}>${l.name}</option>`).join('');
+        let teacherOptions = teachers.map(t => `<option value="${t.id}"${String(t.id)===String(currentTeacherId)?' selected':''}>${t.name || t.username}</option>`).join('');
+        let backupOptions = teachers.map(t => `<option value="${t.id}"${String(t.id)===String(currentBackupId)?' selected':''}>${t.name || t.username}</option>`).join('');
+        classDiv.innerHTML = `
+          <div style="padding:1rem;">
+            <div class="row align-items-center gx-2 gy-1">
+              <div class="col"><label class="form-label mb-0 small">اسم الصف</label><input class="form-control form-control-sm edit-class-input" value="${currentName}"></div>
+              <div class="col"><label class="form-label mb-0 small">المستوى</label><select id="edit-class-level" class="form-select form-select-sm">${levelOptions}</select></div>
+              <div class="col"><label class="form-label mb-0 small">المعلم</label><select id="edit-class-teacher" class="form-select form-select-sm">${teacherOptions}</select></div>
+              <div class="col"><label class="form-label mb-0 small">معلم احتياطي</label><select id="edit-class-backup" class="form-select form-select-sm">${backupOptions}</select></div>
+              <div class="col-auto d-flex gap-1"><button class="btn btn-success btn-sm save-edit-class-btn">حفظ</button><button class="btn btn-secondary btn-sm cancel-edit-class-btn">إلغاء</button></div>
+            </div>
+          </div>
+        `;
+        classDiv.querySelector('.save-edit-class-btn').onclick = function() {
+          const newName = classDiv.querySelector('.edit-class-input').value.trim();
+          const newLevelId = classDiv.querySelector('#edit-class-level').value;
+          const newTeacherId = classDiv.querySelector('#edit-class-teacher').value;
+          const newBackupId = classDiv.querySelector('#edit-class-backup').value;
+          fetch(`/classes/${classId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName, level_id: newLevelId, teacher_id: newTeacherId, backup_teacher_id: newBackupId })
+          }).then(r => r.json()).then(resp => {
+            if(resp.success) { window.loadClasses(); }
+            else { alert(resp.error || 'حدث خطأ أثناء التعديل'); }
+          });
+        };
+        classDiv.querySelector('.cancel-edit-class-btn').onclick = function() {
+          classDiv.innerHTML = originalHTML;
+          classDiv.classList.add('expanded');
+          attachClassCardHandlers();
+        };
+      });
+    };
+  });
+  // Attendance
+  container.querySelectorAll('.attendance-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const classId = btn.getAttribute('data-class-id');
+      window.open(`/attendance/${classId}`, '_blank');
+    };
+  });
+  // Show students (compact design with count badge)
+  container.querySelectorAll('.show-students-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const card = this.closest('.class-card-compact');
+      const classId = card.getAttribute('data-class-id');
+      let studentsDiv = card.querySelector('.students-list');
+      if (studentsDiv.style.display === 'block') {
+        studentsDiv.style.display = 'none';
+        studentsDiv.innerHTML = '';
+        return;
+      }
+      fetch(`/students/${classId}`)
+        .then(r => r.json())
+        .then(students => {
+          if (students.length === 0) {
+            studentsDiv.innerHTML = '<div class="text-muted p-2">لا يوجد طلاب في هذا الصف</div>';
+          } else {
+            studentsDiv.innerHTML = `<div class="students-compact-area">
+              <span class="student-count-badge">عدد الطلاب: ${students.length}</span>` +
+              students.map(s => `
+                <div class="student-row-compact">
+                  <span class="student-name">${s.name}</span>
+                  <button class="btn-abilities abilities-btn" data-student-id="${s.id}" data-class-id="${classId}">القدرات</button>
+                </div>
+              `).join('') + `</div>`;
+          }
+          studentsDiv.style.display = 'block';
+          studentsDiv.querySelectorAll('.abilities-btn').forEach(abtn => {
+            abtn.onclick = function(ev) {
+              ev.stopPropagation();
+              window.open(`/student_abilities/${abtn.getAttribute('data-student-id')}/${abtn.getAttribute('data-class-id')}`, '_blank');
+            };
+          });
+        });
+    };
+  });
+  // Continuous monitoring
+  container.querySelectorAll('.continuous-monitoring-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const classId = btn.getAttribute('data-class-id');
+      window.open(`/continuous_monitoring/${classId}`, '_blank');
+    };
+  });
+}
+
+      // Populate levels and teachers dropdowns for add-class-form
+      function populateClassDropdowns() {
+        fetch('/levels').then(r => r.json()).then(levels => {
+  const levelSelect = document.getElementById('level-select');
+  if (levelSelect) {
+    levelSelect.innerHTML = '<option value="">اختر المستوى</option>' + levels.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+  }
+});
+        fetch('/teachers').then(r => r.json()).then(teachers => {
+  const teacherSelect = document.getElementById('teacher-select');
+  const backupTeacherSelect = document.getElementById('backup-teacher-select');
+  if (teacherSelect) {
+    teacherSelect.innerHTML = '<option value="">غير محدد</option>' + teachers.map(t => `<option value="${t.id}">${t.name || t.username}</option>`).join('');
+  }
+  if (backupTeacherSelect) {
+    backupTeacherSelect.innerHTML = '<option value="">اختر معلم احتياطي</option>' + teachers.map(t => `<option value="${t.id}">${t.name || t.username}</option>`).join('');
+  }
+});
+      }
+      const addClassForm = document.getElementById('add-class-form');
+if (addClassForm) {
+  console.log('[DEBUG] addClassForm handler attached');
+  populateClassDropdowns();
+  addClassForm.onsubmit = function(e) {
+          e.preventDefault();
+          let fd = new FormData(this);
+          console.log('[DEBUG] FormData:', {
+            name: fd.get('name'),
+            level_id: fd.get('level_id'),
+            teacher_id: fd.get('teacher_id'),
+            backup_teacher_id: fd.get('backup_teacher_id')
+          });
+          const payload = {
+            name: fd.get('name'),
+            level_id: fd.get('level_id') ? parseInt(fd.get('level_id')) : null,
+            teacher_id: fd.get('teacher_id') ? parseInt(fd.get('teacher_id')) : null,
+            backup_teacher_id: fd.get('backup_teacher_id') ? parseInt(fd.get('backup_teacher_id')) : null
+          };
+          console.log('[DEBUG] Payload to send:', payload);
+          fetch('/classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(r => r.json()).then(resp => {
+            console.log('[DEBUG] Response from /classes:', resp);
+            if(resp.success) {
+              window.loadClasses(); // Refresh class list after add
+              this.reset();
+            } else {
+              alert(resp.error || 'خطأ أثناء إضافة الصف');
+            }
+          });
+        };
+      }
+      // --- Levels Management ---
+      function loadLevels() {
+        fetch('/levels').then(r => r.json()).then(levels => {
+          renderLevels(levels);
+        });
+      }
+
+      // Load groups for a specific level
+      function loadGroupsForLevel(levelId, callback) {
+        fetch(`/curriculum_groups?level_id=${levelId}`)
+            .then(response => response.json())
+            .then(groups => {
+                callback(groups);
+            });
+      }
+
+      window.loadGroupsForLevel = loadGroupsForLevel;
+
+      // Add group for a level
+      function addGroupForLevel(levelId, groupName, callback) {
+        fetch('/curriculum_groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: groupName, level_id: levelId })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) callback();
+        });
+      }
+
+      // Delete group for a level
+      function deleteGroupForLevel(levelId, groupId, callback) {
+        if (!confirm('هل أنت متأكد أنك تريد حذف هذه المجموعة؟')) return;
+        fetch(`/curriculum_groups/${groupId}?level_id=${levelId}`, {
+            method: 'DELETE',
+        })
+        .then((response) => {
+          if (!response.ok) throw new Error('Delete failed');
+          if (callback) callback();
+        })
+        .catch((err) => alert('حدث خطأ أثناء حذف المجموعة'));
+      }
+
+      // When displaying levels, load only their groups
+      function renderLevels(levels) {
+        const levelsContainer = document.getElementById('levels-container');
+        if (!levelsContainer) return;
+        levelsContainer.innerHTML = '';
+        levels.forEach(level => {
+          const safeName = level.name.replace(/'/g, "\\'");
+          const html = `
+            <div class="class-card-compact" data-level-id="${level.id}">
+              <div class="class-card-header">
+                <div>
+                  <div class="class-card-title">المستوى <span class="class-name">${level.name}</span></div>
+                </div>
+                <span class="class-card-chevron">&#9660;</span>
+              </div>
+              <div class="class-card-body">
+                <div class="class-toolbar">
+                  <button class="toolbar-btn toolbar-btn-accent" onclick="openSupportMaterialModal(${level.id})"><span class="toolbar-icon">&#128218;</span>مواد الدعم</button>
+                  <button class="toolbar-btn lc-groups-btn" data-id="${level.id}"><span class="toolbar-icon">&#128209;</span>المجموعات</button>
+                </div>
+                <div id="groups-for-level-${level.id}" style="display:none;"></div>
+                <div class="class-card-actions">
+                  <button class="btn-edit-class lc-edit-btn" data-id="${level.id}" data-name="${safeName}">&#9998; تعديل</button>
+                  <button class="btn-delete-class lc-delete-btn" data-id="${level.id}">&#128465; حذف</button>
+                </div>
+              </div>
+            </div>
+          `;
+          levelsContainer.insertAdjacentHTML('beforeend', html);
+        });
+        attachLevelCardHandlers();
+        // Load groups after all cards are in DOM
+        levels.forEach(level => {
+          loadGroupsForLevel(level.id, groups => {
+            renderGroups(groups, level.id);
+          });
+        });
+      }
+
+      function attachLevelCardHandlers() {
+        // Expand/collapse (one at a time) — only within #levels-container
+        document.querySelectorAll('#levels-container .class-card-header').forEach(header => {
+          header.onclick = function() {
+            const card = header.closest('.class-card-compact');
+            const wasExpanded = card.classList.contains('expanded');
+            document.querySelectorAll('#levels-container .class-card-compact.expanded').forEach(c => c.classList.remove('expanded'));
+            if (!wasExpanded) card.classList.add('expanded');
+          };
+        });
+        // Edit level
+        document.querySelectorAll('.lc-edit-btn').forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            editLevel(parseInt(btn.getAttribute('data-id')), btn.getAttribute('data-name'));
+          };
+        });
+        // Delete level
+        document.querySelectorAll('.lc-delete-btn').forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            deleteLevel(parseInt(btn.getAttribute('data-id')));
+          };
+        });
+        // Toggle groups visibility
+        document.querySelectorAll('.lc-groups-btn').forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            const levelId = btn.getAttribute('data-id');
+            const groupsDiv = document.getElementById(`groups-for-level-${levelId}`);
+            if (groupsDiv.style.display === 'none') {
+              groupsDiv.style.display = '';
+            } else {
+              groupsDiv.style.display = 'none';
+            }
+          };
+        });
+      }
+
+      function deleteLevel(levelId) {
+        if (!confirm('هل أنت متأكد أنك تريد حذف هذا المستوى؟')) return;
+        fetch(`/delete_level/${levelId}`, { method: 'DELETE' })
+            .then((response) => {
+              if (!response.ok) throw new Error('Delete failed');
+              loadLevels();
+            })
+            .catch((err) => alert('حدث خطأ أثناء حذف المستوى'));
+      }
+
+      function editLevel(levelId, oldName) {
+        const card = document.querySelector(`.class-card-compact[data-level-id="${levelId}"]`);
+        if (!card) return;
+        card.classList.add('expanded');
+        const body = card.querySelector('.class-card-body');
+        const origHTML = body.innerHTML;
+        body.innerHTML = `
+          <div class="lc-add-row" style="margin-bottom:0;">
+            <input type="text" id="edit-level-input-${levelId}" value="${oldName}" style="font-weight:600;">
+            <button id="save-level-${levelId}" style="background:var(--color-success);color:#fff;">حفظ</button>
+            <button id="cancel-level-${levelId}" style="background:var(--color-muted);color:#fff;">إلغاء</button>
+          </div>
+        `;
+        document.getElementById(`save-level-${levelId}`).onclick = function() {
+          const newName = document.getElementById(`edit-level-input-${levelId}`).value.trim();
+          if (!newName) return;
+          fetch('/edit_level_name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level_id: levelId, new_name: newName })
+          })
+            .then(r => r.json())
+            .then(result => {
+              if (result.success) loadLevels();
+              else alert(result.error || 'فشل التعديل');
+            })
+            .catch(() => alert('حدث خطأ أثناء تعديل المستوى'));
+        };
+        document.getElementById(`cancel-level-${levelId}`).onclick = function() {
+          body.innerHTML = origHTML;
+          attachLevelCardHandlers();
+          loadGroupsForLevel(levelId, groups => renderGroups(groups, levelId));
+        };
+      }
+
+      window.deleteLevel = deleteLevel;
+      window.editLevel = editLevel;
+
+      function renderGroups(groups, levelId) {
+        const groupsList = document.getElementById(`groups-for-level-${levelId}`);
+        if (!groupsList) return;
+        groupsList.innerHTML = '';
+        groups.forEach(group => {
+          const safeGroupName = group.name.replace(/'/g, "\\'");
+          const gc = document.createElement('div');
+          gc.className = 'group-card-compact';
+          gc.setAttribute('data-group-id', group.id);
+          gc.innerHTML = `
+            <div class="gc-header">
+              <span><span style="color:var(--color-muted);font-size:0.8rem;">مجموعة</span> <span id="group-name-${group.id}" class="fw-bold">${group.name}</span></span>
+              <div class="gc-actions">
+                <button style="background:var(--color-primary);color:#fff;" onclick="editGroup(${group.id}, '${safeGroupName}', ${levelId})">تعديل</button>
+                <button style="background:var(--color-accent);color:#fff;" onclick="toggleSubjects(${group.id}, ${levelId})" id="show-subjects-btn-${group.id}">المواد</button>
+                <button style="background:var(--color-danger);color:#fff;" onclick="deleteGroupForLevel(${levelId}, ${group.id}, () => loadGroupsForLevel(${levelId}, groups => renderGroups(groups, ${levelId})))">حذف</button>
+              </div>
+            </div>
+            <div class="gc-body" id="subjects-for-group-${group.id}"></div>
+          `;
+          groupsList.appendChild(gc);
+        });
+        // Add group input
+        const addDiv = document.createElement('div');
+        addDiv.className = 'lc-add-row';
+        addDiv.innerHTML = `
+          <input type="text" id="add-group-input-${levelId}" placeholder="اسم المجموعة">
+          <button onclick="addGroupForLevel(${levelId}, document.getElementById('add-group-input-${levelId}').value, () => loadGroupsForLevel(${levelId}, groups => renderGroups(groups, ${levelId})))">+ مجموعة</button>
+        `;
+        groupsList.appendChild(addDiv);
+      }
+
+      window.renderGroups = renderGroups;
+
+      function editGroup(groupId, oldName, levelId) {
+        const gc = document.querySelector(`.group-card-compact[data-group-id="${groupId}"]`);
+        if (!gc) return;
+        const header = gc.querySelector('.gc-header');
+        const origHTML = header.innerHTML;
+        header.innerHTML = `
+          <div class="lc-add-row" style="flex:1;margin:0;">
+            <input type="text" id="edit-group-input-${groupId}" value="${oldName}">
+            <button onclick="(function(){
+              var n=document.getElementById('edit-group-input-${groupId}').value;
+              fetch('/curriculum_groups/${groupId}',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,level_id:${levelId}})}).then(r=>r.json()).then(()=>loadGroupsForLevel(${levelId},g=>renderGroups(g,${levelId})));
+            })()">حفظ</button>
+            <button style="background:var(--color-muted);color:#fff;" onclick="loadGroupsForLevel(${levelId},g=>renderGroups(g,${levelId}))">إلغاء</button>
+          </div>
+        `;
+      }
+
+      function toggleSubjects(groupId, levelId) {
+        const gc = document.querySelector(`.group-card-compact[data-group-id="${groupId}"]`);
+        const btn = document.getElementById(`show-subjects-btn-${groupId}`);
+        if (!gc) return;
+        if (gc.classList.contains('gc-expanded')) {
+          gc.classList.remove('gc-expanded');
+          btn.textContent = 'المواد';
+        } else {
+          gc.classList.add('gc-expanded');
+          btn.textContent = 'إخفاء';
+          loadSubjects(groupId, gc.querySelector('.gc-body'), levelId);
+        }
+      }
+
+      function loadSubjects(groupId, section, levelId) {
+        fetch(`/curriculum_items/${groupId}`)
+            .then(r => r.json())
+            .then(subjects => {
+                let html = '';
+                subjects.forEach(subject => {
+                  html += `
+                    <div class="subject-row">
+                      <span id="subject-name-${subject.id}">${subject.name}</span>
+                      <div class="subject-actions">
+                        <button style="background:var(--color-primary);color:#fff;" onclick="startEditSubject(${subject.id}, ${groupId}, ${levelId})">تعديل</button>
+                        <button style="background:var(--color-danger);color:#fff;" onclick="deleteSubject(${subject.id}, ${groupId}, ${levelId})">حذف</button>
+                      </div>
+                    </div>
+                  `;
+                });
+                html += `
+                  <div class="lc-add-row">
+                    <input type="text" id="add-subject-input-${groupId}" placeholder="اسم المادة">
+                    <button onclick="addSubject(${groupId}, ${levelId})">+ مادة</button>
+                  </div>
+                `;
+                section.innerHTML = html;
+            });
+      }
+
+      function startEditSubject(subjectId, groupId, levelId) {
+        const row = document.getElementById(`subject-name-${subjectId}`).closest('.subject-row');
+        const oldName = document.getElementById(`subject-name-${subjectId}`).textContent;
+        row.innerHTML = `
+          <div class="lc-add-row" style="flex:1;margin:0;">
+            <input type="text" value="${oldName}" id="subject-input-${subjectId}">
+            <button onclick="saveEditSubject(${subjectId}, ${groupId}, ${levelId})">حفظ</button>
+            <button style="background:var(--color-muted);color:#fff;" onclick="cancelEditSubject(${subjectId}, ${groupId}, ${levelId})">إلغاء</button>
+          </div>
+        `;
+      }
+
+      function saveEditSubject(subjectId, groupId, levelId) {
+        const input = document.getElementById(`subject-input-${subjectId}`);
+        const name = input.value;
+        fetch(`/curriculum_items/${subjectId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        }).then(r => r.json()).then(() => loadSubjects(groupId, document.getElementById(`subjects-for-group-${groupId}`), levelId));
+      }
+
+      function cancelEditSubject(subjectId, groupId, levelId) {
+        loadSubjects(groupId, document.getElementById(`subjects-for-group-${groupId}`), levelId);
+      }
+
+      function addSubject(groupId, levelId) {
+        const input = document.getElementById(`add-subject-input-${groupId}`);
+        const name = input.value;
+        if (!name) return;
+        fetch('/curriculum_items', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, group_id: groupId })
+        }).then(r => r.json()).then(() => loadSubjects(groupId, document.getElementById(`subjects-for-group-${groupId}`), levelId));
+      }
+
+      function deleteSubject(subjectId, groupId, levelId) {
+        if (!confirm('هل أنت متأكد من حذف المادة؟')) return;
+        fetch(`/curriculum_items/${subjectId}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(() => loadSubjects(groupId, document.getElementById(`subjects-for-group-${groupId}`), levelId));
+      }
+
+      window.startEditSubject = startEditSubject;
+      window.saveEditSubject = saveEditSubject;
+      window.cancelEditSubject = cancelEditSubject;
+
+      // Make handler functions global for dynamic HTML onclick
+      window.editLevel = editLevel;
+      window.deleteLevel = deleteLevel;
+      window.editGroup = editGroup;
+      window.toggleSubjects = toggleSubjects;
+      window.addGroupForLevel = addGroupForLevel;
+      window.deleteGroupForLevel = deleteGroupForLevel;
+      window.addSubject = addSubject;
+      window.deleteSubject = deleteSubject;
+
+      // Initial load: fetch levels and render
+      loadLevels();
+
+      // Add Level
+      const addLevelForm = document.getElementById('add-level-form');
+      if (addLevelForm) {
+        addLevelForm.onsubmit = function(e) {
+          e.preventDefault();
+          const name = this.name.value.trim();
+          if (!name) return;
+          fetch('/levels', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+          }).then(r => r.json()).then(resp => {
+            if (resp.success) {
+              this.reset();
+              loadLevels();
+            } else {
+              alert(resp.error || 'خطأ أثناء إضافة المستوى');
+            }
+          });
+        };
+      }
+
+      // Event delegation for level actions
+      document.addEventListener('click', function(e) {
+        // Edit level name
+        if (e.target.classList.contains('edit-level-btn')) {
+          const levelCard = e.target.closest('.level-card');
+          const nameSpan = levelCard.querySelector('.level-name');
+          const currentName = nameSpan.textContent;
+          nameSpan.innerHTML = `<input class='form-control form-control-sm edit-level-input' value='${currentName}'>`;
+          e.target.style.display = 'none';
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'btn btn-sm btn-success ms-2';
+          saveBtn.textContent = 'حفظ';
+          const cancelBtn = document.createElement('button');
+          cancelBtn.className = 'btn btn-sm btn-secondary ms-2';
+          cancelBtn.textContent = 'إلغاء';
+          e.target.after(saveBtn, cancelBtn);
+          saveBtn.onclick = function() {
+            const newName = nameSpan.querySelector('input').value.trim();
+            const levelId = levelCard.getAttribute('data-level-id');
+            fetch(`/levels`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: levelId, name: newName })
+            }).then(r => r.json()).then(resp => {
+              if (resp.success) {
+                nameSpan.textContent = newName;
+                e.target.style.display = '';
+                saveBtn.remove();
+                cancelBtn.remove();
+              } else {
+                alert(resp.error || 'خطأ أثناء تعديل اسم المستوى');
+              }
+            });
+          };
+          cancelBtn.onclick = function() {
+            nameSpan.textContent = currentName;
+            e.target.style.display = '';
+            saveBtn.remove();
+            cancelBtn.remove();
+          };
+        }
+        // Delete level
+        else if (e.target.classList.contains('delete-level-btn')) {
+          const levelCard = e.target.closest('.level-card');
+          const levelId = levelCard.getAttribute('data-level-id');
+          if (confirm('هل أنت متأكد أنك تريد حذف هذا المستوى؟')) {
+            fetch(`/levels/${levelId}`, { method: 'DELETE' })
+              .then(r => r.json())
+              .then(resp => {
+                if (resp.success) {
+                  levelCard.remove();
+                } else {
+                  alert(resp.error || 'حدث خطأ أثناء حذف المستوى');
+                }
+              })
+              .catch(() => alert('حدث خطأ أثناء حذف المستوى'));
+          }
+        }
+      });
+    
+
+
+function getStudentAge(s) {
+  if (s.date_of_birth) {
+    const dob = new Date(s.date_of_birth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
+    return age >= 0 ? age : '-';
+  }
+  return '-';
+}
+
+function renderStudentCard(s) {
+  const age = getStudentAge(s);
+  const alertBadge = (s.alerts && s.alerts.trim() !== '') ? `<span style="color:#ef4444;font-size:0.85rem;font-weight:600;margin-right:6px;">&#9888; تنبيهات</span>` : '';
+  const className = s.class_name || s.class || '';
+  const classMeta = className ? `الصف: ${className}` : 'بدون صف';
+  return `
+    <div class="class-card-compact" data-student-id="${s.id}" data-username="${s.username || ''}" data-class-id="${s.class_id || ''}">
+      <div class="class-card-header">
+        <div>
+          <div class="class-card-title"><span class="class-name">${s.name || ''}</span> <span style="color:var(--color-muted,#64748b);font-size:0.88rem;">(العمر: ${age})</span>${alertBadge}</div>
+          <div class="class-card-meta">${classMeta} &middot; ${s.email || s.username || ''}</div>
+        </div>
+        <span class="class-card-chevron">&#9660;</span>
+      </div>
+      <div class="class-card-body">
+        <div class="class-toolbar">
+          <button class="toolbar-btn sc-info-btn" data-id="${s.id}"><span class="toolbar-icon">&#128100;</span>معلومات</button>
+          <button class="toolbar-btn sc-class-btn" data-id="${s.id}"><span class="toolbar-icon">&#127979;</span>الصف</button>
+          <a class="toolbar-btn" href="/student_abilities/${s.id}" style="text-decoration:none;"><span class="toolbar-icon">&#127942;</span>القدرات</a>
+          <a class="toolbar-btn" href="/score_card/${s.id}" style="text-decoration:none;"><span class="toolbar-icon">&#128203;</span>الدرجات</a>
+        </div>
+        <div class="sc-info-area" style="display:none;"></div>
+        <div class="sc-class-area" style="display:none;"></div>
+        <div class="sc-edit-area" style="display:none;"></div>
+        <div class="class-card-actions">
+          <button class="btn-edit-class sc-edit-btn" data-id="${s.id}">&#9998; تعديل</button>
+          <button class="btn-delete-class sc-delete-btn" data-id="${s.id}">&#128465; حذف</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function attachStudentCardHandlers() {
+  const container = document.getElementById('student-list');
+  if (!container) return;
+
+  // Expand/collapse
+  container.querySelectorAll('.class-card-header').forEach(header => {
+    header.onclick = function() {
+      const card = header.closest('.class-card-compact');
+      const wasExpanded = card.classList.contains('expanded');
+      container.querySelectorAll('.class-card-compact.expanded').forEach(c => c.classList.remove('expanded'));
+      if (!wasExpanded) card.classList.add('expanded');
+    };
+  });
+
+  // Info toggle
+  container.querySelectorAll('.sc-info-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const card = btn.closest('.class-card-compact');
+      const area = card.querySelector('.sc-info-area');
+      if (area.style.display !== 'none') { area.style.display = 'none'; return; }
+      const sid = btn.dataset.id;
+      fetch('/students').then(r => r.json()).then(students => {
+        const s = students.find(stu => String(stu.id) === String(sid));
+        if (!s) { area.innerHTML = '<div class="text-danger">لم يتم العثور على البيانات</div>'; area.style.display = ''; return; }
+        area.innerHTML = `
+          <div class="student-edit-form">
+            <div class="row g-2">
+              <div class="col-6"><b>الاسم:</b> ${s.name || '-'}</div>
+              <div class="col-6"><b>المستخدم:</b> ${s.username || '-'}</div>
+              <div class="col-6"><b>البريد:</b> ${s.email || '-'}</div>
+              <div class="col-6"><b>البريد الثانوي:</b> ${s.secondary_email || '-'}</div>
+              <div class="col-6"><b>تاريخ الميلاد:</b> ${s.date_of_birth || '-'}</div>
+              <div class="col-6"><b>الهاتف:</b> ${s.phone || '-'}</div>
+              <div class="col-6"><b>الجنس:</b> ${(s.sex === 'male' ? 'ذكر' : s.sex === 'female' ? 'أنثى' : '-')}</div>
+              <div class="col-6"><b>ملاحظات:</b> ${s.notes || '-'}</div>
+              ${s.alerts ? `<div class="col-12"><b style="color:#ef4444;">تنبيهات:</b> ${s.alerts}</div>` : ''}
+            </div>
+          </div>
+        `;
+        area.style.display = '';
+      });
+    };
+  });
+
+  // Class assignment toggle
+  container.querySelectorAll('.sc-class-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const card = btn.closest('.class-card-compact');
+      const area = card.querySelector('.sc-class-area');
+      if (area.style.display !== 'none') { area.style.display = 'none'; return; }
+      const sid = btn.dataset.id;
+      const currentClassId = card.getAttribute('data-class-id') || '';
+      fetch('/classes').then(r => r.json()).then(data => {
+        let classArray = [];
+        if (data.grouped) { classArray = Object.values(data.grouped).flat(); }
+        let options = `<option value=""${!currentClassId ? ' selected' : ''}>لا شيء</option>`;
+        options += classArray.map(cls =>
+          `<option value="${cls.id}"${String(cls.id) === String(currentClassId) ? ' selected' : ''}>${cls.name}</option>`
+        ).join('');
+        area.innerHTML = `
+          <div class="student-edit-form d-flex align-items-center gap-2 flex-wrap">
+            <select class="form-select sc-class-dropdown" style="max-width:200px;">${options}</select>
+            <button class="btn btn-sm btn-success sc-assign-btn" data-id="${sid}">حفظ</button>
+            <button class="btn btn-sm btn-secondary sc-cancel-class-btn">إلغاء</button>
+          </div>
+        `;
+        area.style.display = '';
+        area.querySelector('.sc-assign-btn').onclick = function(ev) {
+          ev.stopPropagation();
+          const classId = area.querySelector('.sc-class-dropdown').value;
+          fetch(`/update_student/${sid}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ class_id: classId })
+          }).then(r => r.json()).then(resp => {
+            if (resp.success) { fetchAndRenderStudents(); }
+            else { alert(resp.error || 'خطأ في حفظ الصف'); }
+          });
+        };
+        area.querySelector('.sc-cancel-class-btn').onclick = function(ev) {
+          ev.stopPropagation();
+          area.style.display = 'none';
+        };
+      });
+    };
+  });
+
+  // Delete student
+  container.querySelectorAll('.sc-delete-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      if (!confirm('هل أنت متأكد من حذف هذا الطالب؟')) return;
+      const id = btn.dataset.id;
+      fetch(`/delete_student/${id}`, { method: 'DELETE' }).then(r => r.json()).then(() => {
+        fetchAndRenderStudents();
+      });
+    };
+  });
+
+  // Edit student
+  container.querySelectorAll('.sc-edit-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      const card = btn.closest('.class-card-compact');
+      const area = card.querySelector('.sc-edit-area');
+      if (area.style.display !== 'none') { area.style.display = 'none'; return; }
+      const sid = btn.dataset.id;
+      fetch('/students').then(r => r.json()).then(students => {
+        const s = students.find(stu => String(stu.id) === String(sid));
+        if (!s) { area.innerHTML = '<div class="text-danger">لم يتم العثور على البيانات</div>'; area.style.display = ''; return; }
+        area.innerHTML = `
+          <div class="student-edit-form">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-6">
+                <label class="form-label">رقم الطالب</label>
+                <input class="form-control" value="${s.id}" readonly style="background:#f3f3f3;color:#555;">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">اسم الطالب</label>
+                <input class="form-control details-name" value="${s.name || ''}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">البريد / اسم المستخدم</label>
+                <input class="form-control details-email-username" value="${s.email || ''}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">البريد الثانوي</label>
+                <input class="form-control details-secondary-email" value="${s.secondary_email || ''}">
+              </div>
+            </div>
+            <div class="row g-2 align-items-center mt-1">
+              <div class="col-md-6">
+                <label class="form-label">كلمة المرور الجديدة</label>
+                <input type="password" class="form-control details-password" placeholder="أدخل كلمة المرور الجديدة إذا لزم الأمر">
+              </div>
+            </div>
+            <div class="row g-2 align-items-center mt-1">
+              <div class="col-md-4">
+                <label class="form-label">تاريخ الميلاد</label>
+                <input type="date" class="form-control details-dob" value="${s.date_of_birth || ''}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">العمر</label>
+                <input class="form-control details-age" value="" readonly style="background:#f3f3f3;color:#555;">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">الجنس</label>
+                <div>
+                  <input type="radio" id="sex-m-${sid}" name="sex-${sid}" class="details-sex" value="male" ${((s.sex||'').toLowerCase()==='male')?'checked':''}> <label for="sex-m-${sid}">ذكر</label>
+                  <input type="radio" id="sex-f-${sid}" name="sex-${sid}" class="details-sex" value="female" ${((s.sex||'').toLowerCase()==='female')?'checked':''}> <label for="sex-f-${sid}">أنثى</label>
+                </div>
+              </div>
+              <div class="col-md-6 mt-2">
+                <label class="form-label">رقم الهاتف</label>
+                <input class="form-control details-phone" value="${s.phone || ''}">
+              </div>
+            </div>
+            <div class="row g-2 align-items-center mt-1">
+              <div class="col-md-6">
+                <label class="form-label">ملاحظات</label>
+                <textarea class="form-control details-notes" rows="2">${s.notes || ''}</textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">تنبيهات</label>
+                <textarea class="form-control details-alerts" rows="2">${s.alerts || ''}</textarea>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end mt-2" style="gap:8px;">
+              <button class="btn btn-sm btn-success sc-save-btn">حفظ</button>
+              <button class="btn btn-sm btn-secondary sc-cancel-edit-btn">إلغاء</button>
+            </div>
+          </div>
+        `;
+        area.style.display = '';
+        // Age calculation
+        const dobInput = area.querySelector('.details-dob');
+        const ageInput = area.querySelector('.details-age');
+        function calcAge() {
+          const dob = dobInput.value;
+          if (dob) {
+            const bd = new Date(dob); const td = new Date();
+            let a = td.getFullYear() - bd.getFullYear();
+            const mo = td.getMonth() - bd.getMonth();
+            if (mo < 0 || (mo === 0 && td.getDate() < bd.getDate())) a--;
+            ageInput.value = a >= 0 ? a : '';
+          } else { ageInput.value = ''; }
+        }
+        dobInput.addEventListener('input', calcAge);
+        calcAge();
+        // Save
+        area.querySelector('.sc-save-btn').onclick = function(ev) {
+          ev.stopPropagation();
+          const emailVal = area.querySelector('.details-email-username').value.trim();
+          const sexVal = area.querySelector('input.details-sex:checked') ? area.querySelector('input.details-sex:checked').value : '';
+          const updated = {
+            name: area.querySelector('.details-name').value.trim(),
+            username: emailVal, email: emailVal,
+            secondary_email: area.querySelector('.details-secondary-email').value.trim(),
+            date_of_birth: area.querySelector('.details-dob').value,
+            phone: area.querySelector('.details-phone').value.trim(),
+            notes: area.querySelector('.details-notes').value.trim(),
+            alerts: area.querySelector('.details-alerts').value.trim(),
+            sex: sexVal
+          };
+          const pw = area.querySelector('.details-password').value;
+          if (pw) updated.new_password = pw;
+          fetch(`/update_student/${sid}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated)
+          }).then(r => r.json()).then(resp => {
+            if (resp.success) { fetchAndRenderStudents(); }
+            else { alert(resp.error || 'حدث خطأ أثناء الحفظ'); }
+          });
+        };
+        // Cancel
+        area.querySelector('.sc-cancel-edit-btn').onclick = function(ev) {
+          ev.stopPropagation();
+          area.style.display = 'none';
+        };
+      });
+    };
+  });
+}
+
+function fetchAndRenderStudents() {
+  const searchInput = document.getElementById('backend-student-search2');
+  const groupByCheckbox = document.getElementById('group-by-class-checkbox');
+  const query = searchInput ? searchInput.value.trim() : '';
+  const groupByClass = groupByCheckbox ? groupByCheckbox.checked : false;
+  const url = `/students/search?query=${encodeURIComponent(query)}`;
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error('Network response was not ok: ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      let students = Array.isArray(data) ? data : (data.students || data.results || []);
+      if (!Array.isArray(students)) students = [];
+      renderStudents(students, groupByClass);
+    })
+    .catch(() => {
+      renderStudents([], groupByClass);
+    });
+}
+
+      fetchAndRenderStudents();
+      function renderStudents(students, groupByClass) {
+    if (!Array.isArray(students)) students = [];
+    const studentList = document.getElementById('student-list');
+    if (!studentList) return;
+    let html = '';
+    if (!groupByClass) {
+      html = students.map(s => renderStudentCard(s)).join('');
+    } else {
+      let grouped = {};
+      students.forEach(s => {
+        const cn = s.class_name || s.class || 'بدون صف';
+        if (!grouped[cn]) grouped[cn] = [];
+        grouped[cn].push(s);
+      });
+      html = Object.keys(grouped).map(cn => {
+        return `
+          <div class="mb-3">
+            <div class="px-3 py-2 rounded-top fw-bold" style="font-size:1.05rem;background:var(--color-primary,#2563eb);color:#fff;">${cn}</div>
+            <div class="p-2 rounded-bottom" style="background:#f8fafc;">
+              ${grouped[cn].map(s => renderStudentCard(s)).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    if (students.length === 0) {
+      html = '<div class="alert alert-info text-center">لا يوجد طلاب.</div>';
+    }
+    studentList.innerHTML = html;
+    attachStudentCardHandlers();
+}
+
+      const addStudentForm = document.getElementById('add-student-form');
+if (addStudentForm) {
+  addStudentForm.onsubmit = function(e) {
+        e.preventDefault();
+        let fd = new FormData(this);
+        fetch('/create_student', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: fd.get('username'),
+            name: fd.get('name'),
+            password: fd.get('password')
+          })
+        }).then(r => r.json()).then(resp => {
+          if(resp.success) {
+            fetchAndRenderStudents();
+            this.reset();
+          } else {
+            alert(resp.error || 'خطأ أثناء إضافة الطالب');
+          }
+        });
+      };
+      {% endif %}
+    }
+      {% if role == 'local_admin' %}
+      // --- Teachers Management ---
+      let teachersCache = [];
+      function loadTeachers() {
+        fetch('/teachers').then(r => r.json()).then(teachers => {
+          teachersCache = teachers;
+          const container = document.getElementById('teacher-list');
+          let html = teachers.map(t => `
+            <div class="class-card-compact" data-teacher-id="${t.id}">
+              <div class="class-card-header">
+                <div>
+                  <div class="class-card-title">${t.name || t.username}</div>
+                  <div class="class-card-meta">${t.email || t.username || ''}</div>
+                </div>
+                <span class="class-card-chevron">&#9660;</span>
+              </div>
+              <div class="class-card-body">
+                <div class="class-toolbar">
+                  <button class="toolbar-btn tc-info-btn" data-id="${t.id}"><span class="toolbar-icon">&#128100;</span>معلومات</button>
+                </div>
+                <div class="tc-info-area" style="display:none;"></div>
+                <div class="class-card-actions">
+                  <button class="btn-edit-class tc-edit-btn" data-id="${t.id}">&#9998; تعديل</button>
+                  <button class="btn-delete-class tc-delete-btn" data-id="${t.id}">&#128465; حذف</button>
+                </div>
+              </div>
+            </div>
+          `).join('');
+          container.innerHTML = html;
+          attachTeacherCardHandlers();
+        });
+      }
+
+      function attachTeacherCardHandlers() {
+        const container = document.getElementById('teacher-list');
+        if (!container) return;
+        // Expand/collapse (one at a time)
+        container.querySelectorAll('.class-card-header').forEach(header => {
+          header.onclick = function() {
+            const card = header.closest('.class-card-compact');
+            const wasExpanded = card.classList.contains('expanded');
+            container.querySelectorAll('.class-card-compact.expanded').forEach(c => c.classList.remove('expanded'));
+            if (!wasExpanded) card.classList.add('expanded');
+          };
+        });
+        // Show info toggle
+        container.querySelectorAll('.tc-info-btn').forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            const card = btn.closest('.class-card-compact');
+            const infoArea = card.querySelector('.tc-info-area');
+            if (infoArea.style.display !== 'none') {
+              infoArea.style.display = 'none';
+              return;
+            }
+            const id = btn.getAttribute('data-id');
+            const t = teachersCache.find(x => x.id == id);
+            if (!t) return;
+            infoArea.innerHTML = `
+              <div style="font-size:0.9rem;padding:0.4rem 0;">
+                ${t.phone ? '<div><b>الهاتف:</b> ' + t.phone + '</div>' : ''}
+                ${t.notes ? '<div><b>ملاحظات:</b> ' + t.notes + '</div>' : ''}
+                ${t.alerts ? '<div><b>تنبيهات:</b> ' + t.alerts + '</div>' : ''}
+                ${!t.phone && !t.notes && !t.alerts ? '<div class="text-muted">لا توجد معلومات إضافية</div>' : ''}
+              </div>
+            `;
+            infoArea.style.display = '';
+          };
+        });
+        // Delete
+        container.querySelectorAll('.tc-delete-btn').forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            if (!confirm('هل أنت متأكد من حذف هذا المعلم؟')) return;
+            fetch(`/teachers/${btn.getAttribute('data-id')}`, { method: 'DELETE' }).then(r => r.json()).then(resp => {
+              if (resp.success) loadTeachers();
+              else alert(resp.error || 'حدث خطأ أثناء حذف المعلم');
+            });
+          };
+        });
+        // Edit
+        container.querySelectorAll('.tc-edit-btn').forEach(btn => {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            const card = btn.closest('.class-card-compact');
+            const id = btn.getAttribute('data-id');
+            const teacher = teachersCache.find(x => x.id == id);
+            if (!teacher) return;
+            card.classList.add('expanded');
+            const body = card.querySelector('.class-card-body');
+            const origHTML = body.innerHTML;
+            body.innerHTML = `
+              <div class="row g-2">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label" style="font-size:0.9em;">البريد الإلكتروني</label>
+                  <input class="form-control form-control-sm edit-teacher-username" type="email" value="${teacher.email || ''}" required>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label" style="font-size:0.9em;">اسم المعلم</label>
+                  <input class="form-control form-control-sm edit-teacher-name" value="${teacher.name || ''}" required>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label" style="font-size:0.9em;">كلمة المرور الجديدة (اختياري)</label>
+                  <input class="form-control form-control-sm edit-teacher-password" type="password" placeholder="اختياري">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label" style="font-size:0.9em;">رقم الهاتف</label>
+                  <input class="form-control form-control-sm edit-teacher-phone" value="${teacher.phone || ''}">
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label" style="font-size:0.9em;">تنبيهات</label>
+                  <textarea class="form-control form-control-sm edit-teacher-alerts" rows="2">${teacher.alerts || ''}</textarea>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label" style="font-size:0.9em;">ملاحظات</label>
+                  <textarea class="form-control form-control-sm edit-teacher-notes" rows="2">${teacher.notes || ''}</textarea>
+                </div>
+              </div>
+              <div class="class-card-actions">
+                <button class="btn-edit-class save-edit-teacher-btn">&#10003; حفظ</button>
+                <button class="btn-delete-class cancel-edit-teacher-btn">&#10005; إلغاء</button>
+              </div>
+            `;
+            body.querySelector('.save-edit-teacher-btn').onclick = function() {
+              fetch(`/teachers/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  username: body.querySelector('.edit-teacher-username').value.trim(),
+                  name: body.querySelector('.edit-teacher-name').value.trim(),
+                  password: body.querySelector('.edit-teacher-password').value,
+                  phone: body.querySelector('.edit-teacher-phone').value.trim(),
+                  alerts: body.querySelector('.edit-teacher-alerts').value.trim(),
+                  notes: body.querySelector('.edit-teacher-notes').value.trim()
+                })
+              }).then(r => r.json()).then(resp => {
+                if (resp.success) loadTeachers();
+                else alert(resp.error || 'حدث خطأ أثناء التعديل');
+              });
+            };
+            body.querySelector('.cancel-edit-teacher-btn').onclick = function() {
+              body.innerHTML = origHTML;
+              attachTeacherCardHandlers();
+            };
+          };
+        });
+      }
+
+      loadTeachers();
+
+      document.getElementById('add-teacher-form').onsubmit = function(e) {
+        e.preventDefault();
+        let fd = new FormData(this);
+        fetch('/teachers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: fd.get('username'),
+            password: fd.get('password'),
+            name: fd.get('name')
+          })
+        }).then(r => r.json()).then(resp => {
+          if(resp.success) {
+            loadTeachers();
+            this.reset();
+          } else {
+            alert(resp.error || 'خطأ أثناء إضافة المعلم');
+          }
+        });
+      };
+
+      {% endif %}
+    
+
+    // --- Calendar Modal & Event CRUD Logic ---
+    document.body.addEventListener('click', async function(e) {
+      if (e.target.closest('.calendar-btn')) {
+        const btn = e.target.closest('.calendar-btn');
+        const classId = btn.getAttribute('data-class-id');
+        
+        const classBlock = btn.closest('.class-card-compact') || btn.closest('.class-block');
+let className = '';
+if (classBlock) {
+  const nameElem = classBlock.querySelector('.class-name');
+  className = nameElem ? nameElem.innerText : '';
+}
+document.getElementById('calendar-class-name').innerText = className;
+        // Show the modal
+        var modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+        modal.show();
+        // Render FullCalendar in the modal
+        setTimeout(async () => {
+          let calendarEl = document.getElementById('class-calendar');
+          if (calendarEl) {
+            calendarEl.innerHTML = '';
+            // Fetch events from backend
+            let events = [];
+            try {
+              window.currentClassId = classId;
+let resp = await fetch(`/api/events/${window.currentClassId}`);
+              events = await resp.json();
+              // Format events for FullCalendar
+              events = events.map(ev => ({
+                id: ev.id,
+                title: ev.title,
+                start: ev.start,
+                end: ev.end,
+                backgroundColor: ev.color || '#3788d8',
+                borderColor: ev.color || '#3788d8',
+                extendedProps: {
+                  description: ev.description,
+                  recurrence: ev.recurrence
+                }
+              }));
+            } catch (err) {
+              alert('خطأ في تحميل الأحداث');
+            }
+            let calendar = new FullCalendar.Calendar(calendarEl, {
+              initialView: 'dayGridMonth',
+              locale: 'ar',
+              height: 400,
+              headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+              },
+              events: function(fetchInfo, successCallback, failureCallback) {
+  fetch(`/api/events/${window.currentClassId}`)
+    .then(r => r.json())
+    .then(data => {
+      const formatted = data.map(ev => ({
+        id: ev.id,
+        title: ev.title,
+        start: ev.start,
+        end: ev.end,
+        backgroundColor: ev.color || '#3788d8',
+        borderColor: ev.color || '#3788d8',
+        extendedProps: {
+          description: ev.description,
+          recurrence: ev.recurrence
+        }
+      }));
+      successCallback(formatted);
+    })
+    .catch(failureCallback);
+},
+              dateClick: function(info) {
+                openEventModal({ start: info.dateStr, mode: 'add' });
+              },
+              eventClick: function(info) {
+                openEventModal({
+                  id: info.event.id,
+                  title: info.event.title,
+                  description: info.event.extendedProps.description,
+                  start: info.event.startStr,
+                  end: info.event.endStr,
+                  color: info.event.backgroundColor,
+                  recurrence: info.event.extendedProps.recurrence,
+                  mode: 'edit',
+                  eventObj: info.event
+                });
+              }
+            });
+            window.currentCalendar = calendar;
+            calendar.render();
+          }
+        }, 300);
+      }
+    });
+    // --- Event Modal Logic ---
+    function openEventModal(eventData) {
+      const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+      const form = document.getElementById('eventForm');
+      document.getElementById('event-id').value = eventData.id || '';
+      document.getElementById('event-title').value = eventData.title || '';
+      document.getElementById('event-desc').value = eventData.description || '';
+      // Prefill start and end for new events at 8:00 and 9:00
+      if (eventData.mode === 'add' && eventData.start) {
+        const date = eventData.start.split('T')[0];
+        document.getElementById('event-start').value = date + 'T08:00';
+        document.getElementById('event-end').value = date + 'T09:00';
+      } else {
+        document.getElementById('event-start').value = eventData.start ? eventData.start.slice(0, 16) : '';
+        document.getElementById('event-end').value = eventData.end ? eventData.end.slice(0, 16) : '';
+      }
+      document.getElementById('event-color').value = eventData.color || '#3788d8';
+      document.getElementById('event-recurrence').value = eventData.recurrence || 'none';
+
+      // Recurrence End Date field logic
+      const recurrenceSelect = document.getElementById('event-recurrence');
+      const recurrenceEndWrapper = document.getElementById('recurrence-end-date-wrapper');
+      const recurrenceEndInput = document.getElementById('event-recurrence-end');
+
+      // Helper to show/hide the field
+      function toggleRecurrenceEndField() {
+        if (recurrenceSelect.value === 'weekly' || recurrenceSelect.value === 'monthly') {
+          recurrenceEndWrapper.style.display = '';
+          recurrenceEndInput.required = true;
+        } else {
+          recurrenceEndWrapper.style.display = 'none';
+          recurrenceEndInput.required = false;
+          recurrenceEndInput.value = '';
+        }
+      }
+      // Attach change event (once)
+      recurrenceSelect.onchange = toggleRecurrenceEndField;
+
+      // Set value and visibility on modal open
+      if (eventData.recurrence === 'weekly' || eventData.recurrence === 'monthly') {
+        recurrenceSelect.value = eventData.recurrence;
+        recurrenceEndInput.value = eventData.recurrence_end ? eventData.recurrence_end.split('T')[0] : '';
+        recurrenceEndWrapper.style.display = '';
+        recurrenceEndInput.required = true;
+      } else {
+        recurrenceSelect.value = 'none';
+        recurrenceEndWrapper.style.display = 'none';
+        recurrenceEndInput.required = false;
+        recurrenceEndInput.value = '';
+      }
+      // Ensure the toggle runs on open
+      toggleRecurrenceEndField();
+
+      // Show delete button only in edit mode
+      const deleteBtn = document.getElementById('delete-event-btn');
+      if (deleteBtn) {
+        // Remove previous handler to prevent stacking
+        deleteBtn.onclick = null;
+        if (eventData.mode === 'edit' && eventData.id) {
+          deleteBtn.style.display = '';
+          deleteBtn.onclick = async function() {
+            if (!confirm('هل أنت متأكد من حذف هذا الحدث؟')) return;
+            try {
+              const resp = await fetch(`/api/events/${eventData.id}`, { method: 'DELETE' });
+              const data = await resp.json();
+              if (data.success) {
+                modal.hide();
+                if (window.currentCalendar) window.currentCalendar.refetchEvents();
+              } else {
+                alert(data.error || 'خطأ أثناء حذف الحدث');
+              }
+            } catch (err) {
+              alert('خطأ في الاتصال بالخادم');
+            }
+          };
+        } else {
+          deleteBtn.style.display = 'none';
+        }
+      }
+      // Attach save handler
+      const saveBtn = document.getElementById('save-event-btn');
+      if (saveBtn) {
+        saveBtn.onclick = async function() {
+          // Collect data from modal fields
+          const id = document.getElementById('event-id').value;
+          const title = document.getElementById('event-title').value;
+          const description = document.getElementById('event-desc').value;
+          const start = document.getElementById('event-start').value;
+          const end = document.getElementById('event-end').value;
+          const color = document.getElementById('event-color').value;
+          const recurrence = document.getElementById('event-recurrence').value;
+          const recurrence_end = document.getElementById('event-recurrence-end').value;
+          const payload = {
+            title,
+            description,
+            start,
+            end,
+            color,
+            recurrence,
+            recurrence_end,
+            class_id: window.currentClassId
+          };
+          let url = '/api/events';
+          let method = 'POST';
+          if (eventData.mode === 'edit' && id) {
+            url = `/api/events/${id}`;
+            method = 'PUT';
+          }
+          try {
+            const resp = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (data.success) {
+              // Close modal
+              modal.hide();
+              // Refresh calendar events
+              if (window.currentCalendar) window.currentCalendar.refetchEvents();
+            } else {
+              alert(data.error || 'خطأ في حفظ الحدث');
+            }
+          } catch (err) {
+            alert('خطأ في الاتصال بالخادم');
+          }
+        };
+      }
+      modal.show();
+    }
+</script>
+
+<!-- Support Material Modal -->
+
+<!-- Support Material Modal -->
+<div class="modal fade" id="supportMaterialModal" tabindex="-1" aria-labelledby="supportMaterialModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="supportMaterialModalLabel">مواد الدعم للمستوى</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="supportMaterialUploadForm" class="mb-4">
+          <input type="hidden" id="support-material-level-id" name="level_id">
+          <div class="mb-3">
+            <label for="support-material-file" class="form-label">اختر ملفًا</label>
+            <input class="form-control" type="file" id="support-material-file" name="file" required>
+          </div>
+          <div class="mb-3">
+            <label for="support-material-desc" class="form-label">وصف الملف</label>
+            <input class="form-control" type="text" id="support-material-desc" name="description" required>
+          </div>
+          <button type="submit" class="btn btn-success">رفع الملف</button>
+        </form>
+        <div id="support-material-list">
+          <!-- List of files will appear here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openSupportMaterialModal(levelId) {
+  document.getElementById('support-material-level-id').value = levelId;
+  const modal = new bootstrap.Modal(document.getElementById('supportMaterialModal'));
+  modal.show();
+  loadSupportMaterials(levelId);
+}
+
+function loadSupportMaterials(levelId) {
+  fetch(`/levels/${levelId}/support_material`)
+    .then(r => r.json())
+    .then(files => {
+      let html = '';
+      if(files.length === 0) {
+        html = '<div class="alert alert-info">لا توجد مواد دعم لهذا المستوى بعد.</div>';
+      } else {
+        html = '<div class="list-group">';
+        files.forEach((f, idx) => {
+          html += `<div class="list-group-item d-flex justify-content-between align-items-center" id="support-material-row-${idx}">
+            <div>
+              <a href="${f.url}" target="_blank">${f.filename}</a><br>
+              <span class="support-material-desc" id="support-material-desc-${idx}"><small class="text-muted">${f.description}</small></span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-secondary">${f.uploader}</span>
+              <span class="badge bg-light text-dark">${f.date}</span>
+              <button class="btn btn-sm btn-primary edit-support-btn" data-idx="${idx}" data-id="${f.id || f.support_id || ''}" data-desc="${encodeURIComponent(f.description)}">تعديل</button>
+              <button class="btn btn-sm btn-danger delete-support-btn" data-id="${f.id || f.support_id || ''}">حذف</button>
+            </div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+      document.getElementById('support-material-list').innerHTML = html;
+
+      // Attach delete handlers
+      document.querySelectorAll('.delete-support-btn').forEach(btn => {
+        btn.onclick = function() {
+          if (!confirm('هل أنت متأكد من حذف هذا الملف؟')) return;
+          const id = btn.getAttribute('data-id');
+          fetch(`/support_material/${id}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(resp => {
+              if(resp.success) loadSupportMaterials(levelId);
+              else alert(resp.error || 'فشل حذف الملف');
+            });
+        };
+      });
+      // Attach edit handlers
+      document.querySelectorAll('.edit-support-btn').forEach(btn => {
+        btn.onclick = function() {
+          const idx = btn.getAttribute('data-idx');
+          const id = btn.getAttribute('data-id');
+          const oldDesc = decodeURIComponent(btn.getAttribute('data-desc'));
+          const descSpan = document.getElementById(`support-material-desc-${idx}`);
+          descSpan.innerHTML = `
+            <div class='mb-2'>
+              <input type='text' class='form-control form-control-sm mb-2' id='edit-support-desc-input-${idx}' value="${oldDesc}">
+              <input type='file' accept='*' class='form-control form-control-sm' id='edit-support-file-input-${idx}'>
+            </div>
+            <div class='d-flex gap-2'>
+              <button class='btn btn-sm btn-success save-edit-support-btn' data-id='${id}' data-idx='${idx}'>حفظ</button>
+              <button class='btn btn-sm btn-secondary cancel-edit-support-btn' data-idx='${idx}'>إلغاء</button>
+            </div>
+          `;
+          // Save handler
+          descSpan.querySelector('.save-edit-support-btn').onclick = function() {
+            const newDesc = document.getElementById(`edit-support-desc-input-${idx}`).value.trim();
+            const fileInput = document.getElementById(`edit-support-file-input-${idx}`);
+            if(!newDesc) { alert('الوصف مطلوب'); return; }
+            const formData = new FormData();
+            formData.append('description', newDesc);
+            if(fileInput.files.length > 0) {
+              formData.append('file', fileInput.files[0]);
+            }
+            fetch(`/support_material/${id}`, {
+              method: 'PUT',
+              body: formData
+            })
+            .then(r => r.json())
+            .then(resp => {
+              if(resp.success) loadSupportMaterials(levelId);
+              else alert(resp.error || 'فشل التعديل');
+            });
+          };
+          // Cancel handler
+          descSpan.querySelector('.cancel-edit-support-btn').onclick = function() {
+            loadSupportMaterials(levelId);
+          };
+        };
+      });
+    });
+}
+
+document.getElementById('supportMaterialUploadForm').onsubmit = function(e) {
+  e.preventDefault();
+  const levelId = document.getElementById('support-material-level-id').value;
+  const fileInput = document.getElementById('support-material-file');
+  const descInput = document.getElementById('support-material-desc');
+  if (!fileInput.files.length || !descInput.value.trim()) return;
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('description', descInput.value.trim());
+  fetch(`/levels/${levelId}/support_material`, {
+    method: 'POST',
+    body: formData
+  })
+  .then(r => r.json())
+  .then(resp => {
+    if(resp.success) {
+      loadSupportMaterials(levelId);
+      fileInput.value = '';
+      descInput.value = '';
+    } else {
+      alert(resp.error || 'فشل رفع الملف');
+    }
+  })
+  .catch(() => alert('حدث خطأ أثناء رفع الملف'));
+};
+</script>
+
+<!-- Class Support Material Modal -->
+<div class="modal fade" id="classSupportMaterialModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title">مواد الدعم الخاصة بمستوى الصف</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="class-support-material-list">
+        <!-- Support materials will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openClassSupportMaterialModal(classId, levelId) {
+    fetch(`/levels/${levelId}/support_material`)
+      .then(r => r.json())
+      .then(materials => {
+                let html = '';
+        if (!materials || materials.length === 0) {
+          html = '<div class="text-muted">لا توجد مواد دعم لهذا المستوى</div>';
+        } else {
+          html = materials.map(m => {
+  let fileName = 'ملف غير متوفر';
+  // Use backend keys: filename and url
+  if (m.filename) {
+    fileName = m.filename;
+  } else if (m.url && m.url.trim() !== '') {
+    try {
+      fileName = m.url.split('/').pop();
+    } catch {
+      fileName = m.url;
+    }
+  }
+  const hasFile = m.url && m.url.trim() !== '';
+  return `<div class="card mb-2" style="border-radius:0.75rem;border:1px solid #e2e8f0;">
+    <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-center" style="gap: 10px;">
+      <div class="d-flex flex-column flex-md-row align-items-center" style="gap: 10px;">
+        ${hasFile ? `<a href="${m.url}" target="_blank" style="font-weight:bold; color:var(--color-primary,#2563eb); text-decoration:underline; word-break:break-all;">${fileName}</a>` : `<span style="font-weight:bold; color:#999;">${fileName}</span>`}
+        <span class="ms-2">${m.description || ''}</span>
+      </div>
+      ${hasFile ? `<a href="${m.url}" download class="btn btn-sm btn-primary">تحميل</a>` : ''}
+    </div>
+  </div>`;
+}).join('');
+        }
+        document.getElementById('class-support-material-list').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('classSupportMaterialModal')).show();
+      });
+}
+</script>
+
+<!-- Recurring Event Delete Modal -->
+<div class="modal fade" id="recurringDeleteModal" tabindex="-1" aria-labelledby="recurringDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title" id="recurringDeleteModalLabel">حذف حدث متكرر</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        هل تريد حذف كل سلسلة التكرار لهذا الحدث، أم حذف هذا الحدث فقط؟
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="delete-series-btn">حذف السلسلة</button>
+        <button type="button" class="btn btn-warning" id="delete-occurrence-btn">حذف هذا الحدث فقط</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% include 'homework_modal.html' %}
+{% include 'announcement_modal.html' %}
+<script>
+// Announcement modal logic
+let currentAnnouncementClassId = null;
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('announcement-btn') || e.target.closest('.announcement-btn')) {
+    const classBlock = e.target.closest('.class-card-compact') || e.target.closest('.class-block');
+    currentAnnouncementClassId = classBlock ? classBlock.getAttribute('data-class-id') : null;
+    document.getElementById('announcementClassId').value = currentAnnouncementClassId;
+    // Fetch latest announcement for this class
+    fetch('/api/class/' + currentAnnouncementClassId + '/announcement')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('announcementText').innerHTML = data && data.success && data.text ? data.text : '';
+        document.getElementById('announcementExpiry').value = data && data.success && data.expiry ? data.expiry : '';
+        var modal = new bootstrap.Modal(document.getElementById('announcementModal'));
+        modal.show();
+      });
+  }
+});
+
+document.getElementById('saveAnnouncementBtn').onclick = function() {
+  const classId = document.getElementById('announcementClassId').value;
+  const text = document.getElementById('announcementText').innerHTML;
+  const expiry = document.getElementById('announcementExpiry').value;
+  fetch('/api/class/' + classId + '/announcement', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text, expiry})
+  })
+  .then(r => r.json())
+  .then(resp => {
+    if (resp.success) {
+      bootstrap.Modal.getInstance(document.getElementById('announcementModal')).hide();
+      alert('تم حفظ الإعلان بنجاح');
+    } else {
+      alert('حدث خطأ أثناء حفظ الإعلان');
+    }
+  });
+};
+</script>
+<script>
+// Mobile bottom nav: sync with Bootstrap tabs
+document.addEventListener('DOMContentLoaded', function() {
+  var bottomNav = document.getElementById('mobileBottomNav');
+  if (!bottomNav) return;
+  var bottomBtns = bottomNav.querySelectorAll('.bottom-nav-item');
+  var desktopTabs = document.querySelectorAll('#adminTab .nav-link');
+
+  function syncActive(target) {
+    // Update bottom nav active state
+    bottomBtns.forEach(function(b) {
+      b.classList.toggle('active', b.getAttribute('data-bs-target') === target);
+    });
+    // Also activate the matching desktop tab
+    desktopTabs.forEach(function(t) {
+      if (t.getAttribute('data-bs-target') === target) {
+        var tab = new bootstrap.Tab(t);
+        tab.show();
+      }
+    });
+  }
+
+  bottomBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var target = btn.getAttribute('data-bs-target');
+      syncActive(target);
+    });
+  });
+
+  // Sync bottom nav when desktop tabs change
+  desktopTabs.forEach(function(tab) {
+    tab.addEventListener('shown.bs.tab', function(e) {
+      var target = e.target.getAttribute('data-bs-target');
+      bottomBtns.forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-bs-target') === target);
+      });
+    });
+  });
+});
+</script>
+{% if role in ['super_admin', 'local_admin'] %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // --- Backup Reminder Logic ---
+  var banner = document.getElementById('backup-alert-banner');
+  var bannerText = document.getElementById('backup-alert-text');
+  var bannerBtn = document.getElementById('backup-alert-btn');
+
+  if (banner) {
+    fetch('/api/backup/last')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.days_ago >= 7 || data.last_backup === null) {
+          var msg = data.last_backup === null
+            ? 'تنبيه: لم يتم عمل أي نسخة احتياطية بعد! يرجى عمل نسخة احتياطية الآن.'
+            : 'تنبيه: لم يتم عمل نسخة احتياطية منذ ' + data.days_ago + ' أيام! يرجى عمل نسخة احتياطية الآن.';
+          bannerText.textContent = msg;
+          banner.style.display = 'flex';
+        }
+      })
+      .catch(function() {});
+  }
+
+  // Banner "Backup Now" button triggers download
+  if (bannerBtn) {
+    bannerBtn.addEventListener('click', function() {
+      window.location.href = '/api/backup/download';
+      setTimeout(function() { banner.style.display = 'none'; }, 2000);
+    });
+  }
+
+  // --- Email Backup Button ---
+  var emailBtn = document.getElementById('email-backup-btn');
+  var statusMsg = document.getElementById('backup-status-msg');
+
+  if (emailBtn) {
+    emailBtn.addEventListener('click', function() {
+      emailBtn.disabled = true;
+      emailBtn.textContent = 'جارٍ الإرسال...';
+      if (statusMsg) { statusMsg.style.display = 'none'; }
+
+      fetch('/api/backup/email', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          emailBtn.disabled = false;
+          emailBtn.innerHTML = '&#9993; إرسال النسخة بالبريد الإلكتروني';
+          if (statusMsg) {
+            if (data.success) {
+              statusMsg.className = 'alert alert-success mt-2';
+              statusMsg.textContent = 'تم إرسال النسخة الاحتياطية بنجاح إلى بريدك الإلكتروني.';
+            } else {
+              statusMsg.className = 'alert alert-danger mt-2';
+              statusMsg.textContent = 'حدث خطأ: ' + (data.error || 'فشل الإرسال');
+            }
+            statusMsg.style.display = 'block';
+          }
+        })
+        .catch(function() {
+          emailBtn.disabled = false;
+          emailBtn.innerHTML = '&#9993; إرسال النسخة بالبريد الإلكتروني';
+          if (statusMsg) {
+            statusMsg.className = 'alert alert-danger mt-2';
+            statusMsg.textContent = 'حدث خطأ في الاتصال بالخادم.';
+            statusMsg.style.display = 'block';
+          }
+        });
+    });
+  }
+});
+</script>
+{% endif %}
+</body>
+</html>

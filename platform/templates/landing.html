@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}SaaS Platform - التطبيقات المتاحة{% endblock %}
+{% block title %}SaaS Platform - Available Apps{% endblock %}
 
 {% block content %}
 <div class="text-center mb-5">
-    <h1>منصة التطبيقات</h1>
-    <p class="lead text-muted">اختر تطبيقك وابدأ عملك في دقائق</p>
+    <h1>App Marketplace</h1>
+    <p class="lead text-muted">Pick your app and start your business in minutes</p>
 </div>
 
 <div class="row g-4">
@@ -18,7 +18,7 @@
                 </div>
                 <h5 class="card-title">{{ app.name }}</h5>
                 <p class="card-text text-muted">{{ app.description }}</p>
-                <a href="/apps/{{ app.slug }}" class="btn btn-primary">عرض التفاصيل</a>
+                <a href="/apps/{{ app.slug }}" class="btn btn-primary">View Details</a>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
 {% if not apps %}
 <div class="text-center text-muted py-5">
     <i class="fas fa-box-open fa-3x mb-3"></i>
-    <p>لا توجد تطبيقات متاحة حاليا</p>
+    <p>No apps available at the moment</p>
 </div>
 {% endif %}
 {% endblock %}

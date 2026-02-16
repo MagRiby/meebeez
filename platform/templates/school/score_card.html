@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#2563eb">
+    <title>بطاقة الدرجات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="/static/mobile.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, var(--color-bg, #f1f5f9) 0%, #dbeafe 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .score-card {
+            border-radius: 2rem;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+            background: var(--color-surface, #fff);
+            padding: 2rem 2.5rem;
+            margin: 2rem auto;
+            max-width: 800px;
+            position: relative;
+            z-index: 2;
+        }
+        .school-logo {
+            max-height: 90px;
+            margin-bottom: 10px;
+        }
+        .score-table th, .score-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .score-table th {
+            background: #dbeafe;
+            color: var(--color-primary, #2563eb);
+            font-size: 1.1rem;
+        }
+        .score-table td {
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div class="text-center mb-4" style="padding-top: 24px;">
+        <img src="/static/{{ school_info.logo }}" alt="شعار المدرسة" class="school-logo">
+        <h1 style="font-size:2.1rem; font-weight:bold; margin-bottom:0;">{{ school_info.name }}</h1>
+    </div>
+    <div class="score-card">
+        <div class="text-center mb-3">
+            <span style="display:inline-block; background:linear-gradient(90deg,#ff9800,#ffc107 80%); color:#fff3e0; font-size:2.21rem; font-weight:900; letter-spacing:2px; border-radius:1.2rem; padding:0.4rem 2.2rem; box-shadow:0 2px 12px #ff980080; border:2px solid #ff9800; margin-bottom:0.2rem; text-shadow:0 2px 6px #ff980066;">بطاقة الدرجات</span>
+        </div>
+        <h3 class="mb-1 text-center" style="color:#1769aa; font-weight:700;">
+            <span id="student-name" style="font-family:inherit; font-size:inherit; font-weight:inherit; color:#7c3aed;"></span>
+        </h3>
+        <div class="mb-3 text-center" style="font-size:1.02rem; color:#222; font-weight:500;">
+            <span id="class-name"></span>
+            <span id="class-level" style="color:#444;"></span>
+            <span id="school-year" class="mx-2" style="color:#1769aa; font-weight:600;"></span>
+        </div>
+        <div class="row mb-3 justify-content-center">
+            <div class="col-12 col-md-6">
+                <div class="card p-2 mb-2" style="background:#f6f8fa; border:none;">
+                    <div><b>المعلم الأساسي:</b> <span id="teacher-name"></span></div>
+                    <div><b>المعلم الاحتياطي:</b> <span id="backup-teacher-name"></span></div>
+                    <div><b>مدير المدرسة:</b> <span id="principal-name"></span></div>
+                </div>
+            </div>
+        </div>
+        <h4 class="text-center mt-4 mb-3" style="color:#e6b800;">ملخص المعدلات السنوية</h4>
+        <div id="score-content">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>
+                <div class="mt-2">جاري تحميل الدرجات...</div>
+            </div>
+        </div>
+        <div id="score-error" class="alert alert-danger text-center d-none mt-3"></div>
+
+        <!-- Absenteeism Section -->
+        <div class="mt-5">
+            <h4 class="text-center mb-3" style="color:#b71c1c; font-weight:700;">الغيابات</h4>
+            {% if total_absences > 0 %}
+                <div class="alert alert-warning text-center" style="font-size:1.1rem;">
+                    <b>عدد الجلسات التي تغيّب عنها الطالب:</b> {{ total_absences }}
+                </div>
+                <div class="mb-2" style="max-width:400px;margin:auto;">
+                    <b>الأيام التي تغيّب فيها الطالب:</b>
+                    <ul class="list-group mt-2">
+                        {% for day in absent_days %}
+                        <li class="list-group-item">{{ day|replace('-', '/') }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <div class="alert alert-success text-center" style="font-size:1.1rem;">
+                    لم يسجّل أي غياب لهذا الطالب خلال العام الحالي.
+                </div>
+            {% endif %}
+        </div>
+        <script>
+        // Utility to get student_id from URL
+        function getStudentIdFromUrl() {
+            const m = window.location.pathname.match(/score_card\/(\d+)/);
+            return m ? m[1] : null;
+        }
+        function renderScoreCard(data) {
+    // Populate student info
+    document.getElementById('student-name').textContent = data.student.name;
+    // Populate class info, level, teacher, principal, school year
+    if (data.class_info) {
+        document.getElementById('class-name').textContent = data.class_info.class_name ? `الصف: ${data.class_info.class_name}` : '';
+        document.getElementById('class-level').textContent = data.class_info.level_name ? ` | المستوى: ${data.class_info.level_name}` : '';
+        document.getElementById('teacher-name').textContent = data.class_info.teacher_name || '-';
+        document.getElementById('backup-teacher-name').textContent = data.class_info.backup_teacher_name || '-';
+    }
+    document.getElementById('principal-name').textContent = data.principal_name || '-';
+    document.getElementById('school-year').textContent = data.school_year ? `السنة الدراسية: ${data.school_year}` : '';
+
+    // Use backend-calculated summary for table
+    let rows = '';
+    let hasData = false;
+    if (data.summary && data.summary.length > 0) {
+        data.summary.forEach(row => {
+            if (row.term1 || row.term2 || row.term3 || row.year_final || row.year_avg) hasData = true;
+            const notPublishedMsg = '<span class="text-muted">لا توجد نتائج منشورة لهذه الدورة بعد</span>';
+            rows += `<tr>
+                <td>${row.subject}</td>
+                <td>${row.term1 !== null && row.term1 !== undefined ? row.term1 : notPublishedMsg}</td>
+                <td>${row.term2 !== null && row.term2 !== undefined ? row.term2 : notPublishedMsg}</td>
+                <td>${row.term3 !== null && row.term3 !== undefined ? row.term3 : notPublishedMsg}</td>
+                <td>${row.year_final !== null && row.year_final !== undefined ? row.year_final : notPublishedMsg}</td>
+                <td>${row.year_avg !== null && row.year_avg !== undefined ? row.year_avg : notPublishedMsg}</td>
+            </tr>`;
+        });
+    }
+    let html = '';
+    if (hasData) {
+        html = `<div class="table-responsive"><table class="table table-bordered score-table">
+            <thead><tr>
+                <th>المادة</th>
+                <th>معدل الدورة 1</th>
+                <th>معدل الدورة 2</th>
+                <th>معدل الدورة 3</th>
+                <th>درجة نهاية السنة</th>
+                <th>معدل نهاية السنة</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table></div>`;
+    } else {
+        html = '<div class="alert alert-info text-center">لا يوجد بيانات درجات لهذا الطالب.</div>';
+    }
+    document.getElementById('score-content').innerHTML = html;
+}
+        function showScoreError(msg) {
+            document.getElementById('score-error').textContent = msg;
+            document.getElementById('score-error').classList.remove('d-none');
+            document.getElementById('score-content').innerHTML = '';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const studentId = getStudentIdFromUrl();
+            if (!studentId) {
+                showScoreError('لم يتم تحديد الطالب.');
+                return;
+            }
+            fetch(`/api/score_card/${studentId}`)
+                .then(r => r.json())
+                .then(data => {
+                    console.log('[DEBUG][score_card] Received data:', data);
+                    if (data.error) {
+                        showScoreError(data.error);
+                    } else {
+                        renderScoreCard(data);
+                    }
+                })
+                .catch(() => showScoreError('حدث خطأ أثناء تحميل الدرجات.'));
+        });
+        </script>
+    </div>
+</body>
+</html>

@@ -2,7 +2,7 @@ from flask import request, jsonify
 
 from core.marketplace import marketplace_bp
 from core.extensions import db
-from core.models import AppDefinition, Tenant, TenantMembership
+from core.models import AppDefinition, Tenant, TenantMembership, Subscription
 from core.auth.routes import auth_required
 from core.tenants.service import provision_tenant
 
@@ -122,6 +122,62 @@ def get_tenant(slug):
             else None,
         }
     )
+
+
+@marketplace_bp.route("/api/tenants/<slug>", methods=["PUT"])
+@auth_required
+def update_tenant(slug):
+    """Update a tenant's name."""
+    tenant = Tenant.query.filter_by(slug=slug).first()
+    if not tenant:
+        return jsonify({"error": "Tenant not found"}), 404
+
+    user = request.current_user
+    if tenant.owner_id != user.id and user.role != "platform_admin":
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+
+    tenant.name = name
+    db.session.commit()
+
+    return jsonify(
+        {
+            "message": "Tenant updated successfully",
+            "tenant": {
+                "id": tenant.id,
+                "name": tenant.name,
+                "slug": tenant.slug,
+                "app_type": tenant.app_type_slug,
+                "status": tenant.status,
+            },
+        }
+    )
+
+
+@marketplace_bp.route("/api/tenants/<slug>", methods=["DELETE"])
+@auth_required
+def delete_tenant(slug):
+    """Delete a tenant."""
+    tenant = Tenant.query.filter_by(slug=slug).first()
+    if not tenant:
+        return jsonify({"error": "Tenant not found"}), 404
+
+    user = request.current_user
+    if tenant.owner_id != user.id and user.role != "platform_admin":
+        return jsonify({"error": "Access denied"}), 403
+
+    # Delete related records
+    TenantMembership.query.filter_by(tenant_id=tenant.id).delete()
+    Subscription.query.filter_by(tenant_id=tenant.id).delete()
+    db.session.delete(tenant)
+    db.session.commit()
+
+    return jsonify({"message": "Tenant deleted successfully"})
 
 
 @marketplace_bp.route("/api/tenants/<slug>/join", methods=["POST"])

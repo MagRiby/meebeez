@@ -1,0 +1,54 @@
+<!-- Announcement Modal -->
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title" id="announcementModalLabel">إرسال إعلان للصف</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <form id="announcementForm">
+          <input type="hidden" id="announcementClassId">
+          <div class="mb-3">
+  <label for="announcementText" class="form-label">نص الإعلان</label>
+  <!-- Toolbar -->
+  <div class="btn-toolbar mb-2" role="toolbar" aria-label="Rich text toolbar">
+    <div class="btn-group me-2" role="group">
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('bold')" title="عريض"><b>B</b></button>
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('italic')" title="مائل"><i>I</i></button>
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('underline')" title="تحته خط"><u>U</u></button>
+    </div>
+    <div class="btn-group me-2" role="group">
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('foreColor', '#e75480')" title="لون وردي"><span style='color:#e75480'>A</span></button>
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('foreColor', '#007bff')" title="لون أزرق"><span style='color:#007bff'>A</span></button>
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('foreColor', '#28a745')" title="لون أخضر"><span style='color:#28a745'>A</span></button>
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('foreColor', '#000000')" title="أسود"><span style='color:#000'>A</span></button>
+    </div>
+    <div class="btn-group me-2" role="group">
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('fontSize', 3)" title="حجم عادي">A</button>
+      <button type="button" class="btn btn-light btn-sm" onclick="execCmd('fontSize', 5)" title="حجم كبير"><span style='font-size:1.5em'>A</span></button>
+    </div>
+  </div>
+  <div id="announcementText" contenteditable="true" class="form-control" style="min-height:120px;max-height:300px;overflow:auto;background:#fff;border:1px solid #ced4da;"></div>
+  <small class="text-muted">يمكنك تنسيق النص (تغيير لون، حجم، خط...)</small>
+</div>
+<div class="mb-3">
+  <label for="announcementExpiry" class="form-label">تاريخ انتهاء الإعلان</label>
+  <input type="datetime-local" id="announcementExpiry" class="form-control">
+</div>
+<script>
+function execCmd(cmd, val = null) {
+  document.getElementById('announcementText').focus();
+  document.execCommand(cmd, false, val);
+}
+</script>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-primary" id="saveAnnouncementBtn">حفظ الإعلان</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Announcement Modal -->

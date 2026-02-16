@@ -27,10 +27,12 @@ def create_app(config_name=None):
     from core.auth import auth_bp
     from core.marketplace import marketplace_bp
     from core.portal import portal_bp
+    from core.admin import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(marketplace_bp)
     app.register_blueprint(portal_bp)
+    app.register_blueprint(admin_bp)
 
     # Discover and register app modules
     from apps import discover_apps, registry

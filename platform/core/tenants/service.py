@@ -1,10 +1,13 @@
 import uuid
 import re
+import os
 from datetime import datetime, timezone
 
+from flask import current_app
+from werkzeug.security import generate_password_hash
+
 from core.extensions import db
-from core.models import AppDefinition, Tenant, TenantMembership, Subscription
-from core.tenants.db_manager import create_tenant_db, get_tenant_engine
+from core.models import AppDefinition, Tenant, TenantMembership, Subscription, User
 
 
 def _slugify(text):
@@ -12,6 +15,12 @@ def _slugify(text):
     text = re.sub(r"[^\w\s-]", "", text)
     text = re.sub(r"[\s_]+", "-", text)
     return re.sub(r"-+", "-", text).strip("-")
+
+
+def _use_sqlite():
+    """Check if we should use SQLite for tenant databases."""
+    platform_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    return platform_uri.startswith("sqlite")
 
 
 def provision_tenant(name, app_slug, owner_id):
@@ -35,12 +44,27 @@ def provision_tenant(name, app_slug, owner_id):
         slug = f"{slug}-{short_id}"
     db_name = f"tenant_{slug.replace('-', '_')}_{short_id}"
 
-    # Create the tenant database
-    create_tenant_db(db_name)
-
-    # Run the app's schema setup on the new database
-    engine = get_tenant_engine(db_name)
-    app_module.setup_schema(engine)
+    if _use_sqlite():
+        # SQLite mode: use per-tenant SQLite files
+        if hasattr(app_module, "setup_schema_sqlite"):
+            app_module.setup_schema_sqlite(slug)
+        else:
+            # Fallback: create SQLite DB with SQLAlchemy models
+            from sqlalchemy import create_engine
+            instance_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "instance", "tenants",
+            )
+            os.makedirs(instance_dir, exist_ok=True)
+            engine = create_engine(f"sqlite:///{os.path.join(instance_dir, slug + '.db')}")
+            app_module.setup_schema(engine)
+            engine.dispose()
+    else:
+        # PostgreSQL mode: create a real database
+        from core.tenants.db_manager import create_tenant_db, get_tenant_engine
+        create_tenant_db(db_name)
+        engine = get_tenant_engine(db_name)
+        app_module.setup_schema(engine)
 
     # Create platform records
     tenant = Tenant(
@@ -69,6 +93,62 @@ def provision_tenant(name, app_slug, owner_id):
     )
     db.session.add(subscription)
 
+    # Create a default admin user in the tenant's own database
+    platform_user = db.session.get(User, owner_id)
+    if platform_user and app_slug == "school":
+        _seed_school_admin(slug, platform_user.email, platform_user.name)
+    elif platform_user and app_slug == "barber":
+        _seed_barber_admin(slug, platform_user.email, platform_user.name)
+
     db.session.commit()
 
     return tenant
+
+
+def _seed_barber_admin(tenant_slug, email, name):
+    """Create an admin user in the barber tenant's database."""
+    import sqlite3
+
+    db_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "instance", "tenants", f"{tenant_slug}.db",
+    )
+    if not os.path.exists(db_path):
+        return
+
+    conn = sqlite3.connect(db_path, timeout=10)
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE username=?", (email,))
+    if not c.fetchone():
+        password_hash = generate_password_hash("changeme123")
+        c.execute(
+            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (?, ?, ?, ?, ?)",
+            (email, password_hash, name, "admin", 1),
+        )
+        conn.commit()
+    conn.close()
+
+
+def _seed_school_admin(tenant_slug, email, name):
+    """Create a super_admin user in the school tenant's database."""
+    from apps.school.db_utils import get_school_db
+    import sqlite3
+
+    db_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "instance", "tenants", f"{tenant_slug}.db",
+    )
+    if not os.path.exists(db_path):
+        return
+
+    conn = sqlite3.connect(db_path, timeout=10)
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE username=?", (email,))
+    if not c.fetchone():
+        password_hash = generate_password_hash("changeme123")
+        c.execute(
+            "INSERT INTO users (username, password_hash, name, role) VALUES (?, ?, ?, ?)",
+            (email, password_hash, name, "local_admin"),
+        )
+        conn.commit()
+    conn.close()

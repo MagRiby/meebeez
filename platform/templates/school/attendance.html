@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+.attendance-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #bbb;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  display: inline-block;
+  vertical-align: middle;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+}
+.attendance-checkbox:checked {
+  background: #dc3545;
+  border-color: #dc3545;
+}
+.attendance-checkbox:checked::before {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><line x1="2" y1="2" x2="12" y2="12" stroke="white" stroke-width="2"/><line x1="12" y1="2" x2="2" y2="12" stroke="white" stroke-width="2"/></svg>') center/14px 14px no-repeat;
+}
+</style>
+<div class="container mt-4">
+  <a href="/dashboard" class="btn btn-outline-primary btn-sm mb-3">&rarr; العودة للوحة التحكم</a>
+  <h2 class="mb-4 text-end">الحضور الأسبوعي للصف: {{ class_name }}</h2>
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mb-3">
+    <button id="prev-week" class="btn btn-outline-primary w-100 w-sm-auto">الأسبوع السابق</button>
+    <div id="week-label" class="fw-bold"></div>
+    <button id="next-week" class="btn btn-outline-primary w-100 w-sm-auto">الأسبوع التالي</button>
+  </div>
+  <div id="attendance-grid"></div>
+<div id="save-toast" class="alert alert-success text-center" style="display:none;position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:9999;min-width:120px;">تم الحفظ</div>
+</div>
+<script>
+const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+function getStartOfWeek(date) {
+  // Start week from Sunday
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0 ? 0 : day); // Sunday = 0
+  d.setDate(d.getDate() - diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function getWeekDates(startDate) {
+  const dates = [];
+  for(let i=0;i<7;i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+document.addEventListener('DOMContentLoaded', function() {
+  const classId = {{ class_id }};
+  let currentDate = new Date();
+  let currentWeekStart = getStartOfWeek(currentDate);
+  function loadWeek(weekStart) {
+    const weekDates = getWeekDates(weekStart);
+    // Format days for API as yyyy-mm-dd
+    const weekDaysIso = weekDates.map(d => d.toISOString().slice(0,10));
+    fetch(`/api/attendance/${classId}?week_start=${weekStart.toISOString().slice(0,10)}`)
+      .then(r => r.json())
+      .then(data => {
+        renderAttendanceGrid(data.students, weekDates, data.attendance);
+      });
+    // Label
+    const weekLabel = `${weekDates[0].toLocaleDateString('ar-EG')} - ${weekDates[6].toLocaleDateString('ar-EG')}`;
+    document.getElementById('week-label').textContent = weekLabel;
+  }
+  document.getElementById('prev-week').onclick = function() {
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    loadWeek(currentWeekStart);
+  };
+  document.getElementById('next-week').onclick = function() {
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    loadWeek(currentWeekStart);
+  };
+  function renderAttendanceGrid(students, weekDates, attendance) {
+    let html = '<div class="table-responsive table-mobile-scroll"><table class="table table-bordered text-center align-middle">';
+    html += '<thead><tr>';
+    // Days (RTL: last day first)
+    for(let i=weekDates.length-1;i>=0;i--) {
+      html += `<th>${arabicDays[weekDates[i].getDay()]}<br><span style='font-size:0.9em'>${weekDates[i].toLocaleDateString('ar-EG')}</span></th>`;
+    }
+    html += '<th>الطالب</th>';
+    html += '</tr></thead><tbody>';
+    students.forEach(student => {
+      html += '<tr>';
+      for(let i=weekDates.length-1;i>=0;i--) {
+        const dayIso = weekDates[i].toISOString().slice(0,10);
+        const key = `${student.id}_${dayIso}`;
+        const absent = attendance[key] === 0;
+        html += `<td><input type='checkbox' class='attendance-checkbox' data-student-id='${student.id}' data-day='${dayIso}' ${absent ? 'checked' : ''}></td>`;
+      }
+      html += `<td class="text-end">${student.name}</td>`;
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('attendance-grid').innerHTML = html;
+    document.querySelectorAll('.attendance-checkbox').forEach(box => {
+      box.addEventListener('change', function() {
+        const studentId = this.getAttribute('data-student-id');
+        const day = this.getAttribute('data-day');
+        const checked = this.checked;
+        fetch(`/api/attendance/${classId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId, day: day, present: !checked })
+        }).then(() => {
+          showSaveToast();
+          loadWeek(currentWeekStart);
+        });
+      });
+    });
+  }
+  function showSaveToast() {
+    const toast = document.getElementById('save-toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 1500);
+  }
+  loadWeek(currentWeekStart);
+});
+</script>
+{% endblock %}

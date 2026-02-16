@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}لوحة التحكم{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">لوحة التحكم</h2>
+<h2 class="mb-4">Dashboard</h2>
 
 <div class="row mb-4">
     <div class="col-md-8">
-        <h5>مشاريعك</h5>
+        <h5>Your Projects</h5>
         <div id="tenants-list">
             <div class="text-center py-4">
                 <div class="spinner-border text-primary" role="status"></div>
@@ -17,21 +17,66 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">إنشاء مشروع جديد</h5>
+                <h5 class="card-title">Create New Project</h5>
                 <form id="create-tenant-form">
                     <div class="mb-3">
-                        <label for="tenant-name" class="form-label">اسم المشروع</label>
+                        <label for="tenant-name" class="form-label">Project Name</label>
                         <input type="text" class="form-control" id="tenant-name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="app-slug" class="form-label">نوع التطبيق</label>
+                        <label for="app-slug" class="form-label">App Type</label>
                         <select class="form-select" id="app-slug" required>
-                            <option value="">اختر...</option>
+                            <option value="">Select...</option>
                         </select>
                     </div>
                     <div id="create-error" class="alert alert-danger d-none"></div>
-                    <button type="submit" class="btn btn-success w-100">إنشاء</button>
+                    <button type="submit" class="btn btn-success w-100">Create</button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Project Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-slug">
+                <div class="mb-3">
+                    <label for="edit-name" class="form-label">Project Name</label>
+                    <input type="text" class="form-control" id="edit-name" required>
+                </div>
+                <div id="edit-error" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTenant()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="delete-name"></strong>? This action cannot be undone.</p>
+                <input type="hidden" id="delete-slug">
+                <div id="delete-error" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteTenant()">Delete</button>
             </div>
         </div>
     </div>
@@ -60,14 +105,14 @@ async function loadTenants() {
     const res = await fetch('/api/tenants', { headers });
     if (!res.ok) {
         document.getElementById('tenants-list').innerHTML =
-            '<p class="text-muted">يرجى تسجيل الدخول لعرض مشاريعك</p>';
+            '<p class="text-muted">Please log in to view your projects</p>';
         return;
     }
     const tenants = await res.json();
     const container = document.getElementById('tenants-list');
 
     if (tenants.length === 0) {
-        container.innerHTML = '<p class="text-muted">لا توجد مشاريع بعد. أنشئ مشروعك الأول!</p>';
+        container.innerHTML = '<p class="text-muted">No projects yet. Create your first one!</p>';
         return;
     }
 
@@ -78,10 +123,80 @@ async function loadTenants() {
                     <h6 class="mb-0">${t.name}</h6>
                     <small class="text-muted">${t.app_type} &middot; ${t.status}</small>
                 </div>
-                <a href="/t/${t.slug}/${t.app_type}/" class="btn btn-sm btn-outline-primary">فتح</a>
+                <div>
+                    <a href="/t/${t.slug}/${t.app_type}/" class="btn btn-sm btn-outline-primary me-1">Open</a>
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="openEdit('${t.slug}', '${t.name}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="openDelete('${t.slug}', '${t.name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
+}
+
+function openEdit(slug, name) {
+    document.getElementById('edit-slug').value = slug;
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-error').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+async function saveTenant() {
+    const slug = document.getElementById('edit-slug').value;
+    const name = document.getElementById('edit-name').value.trim();
+    const errorDiv = document.getElementById('edit-error');
+    errorDiv.classList.add('d-none');
+
+    if (!name) {
+        errorDiv.textContent = 'Name is required';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+
+    const res = await fetch('/api/tenants/' + slug, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ name }),
+    });
+    const result = await res.json();
+
+    if (res.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+        loadTenants();
+    } else {
+        errorDiv.textContent = result.error;
+        errorDiv.classList.remove('d-none');
+    }
+}
+
+function openDelete(slug, name) {
+    document.getElementById('delete-slug').value = slug;
+    document.getElementById('delete-name').textContent = name;
+    document.getElementById('delete-error').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+async function deleteTenant() {
+    const slug = document.getElementById('delete-slug').value;
+    const errorDiv = document.getElementById('delete-error');
+    errorDiv.classList.add('d-none');
+
+    const res = await fetch('/api/tenants/' + slug, {
+        method: 'DELETE',
+        headers,
+    });
+    const result = await res.json();
+
+    if (res.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        loadTenants();
+    } else {
+        errorDiv.textContent = result.error;
+        errorDiv.classList.remove('d-none');
+    }
 }
 
 document.getElementById('create-tenant-form').addEventListener('submit', async (e) => {

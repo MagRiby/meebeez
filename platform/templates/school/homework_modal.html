@@ -1,0 +1,175 @@
+<!-- Homework Modal -->
+<div class="modal fade" id="homeworkModal" tabindex="-1" aria-labelledby="homeworkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title" id="homeworkModalLabel">إضافة واجب منزلي</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <div id="homework-list-container" class="mb-3"></div>
+        <form id="homeworkForm" enctype="multipart/form-data">
+          <input type="hidden" id="homework-class-id" name="class_id">
+          <div class="mb-3">
+            <label for="homework-due-date" class="form-label">تاريخ التسليم</label>
+            <input type="date" class="form-control" id="homework-due-date" name="due_date" required>
+          </div>
+          <div class="mb-3">
+            <label for="homework-desc" class="form-label">وصف الواجب</label>
+            <textarea class="form-control" id="homework-desc" name="description" rows="3" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="homework-files" class="form-label">تحميل المستندات</label>
+            <input type="file" class="form-control" id="homework-files" name="documents">
+          </div>
+        </form>
+        <style>
+          .homework-card { background: var(--color-bg, #f1f5f9); border-radius: 0.75rem; }
+          .homework-card.past-due { color: orange; }
+        </style>
+        <script>
+          const homeworkModal = document.getElementById('homeworkModal');
+
+          // Utility function to fetch and render homework list
+          async function fetchAndRenderHomeworkList(classId) {
+            const homeworkListContainer = document.getElementById('homework-list-container');
+            homeworkListContainer.innerHTML = '';
+            try {
+              const resp = await fetch(`/api/homework/list/${classId}`);
+              const data = await resp.json();
+              if (data.success && data.homeworks.length > 0) {
+                const today = new Date().toISOString().slice(0, 10);
+                data.homeworks.forEach(hw => {
+                    let filesHtml = '';
+                    if (hw.files && hw.files.length > 0) {
+                      filesHtml = hw.files.map(fname => `<a href="/uploads/class_${classId}/${fname}" target="_blank">${fname}</a>`).join('<br>');
+                    }
+                    // Check if past due
+                    const isPastDue = hw.due_date < today;
+                    const cardClass = 'homework-card card mb-2' + (isPastDue ? ' past-due' : '');
+                    const hwHtml = `
+                      <div class="${cardClass}" data-homework-id="${hw.id}">
+                        <div class="card-body">
+                          <h6 class="card-title">${hw.due_date}</h6>
+                          <p class="card-text">${hw.description}</p>
+                          ${filesHtml ? `<div><b>المستندات:</b><br>${filesHtml}</div>` : ''}
+                          <div class="mt-2 d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-sm homework-delete-btn">حذف</button>
+                            <button type="button" class="btn btn-primary btn-sm homework-edit-btn">تعديل</button>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                    homeworkListContainer.innerHTML += hwHtml;
+                  });
+                } else {
+                  homeworkListContainer.innerHTML = '<p>لا يوجد واجبات</p>';
+                }
+
+                // Add event listeners for delete and edit
+                homeworkListContainer.querySelectorAll('.homework-delete-btn').forEach(btn => {
+                  btn.onclick = async function() {
+                    const hwId = btn.closest('.homework-card').getAttribute('data-homework-id');
+                    if (!confirm('هل أنت متأكد أنك تريد حذف هذا الواجب؟')) return;
+                    try {
+                      const resp = await fetch(`/api/homework/delete/${hwId}`, { method: 'POST' });
+                      const data = await resp.json();
+                      if (data.success) {
+                        // Remove card from DOM or refresh list
+                        // Refresh the homework list instead of just removing the card
+                        const classId = document.getElementById('homework-class-id').value;
+                        fetchAndRenderHomeworkList(classId);
+                      } else {
+                        alert(data.error || 'فشل حذف الواجب');
+                      }
+                    } catch (err) {
+                      alert('حدث خطأ أثناء حذف الواجب');
+                    }
+                  };
+                });
+                homeworkListContainer.querySelectorAll('.homework-edit-btn').forEach(btn => {
+                  btn.onclick = function() {
+                    const hwId = btn.closest('.homework-card').getAttribute('data-homework-id');
+                    // Find homework data
+                    const hw = data.homeworks.find(h => h.id == hwId);
+                    if (!hw) return;
+                    // Fill form fields
+                    document.getElementById('homework-due-date').value = hw.due_date;
+                    document.getElementById('homework-desc').value = hw.description;
+                    // Set edit mode
+                    document.getElementById('homeworkForm').setAttribute('data-edit-id', hwId);
+                    document.querySelector('[form="homeworkForm"]')?.classList.add('btn-warning');
+                    document.querySelector('[form="homeworkForm"]')?.classList.remove('btn-primary');
+                    document.querySelector('[form="homeworkForm"]').textContent = 'حفظ التعديلات';
+                  };
+                });
+
+                // Reset form to add mode when modal closes
+                homeworkModal.addEventListener('hidden.bs.modal', function() {
+                  document.getElementById('homeworkForm').removeAttribute('data-edit-id');
+                  document.querySelector('[form="homeworkForm"]')?.classList.remove('btn-warning');
+                  document.querySelector('[form="homeworkForm"]')?.classList.add('btn-primary');
+                  document.querySelector('[form="homeworkForm"]').textContent = 'حفظ الواجب';
+                  document.getElementById('homeworkForm').reset();
+                });
+              } catch (err) {
+                homeworkListContainer.innerHTML = '<p>حدث خطأ في الاتصال بالخادم</p>';
+              }
+            }
+         
+          document.getElementById('homeworkForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const form = document.getElementById('homeworkForm');
+            const formData = new FormData(form);
+            const editId = form.getAttribute('data-edit-id');
+            let url = '/api/homework';
+            let successMsg = 'تم حفظ الواجب بنجاح';
+            if (editId) {
+              url = `/api/homework/edit/${editId}`;
+              successMsg = 'تم تعديل الواجب بنجاح';
+            }
+            try {
+              const resp = await fetch(url, {
+                method: 'POST',
+                body: formData
+              });
+              const data = await resp.json();
+              if (data.success) {
+                alert(successMsg);
+                form.reset();
+                // Refresh homework list
+                const classId = document.getElementById('homework-class-id').value;
+                fetchAndRenderHomeworkList(classId);
+                // Reset form to add mode
+                form.removeAttribute('data-edit-id');
+                document.querySelector('[form="homeworkForm"]')?.classList.remove('btn-warning');
+                document.querySelector('[form="homeworkForm"]')?.classList.add('btn-primary');
+                document.querySelector('[form="homeworkForm"]').textContent = 'حفظ الواجب';
+              } else {
+                alert(data.error || 'حدث خطأ أثناء حفظ الواجب');
+              }
+            } catch (err) {
+              alert('حدث خطأ في الاتصال بالخادم');
+            }
+          };
+          // Ensure homework list is loaded when modal opens
+          homeworkModal.addEventListener('show.bs.modal', function(event) {
+            let classId;
+            const button = event.relatedTarget;
+            if (button && button.classList.contains('homework-btn')) {
+              classId = button.getAttribute('data-class-id');
+              document.getElementById('homework-class-id').value = classId;
+            } else {
+              classId = document.getElementById('homework-class-id').value;
+            }
+            fetchAndRenderHomeworkList(classId);
+          });
+        </script>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="submit" class="btn btn-primary" form="homeworkForm">حفظ الواجب</button>
+      </div>
+    </div>
+  </div>
+</div>

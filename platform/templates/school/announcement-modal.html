@@ -1,0 +1,29 @@
+<!-- General Announcement Modal -->
+<div class="modal fade" id="generalAnnouncementModal" tabindex="-1" aria-labelledby="generalAnnouncementModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title" id="generalAnnouncementModalLabel">إرسال إعلان عام</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <form id="general-announcement-form">
+          <div class="mb-3">
+            <label for="announcement-text" class="form-label">نص الإعلان</label>
+            <textarea class="form-control" id="announcement-text" rows="4" placeholder="اكتب نص الإعلان هنا..." required></textarea>
+            <small class="text-muted">يمكنك استخدام بعض تنسيقات النص مثل <b>عريض</b>، <span style='color:#e75480'>لون</span>، ...</small>
+          </div>
+          <div class="mb-3">
+            <label for="announcement-expiry" class="form-label">تاريخ انتهاء الإعلان</label>
+            <input type="datetime-local" class="form-control" id="announcement-expiry" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-primary" id="save-announcement-btn">حفظ الإعلان</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End General Announcement Modal -->

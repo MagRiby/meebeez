@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}البوابة الموحدة{% endblock %}
+{% block title %}Unified Portal{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">بوابتك الموحدة</h2>
-<p class="text-muted">جميع الأعمال التي أنت مشترك فيها في مكان واحد</p>
+<h2 class="mb-4">Your Portal</h2>
+<p class="text-muted">All your businesses in one place</p>
 
 <div id="portal-list">
     <div class="text-center py-4">
@@ -24,7 +24,7 @@ async function loadPortal() {
     const container = document.getElementById('portal-list');
 
     if (!res.ok) {
-        container.innerHTML = '<p class="text-muted">يرجى تسجيل الدخول لعرض أعمالك</p>';
+        container.innerHTML = '<p class="text-muted">Please log in to view your businesses</p>';
         return;
     }
 
@@ -34,8 +34,8 @@ async function loadPortal() {
         container.innerHTML = `
             <div class="text-center py-5">
                 <i class="fas fa-store fa-3x text-muted mb-3"></i>
-                <p class="text-muted">لم تنضم لأي عمل بعد</p>
-                <a href="/" class="btn btn-primary">تصفح التطبيقات</a>
+                <p class="text-muted">You haven't joined any business yet</p>
+                <a href="/" class="btn btn-primary">Browse Apps</a>
             </div>`;
         return;
     }
@@ -48,8 +48,8 @@ async function loadPortal() {
                     <span class="badge bg-secondary mb-2">${t.app_type}</span>
                     <br>
                     <span class="badge bg-${t.status === 'active' ? 'success' : 'warning'}">${t.status}</span>
-                    <p class="mt-2 text-muted small">دورك: ${t.role}</p>
-                    <a href="/t/${t.slug}/${t.app_type}/" class="btn btn-outline-primary btn-sm">دخول</a>
+                    <p class="mt-2 text-muted small">Role: ${t.role}</p>
+                    <a href="/t/${t.slug}/${t.app_type}/" class="btn btn-outline-primary btn-sm">Enter</a>
                 </div>
             </div>
         </div>

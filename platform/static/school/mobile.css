@@ -1,0 +1,882 @@
+/* ============================================
+   ArabicSchool LMS — Mobile-First Overrides
+   Load AFTER Bootstrap RTL
+   ============================================ */
+
+/* -------------------------------------------
+   0. COLOR SCHEME (CSS Variables)
+   ------------------------------------------- */
+:root {
+  --color-primary: #2563eb;
+  --color-accent: #f59e0b;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-surface: #ffffff;
+  --color-bg: #f1f5f9;
+  --color-text: #1e293b;
+  --color-muted: #64748b;
+}
+
+body {
+  background: var(--color-bg) !important;
+  color: var(--color-text);
+}
+
+/* -------------------------------------------
+   0a. TAB HELP PANELS
+   ------------------------------------------- */
+.tab-help-toggle {
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+.btn-help-toggle {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: var(--color-primary, #2563eb);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-help-toggle:hover,
+.btn-help-toggle:focus {
+  background: #dbeafe;
+  border-color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #2563eb);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+.btn-help-toggle[aria-expanded="true"] {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border-color: var(--color-primary, #2563eb);
+}
+.tab-help-panel {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+.tab-help-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.tab-help-panel ul li {
+  padding: 0.15rem 0;
+}
+.tab-help-panel ul li::before {
+  content: "\25CF";
+  color: var(--color-primary, #2563eb);
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}
+
+/* -------------------------------------------
+   0b. COMPACT CLASS CARDS
+   ------------------------------------------- */
+.class-card-compact {
+  background: var(--color-surface);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+}
+.class-card-compact.expanded {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+.class-card-header:hover {
+  background: #f8fafc;
+}
+.class-card-header .class-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+.class-card-header .class-card-meta {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+.class-card-header .class-card-meta .badge-level {
+  background: var(--color-accent);
+  color: #fff;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.class-card-chevron {
+  font-size: 1rem;
+  color: var(--color-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.class-card-compact.expanded .class-card-chevron {
+  transform: rotate(180deg);
+}
+.class-card-body {
+  display: none;
+  border-top: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+}
+.class-card-compact.expanded .class-card-body {
+  display: block;
+}
+
+/* Toolbar: icon buttons in a flex row */
+.class-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+}
+.class-toolbar .toolbar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  min-width: 52px;
+  font-size: 0.72rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.class-toolbar .toolbar-btn:hover {
+  background: #e0e7ff;
+  border-color: var(--color-primary);
+}
+.class-toolbar .toolbar-btn .toolbar-icon {
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+.class-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+.class-card-actions .btn-edit-class {
+  background: none;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.class-card-actions .btn-edit-class:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+.class-card-actions .btn-delete-class {
+  background: none;
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.class-card-actions .btn-delete-class:hover {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+/* Student rows inside expanded class card */
+.students-compact-area {
+  margin-top: 0.5rem;
+}
+.students-compact-area .student-count-badge {
+  display: inline-block;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 0.15rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.students-compact-area .student-row-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.92rem;
+}
+.students-compact-area .student-row-compact:last-child {
+  border-bottom: none;
+}
+.students-compact-area .student-row-compact .student-name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.students-compact-area .student-row-compact .btn-abilities {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.students-compact-area .student-row-compact .btn-abilities:hover {
+  background: #1d4ed8;
+}
+
+/* -------------------------------------------
+   0c. LEVEL INNER ELEMENTS (card reuses .class-card-compact)
+   ------------------------------------------- */
+/* Groups inside level card */
+.group-card-compact {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  margin-bottom: 0.4rem;
+  overflow: hidden;
+}
+.group-card-compact .gc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.group-card-compact .gc-header:hover {
+  background: #f1f5f9;
+}
+.group-card-compact .gc-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+.group-card-compact .gc-actions button {
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.group-card-compact .gc-body {
+  display: none;
+  border-top: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+}
+.group-card-compact.gc-expanded .gc-body {
+  display: block;
+}
+
+/* Subject rows inside group */
+.subject-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+}
+.subject-row:last-child {
+  border-bottom: none;
+}
+.subject-row .subject-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+.subject-row .subject-actions button {
+  border: none;
+  border-radius: 0.3rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+/* Add group / add subject inline input */
+.lc-add-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.lc-add-row input {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.88rem;
+}
+.lc-add-row button {
+  background: var(--color-success);
+  color: #fff;
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lc-add-row button:hover {
+  background: #059669;
+}
+
+/* -------------------------------------------
+   0d. UNIFIED MODAL HEADER & TOOLBAR ACCENT
+   ------------------------------------------- */
+.modal-header-primary {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+}
+.modal-header-primary .btn-close {
+  filter: brightness(0) invert(1);
+}
+.modal-header-primary .modal-title {
+  color: #fff;
+}
+
+.toolbar-btn-accent {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border-color: var(--color-primary, #2563eb);
+}
+.toolbar-btn-accent:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+/* -------------------------------------------
+   1. BOTTOM NAVIGATION BAR
+   ------------------------------------------- */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #fff;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1050;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+
+.mobile-bottom-nav .bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 4px 0;
+  color: #6c757d;
+  text-decoration: none;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.mobile-bottom-nav .bottom-nav-item.active {
+  color: var(--color-primary);
+}
+
+.mobile-bottom-nav .bottom-nav-item .nav-icon {
+  font-size: 1.25rem;
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+/* Hide bottom nav on tablets and up */
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Add padding at the bottom so content doesn't get hidden behind bottom nav */
+@media (max-width: 767.98px) {
+  body {
+    padding-bottom: 64px;
+  }
+}
+
+/* -------------------------------------------
+   2. GLOBAL TOUCH TARGETS
+   ------------------------------------------- */
+@media (max-width: 767.98px) {
+  .btn,
+  button,
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="date"],
+  input[type="url"],
+  input[type="file"],
+  textarea,
+  select {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    padding: 0.4rem 0.75rem;
+    font-size: 14px !important;
+  }
+}
+
+/* -------------------------------------------
+   3. TYPOGRAPHY
+   ------------------------------------------- */
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 575.98px) {
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.35rem; }
+  h3 { font-size: 1.2rem; }
+  h4 { font-size: 1.1rem; }
+  h5 { font-size: 1rem; }
+  h6 { font-size: 0.95rem; }
+}
+
+/* -------------------------------------------
+   4. UTILITY CLASSES
+   ------------------------------------------- */
+/* Stack columns on xs */
+@media (max-width: 575.98px) {
+  .mobile-stack,
+  .mobile-stack > * {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* Horizontal scroll wrapper for tables */
+.table-mobile-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* Collapsible sections on mobile */
+@media (max-width: 767.98px) {
+  .section-collapse .section-body {
+    display: none;
+  }
+  .section-collapse.open .section-body {
+    display: block;
+  }
+  .section-collapse .section-toggle {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  .section-collapse .section-toggle::after {
+    content: '\25BC';
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+  }
+  .section-collapse.open .section-toggle::after {
+    transform: rotate(180deg);
+  }
+}
+@media (min-width: 768px) {
+  .section-collapse .section-toggle {
+    display: none;
+  }
+  .section-collapse .section-body {
+    display: block !important;
+  }
+}
+
+/* -------------------------------------------
+   5. FORM DEFAULTS
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .form-control,
+  .form-select,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="date"],
+  input[type="number"],
+  input[type="url"],
+  textarea {
+    width: 100% !important;
+  }
+
+  .row.g-2 > [class*="col-md-"],
+  .row.g-3 > [class*="col-md-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* -------------------------------------------
+   6. MODAL — FULL-SCREEN ON MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .modal-dialog {
+    margin: 0;
+    max-width: 100%;
+    min-height: 100vh;
+  }
+  .modal-content {
+    border: none;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+}
+
+/* -------------------------------------------
+   7. DISABLE HEAVY ANIMATIONS
+   ------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .bg-shape,
+  .star,
+  .bg-shape1, .bg-shape2, .bg-shape3,
+  .star1, .star2, .star3 {
+    display: none !important;
+  }
+
+  .trophy-glow,
+  .trophy-tilt {
+    animation: none !important;
+  }
+}
+
+/* -------------------------------------------
+   8. CARDS — RESPONSIVE GRID
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .teacher-card,
+  .class-block,
+  .level-card {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .card {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* -------------------------------------------
+   9. TABLE RESPONSIVE HELPERS
+   ------------------------------------------- */
+@media (max-width: 767.98px) {
+  .table {
+    font-size: 0.85rem;
+  }
+
+  .table th, .table td {
+    padding: 0.4rem;
+  }
+}
+
+/* -------------------------------------------
+   10. DASHBOARD-SPECIFIC MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .dashboard-section {
+    padding: 1rem !important;
+    margin: 0.5rem auto !important;
+    border-radius: 0.75rem !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Hide desktop tabs on mobile */
+@media (max-width: 767.98px) {
+  .desktop-tabs {
+    display: none !important;
+  }
+}
+
+/* Show desktop tabs on md+ */
+@media (min-width: 768px) {
+  .desktop-tabs {
+    display: flex !important;
+  }
+}
+
+/* -------------------------------------------
+   11. ATTENDANCE MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .attendance-checkbox {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .attendance-checkbox:checked::before {
+    left: 7px !important;
+    top: 7px !important;
+    width: 22px !important;
+    height: 22px !important;
+    background-size: 22px 22px !important;
+  }
+}
+
+/* -------------------------------------------
+   12. CONTINUOUS MONITORING MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .grade-input {
+    width: 80px !important;
+    min-width: 80px !important;
+  }
+
+  #dawraTabs {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  #dawraTabs .nav-item {
+    flex-shrink: 0;
+  }
+
+  #pub-dates-row .col-md-3,
+  #pub-dates-row .col-6 {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* -------------------------------------------
+   13. STUDENT ABILITIES MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .super-badge-col {
+    width: 90px !important;
+  }
+
+  .super-badge-icon {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    height: 90px !important;
+    min-height: 90px !important;
+    max-height: 90px !important;
+    font-size: 2.4rem !important;
+  }
+
+  .info-card {
+    min-width: auto !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+    padding: 1rem !important;
+    margin: 0.4rem 0 !important;
+  }
+
+  .student-info-cards {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* -------------------------------------------
+   14. SCORE CARD MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .score-card {
+    padding: 1rem 0.75rem !important;
+    margin: 0.5rem auto !important;
+    border-radius: 1rem !important;
+  }
+
+  .score-table th,
+  .score-table td {
+    font-size: 0.8rem !important;
+    padding: 0.3rem !important;
+  }
+}
+
+/* -------------------------------------------
+   15. LOGIN PAGE MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .login-container {
+    margin: 20px auto !important;
+    padding: 1.5rem 1.25rem !important;
+    max-width: 100% !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+  }
+}
+
+/* -------------------------------------------
+   16. SCHOOL INFO MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .school-info-container {
+    padding: 1rem !important;
+    margin: 0.5rem auto !important;
+    max-width: 100% !important;
+  }
+}
+
+/* -------------------------------------------
+   17. MANAGE ADMINS MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .admin-section {
+    padding: 1rem !important;
+    margin: 0.5rem auto !important;
+    max-width: 100% !important;
+  }
+
+  .admin-section .card-body {
+    flex-direction: column !important;
+    gap: 0.5rem;
+  }
+
+  .admin-section input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+  }
+}
+
+/* -------------------------------------------
+   18. SUPER BADGES MANAGEMENT MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .badge-list-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  .badge-icon-option {
+    width: 48px !important;
+    height: 48px !important;
+  }
+}
+
+/* -------------------------------------------
+   19. GENERAL CONTAINER MOBILE
+   ------------------------------------------- */
+@media (max-width: 575.98px) {
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* -------------------------------------------
+   20. BACKUP ALERT BANNER
+   ------------------------------------------- */
+.backup-alert {
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: pulse-border 2s infinite;
+  border: 2px solid #fff;
+  position: relative;
+}
+.backup-alert .backup-alert-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+.backup-alert .backup-alert-text {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.backup-alert .backup-alert-btn {
+  background: #fff;
+  color: var(--color-danger, #ef4444);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.backup-alert .backup-alert-btn:hover {
+  background: #fde8e8;
+}
+.backup-alert .backup-alert-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  position: absolute;
+  top: 0.4rem;
+  left: 0.5rem;
+  opacity: 0.8;
+}
+.backup-alert .backup-alert-close:hover {
+  opacity: 1;
+}
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
