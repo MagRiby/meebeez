@@ -40,7 +40,7 @@ def create_tenant():
         return jsonify({"error": "name and app_slug are required"}), 400
 
     try:
-        tenant = provision_tenant(name, app_slug, user.id)
+        tenant, temp_password = provision_tenant(name, app_slug, user.id)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -54,6 +54,11 @@ def create_tenant():
                 "app_type": tenant.app_type_slug,
                 "status": tenant.status,
                 "db_name": tenant.db_name,
+            },
+            "admin_credentials": {
+                "email": user.email,
+                "temp_password": temp_password,
+                "warning": "Save this password now. It cannot be retrieved later.",
             },
         }
     ), 201

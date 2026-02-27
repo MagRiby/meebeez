@@ -1,9 +1,9 @@
 import os
 
-from flask import Flask, render_template
+from flask import Flask, render_template, session, make_response
 
 from config import config_by_name
-from core.extensions import db, migrate, mail, cache
+from core.extensions import db, migrate, mail, cache, csrf
 
 
 def create_app(config_name=None):
@@ -22,6 +22,7 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     mail.init_app(app)
     cache.init_app(app)
+    csrf.init_app(app)
 
     # Register blueprints
     from core.auth import auth_bp
@@ -33,6 +34,13 @@ def create_app(config_name=None):
     app.register_blueprint(marketplace_bp)
     app.register_blueprint(portal_bp)
     app.register_blueprint(admin_bp)
+
+    # Exempt JWT-authenticated API blueprints from CSRF
+    # (they use Authorization header / token cookie, not session-based forms)
+    csrf.exempt(auth_bp)
+    csrf.exempt(marketplace_bp)
+    csrf.exempt(portal_bp)
+    csrf.exempt(admin_bp)
 
     # Discover and register app modules
     from apps import discover_apps, registry
@@ -47,13 +55,10 @@ def create_app(config_name=None):
     with app.app_context():
         _seed_app_definitions(registry)
 
-    # Landing page
+    # Landing page — combined login / register
     @app.route("/")
     def landing():
-        from core.models import AppDefinition
-
-        apps = AppDefinition.query.filter_by(is_active=True).all()
-        return render_template("landing.html", apps=apps)
+        return render_template("auth/entry.html")
 
     # Auth template routes
     @app.route("/login")
@@ -63,6 +68,19 @@ def create_app(config_name=None):
     @app.route("/register")
     def register_page():
         return render_template("auth/register.html")
+
+    # Universal sign-out — clears session, JWT cookie, and localStorage then → /
+    @app.route("/signout")
+    def signout():
+        session.clear()
+        resp = make_response(
+            "<!DOCTYPE html><html><head><script>"
+            "localStorage.removeItem('token');"
+            "window.location.replace('/');"
+            "</script></head><body></body></html>"
+        )
+        resp.delete_cookie("token")
+        return resp
 
     # App detail page
     @app.route("/apps/<slug>")

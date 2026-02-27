@@ -1,8 +1,14 @@
 import os
+import sys
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    if not SECRET_KEY or SECRET_KEY in ("change-me-in-production", "change-me-to-a-random-secret"):
+        if os.environ.get("FLASK_ENV") == "prod":
+            print("FATAL: SECRET_KEY must be set to a secure random value in production.", file=sys.stderr)
+            sys.exit(1)
+        SECRET_KEY = "dev-only-insecure-key-not-for-production"
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL", "postgresql://localhost/saas_platform"
     )

@@ -14,6 +14,7 @@ import datetime as _dt
 from datetime import datetime, timedelta
 from functools import wraps
 
+import jwt as pyjwt
 from flask import (
     Blueprint, request, jsonify, session, redirect, url_for,
     render_template, send_from_directory, current_app, g,
@@ -43,6 +44,33 @@ school_bp = Blueprint(
 )
 
 # ---------------------------------------------------------------------------
+# SSO helper
+# ---------------------------------------------------------------------------
+
+def _sso_auto_login(tenant_slug):
+    """Auto-login using the platform JWT cookie. Returns True on success."""
+    token = request.cookies.get("token")
+    if not token:
+        return False
+    try:
+        payload = pyjwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        email = payload.get("email")
+        if not email:
+            return False
+    except Exception:
+        return False
+    db = get_school_db(tenant_slug)
+    user = db.execute("SELECT * FROM users WHERE username=? AND is_active=1", (email,)).fetchone()
+    if not user:
+        return False
+    session["school_user_id"] = user["id"]
+    session["school_role"] = user["role"]
+    session["school_username"] = user["username"]
+    session["school_tenant"] = tenant_slug
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Auth decorator (tenant-scoped session)
 # ---------------------------------------------------------------------------
 
@@ -52,8 +80,9 @@ def login_required(*roles):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             tenant_slug = kwargs.get("tenant_slug", "")
-            if "school_user_id" not in session:
-                return redirect(url_for("school.school_login", tenant_slug=tenant_slug))
+            if "school_user_id" not in session or session.get("school_tenant") != tenant_slug:
+                if not _sso_auto_login(tenant_slug):
+                    return redirect("/")
             if roles and session.get("school_role") not in roles:
                 return "Unauthorized", 403
             return f(*args, **kwargs)
@@ -70,6 +99,34 @@ def _none_if_empty(val):
 
 def _int_or_none(val):
     return int(val) if val not in (None, "", "null", "undefined") else None
+
+
+# Column whitelists for safe dynamic UPDATE queries
+_TEACHER_COLUMNS = frozenset({"phone", "notes", "alerts", "name"})
+_CLASS_COLUMNS = frozenset({
+    "name", "level_id", "teacher_id", "backup_teacher_id",
+    "dawra1_pub_start", "dawra1_pub_end", "dawra2_pub_start", "dawra2_pub_end",
+    "dawra3_pub_start", "dawra3_pub_end", "year_pub_start", "year_pub_end",
+})
+_STUDENT_COLUMNS = frozenset({
+    "email", "phone", "notes", "alerts", "name",
+    "date_of_birth", "secondary_email", "sex",
+})
+
+
+def _safe_update(cursor, table, allowed_columns, field_values, where_clause, where_params):
+    """Build and execute a safe UPDATE with whitelisted column names."""
+    updates, params = [], []
+    for field, val in field_values:
+        if field not in allowed_columns:
+            raise ValueError(f"Invalid column: {field}")
+        if val is not None:
+            updates.append(f"{field} = ?")
+            params.append(val)
+    if updates:
+        params.extend(where_params)
+        cursor.execute(f"UPDATE {table} SET {', '.join(updates)} {where_clause}", params)
+    return len(updates) > 0
 
 
 def _school_info(tenant_slug):
@@ -203,7 +260,7 @@ def school_logout(tenant_slug):
     for key in list(session.keys()):
         if key.startswith("school_"):
             session.pop(key, None)
-    return redirect(url_for("school.school_login", tenant_slug=tenant_slug))
+    return redirect("/signout")
 
 
 # ===================================================================
@@ -227,6 +284,11 @@ def dashboard(tenant_slug):
 def index(tenant_slug):
     if "school_user_id" in session and session.get("school_tenant") == tenant_slug:
         return redirect(url_for("school.dashboard", tenant_slug=tenant_slug))
+    if _sso_auto_login(tenant_slug):
+        return redirect(url_for("school.dashboard", tenant_slug=tenant_slug))
+    # If coming from platform (has JWT cookie), go home; otherwise show school login
+    if request.cookies.get("token"):
+        return redirect("/home")
     return redirect(url_for("school.school_login", tenant_slug=tenant_slug))
 
 
@@ -615,14 +677,9 @@ def update_teacher(tenant_slug, teacher_id):
         c.execute("UPDATE teachers SET email=? WHERE id=?", (new_username, teacher_id))
     if new_password:
         c.execute("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(new_password), user_id))
-    updates, params = [], []
-    for field, val in [("phone", phone), ("notes", notes), ("alerts", alerts), ("name", name)]:
-        if val is not None:
-            updates.append(f"{field} = ?")
-            params.append(val)
-    if updates:
-        params.append(teacher_id)
-        c.execute(f'UPDATE teachers SET {", ".join(updates)} WHERE id=?', params)
+    _safe_update(c, "teachers", _TEACHER_COLUMNS,
+                 [("phone", phone), ("notes", notes), ("alerts", alerts), ("name", name)],
+                 "WHERE id=?", [teacher_id])
     db.commit()
     return jsonify({"success": True})
 
@@ -947,25 +1004,16 @@ def class_detail(tenant_slug, class_id):
 
     # PUT
     data = request.json
-    updates, params = [], []
-    name = data.get("name")
-    if name is not None:
-        updates.append("name = ?"); params.append(name)
-    level_id = _none_if_empty(data.get("level_id"))
-    teacher_id = _none_if_empty(data.get("teacher_id"))
-    backup_teacher_id = _none_if_empty(data.get("backup_teacher_id"))
-    if level_id is not None:
-        updates.append("level_id = ?"); params.append(level_id)
-    if teacher_id is not None:
-        updates.append("teacher_id = ?"); params.append(teacher_id)
-    if backup_teacher_id is not None:
-        updates.append("backup_teacher_id = ?"); params.append(backup_teacher_id)
+    field_values = [
+        ("name", data.get("name")),
+        ("level_id", _none_if_empty(data.get("level_id"))),
+        ("teacher_id", _none_if_empty(data.get("teacher_id"))),
+        ("backup_teacher_id", _none_if_empty(data.get("backup_teacher_id"))),
+    ]
     for field in ("dawra1_pub_start", "dawra1_pub_end", "dawra2_pub_start", "dawra2_pub_end",
                    "dawra3_pub_start", "dawra3_pub_end", "year_pub_start", "year_pub_end"):
-        updates.append(f"{field} = ?")
-        params.append(_none_if_empty(data.get(field)))
-    params.append(class_id)
-    c.execute(f'UPDATE classes SET {", ".join(updates)} WHERE id = ?', params)
+        field_values.append((field, _none_if_empty(data.get(field))))
+    _safe_update(c, "classes", _CLASS_COLUMNS, field_values, "WHERE id = ?", [class_id])
     db.commit()
     return jsonify({"success": True})
 
@@ -1155,16 +1203,13 @@ def update_student(tenant_slug, student_id):
                       (new_username, generate_password_hash(new_password), "student"))
         email = new_username
 
-    updates, params = [], []
-    for field, val in [("email", email), ("phone", phone), ("notes", notes), ("alerts", alerts),
-                       ("name", name), ("date_of_birth", date_of_birth), ("secondary_email", secondary_email)]:
-        if val is not None:
-            updates.append(f"{field} = ?"); params.append(val)
+    field_values = [
+        ("email", email), ("phone", phone), ("notes", notes), ("alerts", alerts),
+        ("name", name), ("date_of_birth", date_of_birth), ("secondary_email", secondary_email),
+    ]
     if "sex" in data:
-        updates.append("sex = ?"); params.append(data["sex"])
-    if updates:
-        params.append(student_id)
-        c.execute(f'UPDATE students SET {", ".join(updates)} WHERE id=?', params)
+        field_values.append(("sex", data["sex"]))
+    _safe_update(c, "students", _STUDENT_COLUMNS, field_values, "WHERE id=?", [student_id])
 
     if old_email and email and old_email != email:
         c.execute("SELECT COUNT(*) FROM students WHERE email=?", (old_email,))

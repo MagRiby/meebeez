@@ -22,6 +22,7 @@
                         <div class="alert alert-danger">{{ error }}</div>
                         {% endif %}
                         <form method="POST" action="{{ url_for('barber.barber_login', tenant_slug=tenant_slug) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
                                 <input type="text" class="form-control" id="username" name="username" required autofocus>
