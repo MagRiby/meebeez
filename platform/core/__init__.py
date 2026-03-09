@@ -53,6 +53,7 @@ def create_app(config_name=None):
     for app_module in registry.list_all():
         bp = app_module.get_blueprint()
         app.register_blueprint(bp)
+        csrf.exempt(bp)
 
     # Seed app definitions
     with app.app_context():
