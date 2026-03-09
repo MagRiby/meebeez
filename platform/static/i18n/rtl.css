@@ -1,0 +1,61 @@
+/* ── RTL overrides for Arabic / Hebrew ────────────────────────── */
+
+/* Flip margins/paddings that use directional helpers */
+[dir="rtl"] .me-1 { margin-right: 0 !important; margin-left: 0.25rem !important; }
+[dir="rtl"] .me-2 { margin-right: 0 !important; margin-left: 0.5rem !important; }
+[dir="rtl"] .ms-1 { margin-left: 0 !important; margin-right: 0.25rem !important; }
+[dir="rtl"] .ms-2 { margin-left: 0 !important; margin-right: 0.5rem !important; }
+
+/* Text alignment defaults */
+[dir="rtl"] body { text-align: right; }
+[dir="rtl"] .text-start { text-align: right !important; }
+[dir="rtl"] .text-end { text-align: left !important; }
+
+/* Flex direction for horizontal nav/tabs */
+[dir="rtl"] .bottom-tabs,
+[dir="rtl"] .desktop-tabs,
+[dir="rtl"] .nav-tabs,
+[dir="rtl"] .opt-scroll,
+[dir="rtl"] .ad-opts-strip,
+[dir="rtl"] .te-toolbar,
+[dir="rtl"] .te-toolbar-row { direction: rtl; }
+
+/* Input groups */
+[dir="rtl"] .input-group { flex-direction: row-reverse; }
+[dir="rtl"] .input-group .input-group-text { border-radius: 0 0.375rem 0.375rem 0; }
+[dir="rtl"] .input-group .form-control { border-radius: 0.375rem 0 0 0.375rem; }
+
+/* Category sidebar flip */
+[dir="rtl"] .cat-sidebar { border-left: none; border-right: 1px solid #e8eaf0; }
+
+/* Card body text */
+[dir="rtl"] .biz-card-logo,
+[dir="rtl"] .biz-card-logo-placeholder { left: auto; right: 16px; }
+
+/* Form labels */
+[dir="rtl"] label { text-align: right; }
+
+/* Modal close button */
+[dir="rtl"] .btn-close { margin-left: 0; margin-right: auto; }
+
+/* Icons before text: keep icon on the logical start */
+[dir="rtl"] .fas,
+[dir="rtl"] .fab,
+[dir="rtl"] .far { margin-left: 0.25rem; margin-right: 0; }
+
+/* Follow bar */
+[dir="rtl"] .follow-bar { flex-direction: row-reverse; }
+
+/* Navbar brand */
+[dir="rtl"] .navbar-brand { margin-right: 0; margin-left: auto; }
+
+/* Gap utilities already work in RTL, but ensure horizontal scroll starts from right */
+[dir="rtl"] .ad-opts-strip { scroll-snap-type: x mandatory; direction: rtl; }
+
+/* Profile rows */
+[dir="rtl"] .profile-row { flex-direction: row-reverse; }
+[dir="rtl"] .profile-row i { margin-left: 0; margin-right: 0; }
+
+/* Home page */
+[dir="rtl"] .home-nav { flex-direction: row-reverse; }
+[dir="rtl"] .page-body { flex-direction: row-reverse; }

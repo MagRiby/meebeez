@@ -1,61 +1,276 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discover</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { background: #f5f6fa; padding-bottom: calc(60px + var(--safe-bottom)); }
+        .form-control, .form-select { font-size: 16px; }
 
-{% block title %}Unified Portal{% endblock %}
+        .bottom-tabs {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050;
+            background: #fff; border-top: 1px solid #dee2e6;
+            display: flex; padding-bottom: var(--safe-bottom);
+        }
+        .bottom-tabs .btab {
+            flex: 1 1 0; padding: 6px 4px 4px;
+            text-align: center; font-size: 10px; color: #6c757d;
+            border: none; background: none;
+        }
+        .bottom-tabs .btab.active { color: #0d6efd; font-weight: 600; }
+        .bottom-tabs .btab i { display: block; font-size: 20px; margin-bottom: 2px; }
 
-{% block content %}
-<h2 class="mb-4">Your Portal</h2>
-<p class="text-muted">All your businesses in one place</p>
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+            .bottom-tabs { display: none; }
+        }
 
-<div id="portal-list">
-    <div class="text-center py-4">
-        <div class="spinner-border text-primary" role="status"></div>
-    </div>
-</div>
-{% endblock %}
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
 
-{% block extra_scripts %}
-<script>
-const token = localStorage.getItem('token');
-const headers = {};
-if (token) headers['Authorization'] = 'Bearer ' + token;
+        .search-bar-wrap {
+            position: sticky; top: 56px; z-index: 100;
+            background: #f5f6fa; padding: 10px 16px 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .search-type-toggle .btn { border-radius: 20px; font-size: 13px; padding: 4px 16px; }
 
-async function loadPortal() {
-    const res = await fetch('/api/portal', { headers });
-    const container = document.getElementById('portal-list');
+        .result-card {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 12px;
+            margin-bottom: 10px; overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .result-card .card-img {
+            width: 100%; max-height: 180px; object-fit: contain; background: #f8f9fa;
+        }
+        .result-card .card-body { padding: 12px 14px; }
+        .result-card .price { font-weight: 700; color: #0d6efd; }
+        .result-card .biz-badge {
+            font-size: 11px; background: #e9ecef; border-radius: 10px;
+            padding: 2px 8px; color: #495057;
+        }
 
-    if (!res.ok) {
-        container.innerHTML = '<p class="text-muted">Please log in to view your businesses</p>';
-        return;
-    }
+        .biz-card {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 12px;
+            padding: 14px 16px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .biz-card .biz-icon {
+            width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px;
+        }
+        .biz-card .biz-name { font-weight: 600; margin: 0; font-size: 15px; }
+        .biz-card .biz-meta { font-size: 12px; color: #6c757d; margin: 0; }
 
-    const tenants = await res.json();
+        .empty-state { text-align: center; padding: 40px 20px; color: #adb5bd; }
+        .empty-state i { font-size: 48px; margin-bottom: 12px; display: block; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark sticky-top" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0"><i class="fas fa-compass me-2"></i>Discover</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-light" id="navUserName" style="font-size:13px"></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
 
-    if (tenants.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-5">
-                <i class="fas fa-store fa-3x text-muted mb-3"></i>
-                <p class="text-muted">You haven't joined any business yet</p>
-                <a href="/" class="btn btn-primary">Browse Apps</a>
-            </div>`;
-        return;
-    }
+    <!-- Tab content -->
+    <div class="container-fluid py-3">
 
-    container.innerHTML = '<div class="row g-3">' + tenants.map(t => `
-        <div class="col-md-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body text-center">
-                    <h5 class="card-title">${t.name}</h5>
-                    <span class="badge bg-secondary mb-2">${t.app_type}</span>
-                    <br>
-                    <span class="badge bg-${t.status === 'active' ? 'success' : 'warning'}">${t.status}</span>
-                    <p class="mt-2 text-muted small">Role: ${t.role}</p>
-                    <a href="/t/${t.slug}/${t.app_type}/" class="btn btn-outline-primary btn-sm">Enter</a>
+        <!-- ═══ SEARCH TAB ═══ -->
+        <div class="tab-pane active" id="tab-search">
+            <!-- Sticky search bar -->
+            <div style="margin: -12px -12px 12px; position:sticky; top:56px; z-index:100; background:#f5f6fa; padding:10px 12px 8px; border-bottom:1px solid #e9ecef;">
+                <div class="input-group mb-2">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search…" autocomplete="off" oninput="onSearchInput()">
+                    <button class="btn btn-outline-secondary" onclick="clearSearch()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="search-type-toggle d-flex gap-2">
+                    <button class="btn btn-primary btn-sm active" id="btnBiz" onclick="setSearchType('businesses')">
+                        <i class="fas fa-store me-1"></i>Businesses
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" id="btnItems" onclick="setSearchType('items')">
+                        <i class="fas fa-tag me-1"></i>Items
+                    </button>
+                </div>
+            </div>
+            <div id="searchResults">
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>Search for a business name<br>or a product / item</p>
                 </div>
             </div>
         </div>
-    `).join('') + '</div>';
-}
 
-loadPortal();
-</script>
-{% endblock %}
+        <!-- ═══ MY BUSINESSES TAB ═══ -->
+        <div class="tab-pane" id="tab-mybiz">
+            <h6 class="fw-semibold mb-3 text-muted">MY BUSINESSES</h6>
+            <div id="myBizList">
+                <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom tabs -->
+    <div class="bottom-tabs">
+        <button class="btab active" onclick="switchTab('search')"><i class="fas fa-search"></i>Discover</button>
+        <button class="btab" onclick="switchTab('mybiz')"><i class="fas fa-store"></i>My Businesses</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    const token = localStorage.getItem('token');
+    let currentSearchType = 'businesses';
+    let searchTimeout = null;
+
+    // Redirect to login if no token
+    if (!token) { window.location.href = '/login'; }
+
+    // Show user name from token
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        document.getElementById('navUserName').textContent = payload.email || '';
+    } catch(e) {}
+
+    const authHeaders = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.querySelectorAll('.bottom-tabs .btab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.bottom-tabs .btab').forEach(b => {
+            if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tab + "'")) b.classList.add('active');
+        });
+        if (tab === 'mybiz') loadMyBiz();
+    }
+
+    function setSearchType(type) {
+        currentSearchType = type;
+        document.getElementById('btnBiz').className = type === 'businesses' ? 'btn btn-primary btn-sm' : 'btn btn-outline-secondary btn-sm';
+        document.getElementById('btnItems').className = type === 'items' ? 'btn btn-primary btn-sm' : 'btn btn-outline-secondary btn-sm';
+        const q = document.getElementById('searchInput').value.trim();
+        if (q.length >= 2) runSearch(q);
+        else clearResults();
+    }
+
+    function onSearchInput() {
+        clearTimeout(searchTimeout);
+        const q = document.getElementById('searchInput').value.trim();
+        if (q.length < 2) { clearResults(); return; }
+        searchTimeout = setTimeout(() => runSearch(q), 350);
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        clearResults();
+    }
+
+    function clearResults() {
+        document.getElementById('searchResults').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <p>Search for a business name<br>or a product / item</p>
+            </div>`;
+    }
+
+    async function runSearch(q) {
+        const el = document.getElementById('searchResults');
+        el.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=${currentSearchType}`);
+            const data = await res.json();
+            renderResults(data);
+        } catch(e) {
+            el.innerHTML = '<p class="text-muted text-center py-3">Search failed. Try again.</p>';
+        }
+    }
+
+    function renderResults(data) {
+        const el = document.getElementById('searchResults');
+        if (!data.length) {
+            el.innerHTML = `<div class="empty-state"><i class="fas fa-ghost"></i><p>No results found</p></div>`;
+            return;
+        }
+        if (currentSearchType === 'businesses') {
+            el.innerHTML = data.map(b => `
+                <div class="biz-card" onclick="window.location.href='/t/${b.slug}/${b.app_type}/explore'">
+                    <div class="biz-icon"><i class="fas fa-store"></i></div>
+                    <div class="flex-grow-1">
+                        <p class="biz-name">${esc(b.name)}</p>
+                        <p class="biz-meta">${esc(b.app_type)}</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted"></i>
+                </div>
+            `).join('');
+        } else {
+            el.innerHTML = data.map(item => `
+                <div class="result-card" onclick="window.location.href='/t/${item.business_slug}/myfomo/explore'">
+                    ${item.image_path ? `<img class="card-img" src="${esc(item.image_path)}" alt="">` : ''}
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <strong>${esc(item.title)}</strong>
+                            ${item.price ? `<span class="price">$${Number(item.price).toFixed(2)}</span>` : ''}
+                        </div>
+                        ${item.body ? `<p class="text-muted small mb-1">${esc(item.body)}</p>` : ''}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="biz-badge"><i class="fas fa-store me-1"></i>${esc(item.business_name)}</span>
+                            <small class="text-muted">${item.remaining_quantity > 0 ? item.remaining_quantity + ' left' : 'Out of stock'}</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    async function loadMyBiz() {
+        const el = document.getElementById('myBizList');
+        try {
+            const res = await fetch('/api/portal', { headers: authHeaders });
+            if (!res.ok) { el.innerHTML = '<p class="text-muted text-center">Could not load businesses.</p>'; return; }
+            const tenants = await res.json();
+            if (!tenants.length) {
+                el.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-store-slash"></i>
+                        <p>You haven't joined any business yet.<br>Use Search to discover businesses.</p>
+                    </div>`;
+                return;
+            }
+            el.innerHTML = tenants.map(t => `
+                <div class="biz-card" onclick="window.location.href='/t/${t.slug}/${t.app_type}/explore'">
+                    <div class="biz-icon"><i class="fas fa-store"></i></div>
+                    <div class="flex-grow-1">
+                        <p class="biz-name">${esc(t.name)}</p>
+                        <p class="biz-meta">${esc(t.app_type)} &middot; <span class="text-${t.status === 'active' ? 'success' : 'warning'}">${t.status}</span></p>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted"></i>
+                </div>
+            `).join('');
+        } catch(e) {
+            el.innerHTML = '<p class="text-muted text-center">Could not load businesses.</p>';
+        }
+    }
+
+    function logout() {
+        fetch('/api/auth/logout', { method: 'POST', headers: authHeaders });
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+    </script>
+</body>
+</html>

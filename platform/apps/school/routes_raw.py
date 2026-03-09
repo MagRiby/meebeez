@@ -42,7 +42,7 @@ serializer = URLSafeTimedSerializer(app.secret_key)
 def get_user_by_username(identifier):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT id, username FROM users WHERE username=?', (identifier,))
+    c.execute('SELECT id, username FROM users WHERE username=%s', (identifier,))
     user = c.fetchone()
     conn.close()
     return user  # (id, username) or None
@@ -52,7 +52,7 @@ def update_user_password(user_id, new_password):
     password_hash = generate_password_hash(new_password)
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('UPDATE users SET password_hash=? WHERE id=?', (password_hash, user_id))
+    c.execute('UPDATE users SET password_hash=%s WHERE id=%s', (password_hash, user_id))
     conn.commit()
     conn.close()
 
@@ -334,7 +334,7 @@ def register_super_admin():
         username = request.form['username']
         password = request.form['password']
         password_hash = generate_password_hash(password)
-        c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        c.execute('INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id',
                   (username, password_hash, 'super_admin'))
         conn.commit()
         conn.close()
@@ -350,7 +350,7 @@ def login():
         password = request.form['password']
         conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
         c = conn.cursor()
-        c.execute('SELECT id, password_hash, role FROM users WHERE username=?', (username,))
+        c.execute('SELECT id, password_hash, role FROM users WHERE username=%s', (username,))
         user = c.fetchone()
         conn.close()
         if user and check_password_hash(user[1], password):
@@ -361,7 +361,7 @@ def login():
             if user[2] == 'teacher':
                 conn2 = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
                 c2 = conn2.cursor()
-                c2.execute('SELECT id FROM teachers WHERE user_id=?', (user[0],))
+                c2.execute('SELECT id FROM teachers WHERE user_id=%s', (user[0],))
                 teacher_row = c2.fetchone()
                 if teacher_row:
                     session['teacher_id'] = teacher_row[0]
@@ -375,7 +375,7 @@ def login():
                     FROM students s
                     LEFT JOIN classes c ON s.class_id = c.id
                     LEFT JOIN levels l ON c.level_id = l.id
-                    WHERE s.email=?
+                    WHERE s.email=%s
                 ''', (username,))
                 students = c2.fetchall()
                 conn2.close()
@@ -442,7 +442,7 @@ def set_local_admin_director(admin_id):
     # Set all local_admins to is_director=0
     c.execute("UPDATE users SET is_director=0 WHERE role='local_admin'")
     # Set selected admin to is_director=1
-    c.execute("UPDATE users SET is_director=1 WHERE id=? AND role='local_admin'", (admin_id,))
+    c.execute("UPDATE users SET is_director=1 WHERE id=%s AND role='local_admin'", (admin_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -465,12 +465,12 @@ def api_add_local_admin():
         return jsonify({'success': False, 'error': 'الرجاء تعبئة جميع الحقول'}), 400
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT id FROM users WHERE username=?', (username,))
+    c.execute('SELECT id FROM users WHERE username=%s', (username,))
     if c.fetchone():
         conn.close()
         return jsonify({'success': False, 'error': 'اسم المستخدم مستخدم بالفعل'}), 400
     password_hash = generate_password_hash(password)
-    c.execute("INSERT INTO users (name, username, password_hash, role) VALUES (?, ?, ?, 'local_admin')", (name, username, password_hash))
+    c.execute("INSERT INTO users (name, username, password_hash, role) VALUES (%s, %s, %s, 'local_admin')", (name, username, password_hash))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -486,15 +486,15 @@ def api_edit_local_admin(admin_id):
         return jsonify({'success': False, 'error': 'الرجاء تعبئة جميع الحقول'}), 400
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT id FROM users WHERE id=? AND role="local_admin"', (admin_id,))
+    c.execute('SELECT id FROM users WHERE id=%s AND role="local_admin"', (admin_id,))
     if not c.fetchone():
         conn.close()
         return jsonify({'success': False, 'error': 'المستخدم غير موجود'}), 404
-    c.execute('SELECT id FROM users WHERE username=? AND id!=?', (username, admin_id))
+    c.execute('SELECT id FROM users WHERE username=%s AND id!=%s', (username, admin_id))
     if c.fetchone():
         conn.close()
         return jsonify({'success': False, 'error': 'اسم المستخدم مستخدم بالفعل'}), 400
-    c.execute('UPDATE users SET name=?, username=? WHERE id=?', (name, username, admin_id))
+    c.execute('UPDATE users SET name=%s, username=%s WHERE id=%s', (name, username, admin_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -505,11 +505,11 @@ def api_edit_local_admin(admin_id):
 def api_delete_local_admin(admin_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT id FROM users WHERE id=? AND role="local_admin"', (admin_id,))
+    c.execute('SELECT id FROM users WHERE id=%s AND role="local_admin"', (admin_id,))
     if not c.fetchone():
         conn.close()
         return jsonify({'success': False, 'error': 'المستخدم غير موجود'}), 404
-    c.execute('DELETE FROM users WHERE id=?', (admin_id,))
+    c.execute('DELETE FROM users WHERE id=%s', (admin_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -544,7 +544,7 @@ def close_db(error):
 @app.route('/api/events/<int:class_id>', methods=['GET'])
 def get_events(class_id):
     db = get_db()
-    cur = db.execute('SELECT * FROM events WHERE class_id = ?', (class_id,))
+    cur = db.execute('SELECT * FROM events WHERE class_id = %s', (class_id,))
     events = [dict(row) for row in cur.fetchall()]
     return jsonify(events)
 
@@ -584,13 +584,13 @@ def create_event():
             else:
                 dt_current = add_months(dt_current, 1)
         for dt in events_to_create:
-            cursor = db.execute('INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            cursor = db.execute('INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id RETURNING id',
                 (data['class_id'], data['title'], data.get('description'), dt.isoformat(), end, data.get('color'), recurrence, recurrence_group_id, recurrence_end))
-            event_id = cursor.lastrowid
+            event_id = cursor.fetchone()[0]
             event_rows.append(event_id)
         db.commit()
         # Return the first created event
-        cur = db.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=?', (event_rows[0],))
+        cur = db.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=%s', (event_rows[0],))
         row = cur.fetchone()
         if row:
             event = {
@@ -610,11 +610,11 @@ def create_event():
             return jsonify({'success': False, 'error': 'Event not found after creation'}), 500
     else:
         # Non-recurring event
-        cursor = db.execute('INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)',
+        cursor = db.execute('INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL)',
             (data['class_id'], data['title'], data.get('description'), start, end, data.get('color'), recurrence))
         db.commit()
-        event_id = cursor.lastrowid
-        cur = db.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=?', (event_id,))
+        event_id = cursor.fetchone()[0]
+        cur = db.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=%s', (event_id,))
         row = cur.fetchone()
         if row:
             event = {
@@ -641,20 +641,20 @@ def delete_event(event_id):
     delete_all = request.args.get('all') == '1'
     if delete_all:
         # Find recurrence_group_id for this event
-        cur = db.execute('SELECT recurrence_group_id FROM events WHERE id=?', (event_id,))
+        cur = db.execute('SELECT recurrence_group_id FROM events WHERE id=%s', (event_id,))
         row = cur.fetchone()
         if row and row[0]:
             group_id = row[0]
-            db.execute('DELETE FROM events WHERE recurrence_group_id=?', (group_id,))
+            db.execute('DELETE FROM events WHERE recurrence_group_id=%s', (group_id,))
             db.commit()
             return jsonify({'success': True})
         else:
             # Fallback: just delete the single event if no group id found
-            db.execute('DELETE FROM events WHERE id=?', (event_id,))
+            db.execute('DELETE FROM events WHERE id=%s', (event_id,))
             db.commit()
             return jsonify({'success': True})
     else:
-        db.execute('DELETE FROM events WHERE id=?', (event_id,))
+        db.execute('DELETE FROM events WHERE id=%s', (event_id,))
         db.commit()
         return jsonify({'success': True})
 
@@ -680,7 +680,7 @@ def api_check_user_exists():
     if username:
         conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
         c = conn.cursor()
-        c.execute('SELECT 1 FROM users WHERE username=?', (username,))
+        c.execute('SELECT 1 FROM users WHERE username=%s', (username,))
         exists = c.fetchone() is not None
         conn.close()
     return jsonify({'exists': exists})
@@ -698,7 +698,7 @@ def create_local_admin():
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     try:
-        c.execute('INSERT INTO users (username, password_hash, role, created_by) VALUES (?, ?, ?, ?)',
+        c.execute('INSERT INTO users (username, password_hash, role, created_by) VALUES (%s, %s, %s, %s) RETURNING id RETURNING id',
                   (username, password_hash, role, session['user_id']))
         conn.commit()
     except sqlite3.IntegrityError:
@@ -734,11 +734,11 @@ def update_user():
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     if new_role:
-        c.execute('UPDATE users SET role=? WHERE id=?', (new_role, user_id))
+        c.execute('UPDATE users SET role=%s WHERE id=%s', (new_role, user_id))
     if new_password:
         password_hash = generate_password_hash(new_password)
         print(f"[DEBUG] Saving password_hash: {repr(password_hash)}", file=sys.stderr)
-        c.execute('UPDATE users SET password_hash=? WHERE id=?', (password_hash, user_id))
+        c.execute('UPDATE users SET password_hash=%s WHERE id=%s', (password_hash, user_id))
     else:
         print("[DEBUG] No new password provided; password will not be changed.", file=sys.stderr)
     conn.commit()
@@ -760,11 +760,11 @@ def delete_user():
     c = conn.cursor()
     c.execute('SELECT COUNT(*) FROM users WHERE role="super_admin"')
     if c.fetchone()[0] <= 1:
-        c.execute('SELECT role FROM users WHERE id=?', (user_id,))
+        c.execute('SELECT role FROM users WHERE id=%s', (user_id,))
         if c.fetchone() and c.fetchone()[0] == 'super_admin':
             conn.close()
             return jsonify({'error': 'Cannot delete the last super admin'}), 400
-    c.execute('DELETE FROM users WHERE id=?', (user_id,))
+    c.execute('DELETE FROM users WHERE id=%s', (user_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -779,16 +779,16 @@ def update_event(event_id):
     update_all = request.args.get('all') == '1'
     if update_all:
         # Find recurrence_group_id for this event
-        c.execute('SELECT recurrence_group_id FROM events WHERE id=?', (event_id,))
+        c.execute('SELECT recurrence_group_id FROM events WHERE id=%s', (event_id,))
         row = c.fetchone()
         if row and row[0]:
             group_id = row[0]
             # Update all events in the group
-            c.execute('''UPDATE events SET title=?, description=?, color=?, recurrence=?, recurrence_end=? WHERE recurrence_group_id=?''',
+            c.execute('''UPDATE events SET title=%s, description=%s, color=%s, recurrence=%s, recurrence_end=%s WHERE recurrence_group_id=%s''',
                       (data['title'], data.get('description'), data.get('color'), data.get('recurrence'), data.get('recurrence_end'), group_id))
             conn.commit()
             # Fetch one updated event to return
-            c.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE recurrence_group_id=? LIMIT 1', (group_id,))
+            c.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE recurrence_group_id=%s LIMIT 1', (group_id,))
             row = c.fetchone()
             conn.close()
             if row:
@@ -811,11 +811,11 @@ def update_event(event_id):
             return jsonify({'error': 'No recurrence group found'}), 404
     else:
         # Single event update
-        c.execute('''UPDATE events SET title=?, description=?, start=?, end=?, color=?, recurrence=?, recurrence_end=? WHERE id=?''',
+        c.execute('''UPDATE events SET title=%s, description=%s, start=%s, end=%s, color=%s, recurrence=%s, recurrence_end=%s WHERE id=%s''',
                   (data['title'], data.get('description'), data['start'], data.get('end'), data.get('color'), data.get('recurrence'), data.get('recurrence_end'), event_id))
         conn.commit()
         # Fetch updated event
-        c.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=?', (event_id,))
+        c.execute('SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=%s', (event_id,))
         row = c.fetchone()
         conn.close()
         if row:
@@ -859,11 +859,11 @@ def add_teacher():
     c = conn.cursor()
     # Create user as teacher
     try:
-        c.execute('INSERT INTO users (username, password_hash, role, created_by) VALUES (?, ?, ?, ?)',
+        c.execute('INSERT INTO users (username, password_hash, role, created_by) VALUES (%s, %s, %s, %s) RETURNING id',
                   (username, password_hash, 'teacher', session['user_id']))
-        user_id = c.lastrowid
+        user_id = c.fetchone()[0]
         # Link to teachers table, store name
-        c.execute('INSERT INTO teachers (user_id, local_admin_id, name, email) VALUES (?, ?, ?, ?)', (user_id, session['user_id'], name, username))
+        c.execute('INSERT INTO teachers (user_id, local_admin_id, name, email) VALUES (%s, %s, %s, %s)', (user_id, session['user_id'], name, username))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
@@ -877,14 +877,14 @@ def delete_teacher(teacher_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     # Remove from teachers table and users table
-    c.execute('SELECT user_id FROM teachers WHERE id=? AND local_admin_id=?', (teacher_id, session['user_id']))
+    c.execute('SELECT user_id FROM teachers WHERE id=%s AND local_admin_id=%s', (teacher_id, session['user_id']))
     row = c.fetchone()
     if not row:
         conn.close()
         return jsonify({'error': 'Not found'}), 404
     user_id = row[0]
-    c.execute('DELETE FROM teachers WHERE id=?', (teacher_id,))
-    c.execute('DELETE FROM users WHERE id=?', (user_id,))
+    c.execute('DELETE FROM teachers WHERE id=%s', (teacher_id,))
+    c.execute('DELETE FROM users WHERE id=%s', (user_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -904,7 +904,7 @@ def update_teacher(teacher_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     # Get the user_id for this teacher and make sure it belongs to this local_admin
-    c.execute('SELECT user_id FROM teachers WHERE id=? AND local_admin_id=?', (teacher_id, session['user_id']))
+    c.execute('SELECT user_id FROM teachers WHERE id=%s AND local_admin_id=%s', (teacher_id, session['user_id']))
     row = c.fetchone()
     if not row:
         conn.close()
@@ -912,34 +912,34 @@ def update_teacher(teacher_id):
     user_id = row[0]
     # Check for username conflict if username is changing
     if new_username:
-        c.execute('SELECT id FROM users WHERE username=? AND id<>?', (new_username, user_id))
+        c.execute('SELECT id FROM users WHERE username=%s AND id<>%s', (new_username, user_id))
         if c.fetchone():
             conn.close()
             return jsonify({'error': 'اسم المستخدم مستخدم بالفعل'}), 400
-        c.execute('UPDATE users SET username=? WHERE id=?', (new_username, user_id))
+        c.execute('UPDATE users SET username=%s WHERE id=%s', (new_username, user_id))
         # Also update teachers.email to match username
-        c.execute('UPDATE teachers SET email=? WHERE id=?', (new_username, teacher_id))
+        c.execute('UPDATE teachers SET email=%s WHERE id=%s', (new_username, teacher_id))
     if new_password:
         password_hash = generate_password_hash(new_password)
-        c.execute('UPDATE users SET password_hash=? WHERE id=?', (password_hash, user_id))
+        c.execute('UPDATE users SET password_hash=%s WHERE id=%s', (password_hash, user_id))
     # Update teacher details
     updates = []
     params = []
     if phone is not None:
-        updates.append('phone = ?')
+        updates.append('phone = %s')
         params.append(phone)
     if notes is not None:
-        updates.append('notes = ?')
+        updates.append('notes = %s')
         params.append(notes)
     if alerts is not None:
-        updates.append('alerts = ?')
+        updates.append('alerts = %s')
         params.append(alerts)
     if name is not None:
-        updates.append('name = ?')
+        updates.append('name = %s')
         params.append(name)
     if updates:
         params.append(teacher_id)
-        c.execute(f'UPDATE teachers SET {", ".join(updates)} WHERE id=?', params)
+        c.execute(f'UPDATE teachers SET {", ".join(updates)} WHERE id=%s', params)
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -952,7 +952,7 @@ def list_curriculum_groups():
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     if level_id:
-        c.execute('SELECT id, name FROM curriculum_groups WHERE level_id=?', (level_id,))
+        c.execute('SELECT id, name FROM curriculum_groups WHERE level_id=%s', (level_id,))
     else:
         c.execute('SELECT id, name FROM curriculum_groups')
     groups = [{'id': row[0], 'name': row[1]} for row in c.fetchall()]
@@ -967,7 +967,7 @@ def add_curriculum_group():
     level_id = data['level_id']
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('INSERT INTO curriculum_groups (name, local_admin_id, level_id) VALUES (?, ?, ?)', (name, session['user_id'], level_id))
+    c.execute('INSERT INTO curriculum_groups (name, local_admin_id, level_id) VALUES (%s, %s, %s)', (name, session['user_id'], level_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -980,9 +980,9 @@ def delete_curriculum_group(group_id):
     c = conn.cursor()
     if request.method == 'DELETE':
         if level_id:
-            c.execute('DELETE FROM curriculum_groups WHERE id=? AND local_admin_id=? AND level_id=?', (group_id, session['user_id'], level_id))
+            c.execute('DELETE FROM curriculum_groups WHERE id=%s AND local_admin_id=%s AND level_id=%s', (group_id, session['user_id'], level_id))
         else:
-            c.execute('DELETE FROM curriculum_groups WHERE id=? AND local_admin_id=?', (group_id, session['user_id']))
+            c.execute('DELETE FROM curriculum_groups WHERE id=%s AND local_admin_id=%s', (group_id, session['user_id']))
         conn.commit()
         conn.close()
         return jsonify({'success': True})
@@ -990,7 +990,7 @@ def delete_curriculum_group(group_id):
         data = request.json
         name = data.get('name')
         if name:
-            c.execute('UPDATE curriculum_groups SET name=? WHERE id=? AND local_admin_id=?', (name, group_id, session['user_id']))
+            c.execute('UPDATE curriculum_groups SET name=%s WHERE id=%s AND local_admin_id=%s', (name, group_id, session['user_id']))
             conn.commit()
         conn.close()
         return jsonify({'success': True})
@@ -1000,7 +1000,7 @@ def delete_curriculum_group(group_id):
 def list_curriculum_items(group_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT id, name FROM curriculum_items WHERE group_id=?', (group_id,))
+    c.execute('SELECT id, name FROM curriculum_items WHERE group_id=%s', (group_id,))
     items = [{'id': row[0], 'name': row[1]} for row in c.fetchall()]
     conn.close()
     return jsonify(items)
@@ -1013,7 +1013,7 @@ def add_curriculum_item():
     name = data['name']
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('INSERT INTO curriculum_items (group_id, name) VALUES (?, ?)', (group_id, name))
+    c.execute('INSERT INTO curriculum_items (group_id, name) VALUES (%s, %s)', (group_id, name))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1027,12 +1027,12 @@ def update_or_delete_curriculum_item(item_id):
         data = request.json
         name = data.get('name')
         if name:
-            c.execute('UPDATE curriculum_items SET name=? WHERE id=?', (name, item_id))
+            c.execute('UPDATE curriculum_items SET name=%s WHERE id=%s', (name, item_id))
             conn.commit()
         conn.close()
         return jsonify({'success': True})
     elif request.method == 'DELETE':
-        c.execute('DELETE FROM curriculum_items WHERE id=?', (item_id,))
+        c.execute('DELETE FROM curriculum_items WHERE id=%s', (item_id,))
         conn.commit()
         conn.close()
         return jsonify({'success': True})
@@ -1045,7 +1045,7 @@ def update_group_name():
     new_name = data['new_name']
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('UPDATE curriculum_groups SET name=? WHERE id=? AND local_admin_id=?', (new_name, group_id, session['user_id']))
+    c.execute('UPDATE curriculum_groups SET name=%s WHERE id=%s AND local_admin_id=%s', (new_name, group_id, session['user_id']))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1058,7 +1058,7 @@ def update_subject_name():
     new_name = data['new_name']
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('UPDATE curriculum_items SET name=? WHERE id=?', (new_name, subject_id))
+    c.execute('UPDATE curriculum_items SET name=%s WHERE id=%s', (new_name, subject_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1081,7 +1081,7 @@ def add_level():
     name = data['name']
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('INSERT INTO levels (name, local_admin_id) VALUES (?, ?)', (name, session['user_id']))
+    c.execute('INSERT INTO levels (name, local_admin_id) VALUES (%s, %s)', (name, session['user_id']))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1091,7 +1091,7 @@ def add_level():
 def delete_level(level_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('DELETE FROM levels WHERE id=? AND local_admin_id=?', (level_id, session['user_id']))
+    c.execute('DELETE FROM levels WHERE id=%s AND local_admin_id=%s', (level_id, session['user_id']))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1106,7 +1106,7 @@ def edit_level_name():
         return jsonify(success=False, error="Missing data")
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('UPDATE levels SET name = ? WHERE id = ? AND local_admin_id = ?', (new_name, level_id, session['user_id']))
+    c.execute('UPDATE levels SET name = %s WHERE id = %s AND local_admin_id = %s', (new_name, level_id, session['user_id']))
     conn.commit()
     conn.close()
     return jsonify(success=True)
@@ -1146,7 +1146,7 @@ def get_class_announcement(class_id):
         user_id INTEGER NOT NULL,
         expiry TEXT
     )''')
-    c.execute('SELECT text, created_at, user_id, expiry FROM announcements WHERE class_id=? ORDER BY id DESC LIMIT 1', (class_id,))
+    c.execute('SELECT text, created_at, user_id, expiry FROM announcements WHERE class_id=%s ORDER BY id DESC LIMIT 1', (class_id,))
     row = c.fetchone()
     conn.close()
     if row:
@@ -1172,7 +1172,7 @@ def add_class_announcement(class_id):
         user_id INTEGER NOT NULL,
         expiry TEXT
     )''')
-    c.execute('INSERT INTO announcements (class_id, text, created_at, user_id, expiry) VALUES (?, ?, ?, ?, ?)',
+    c.execute('INSERT INTO announcements (class_id, text, created_at, user_id, expiry) VALUES (%s, %s, %s, %s, %s)',
               (class_id, text, timestamp, user_id, data.get('expiry')))
     conn.commit()
     conn.close()
@@ -1210,7 +1210,7 @@ def list_classes():
             LEFT JOIN levels l ON classes.level_id = l.id
             LEFT JOIN teachers t ON classes.teacher_id = t.id
             LEFT JOIN teachers tb ON classes.backup_teacher_id = tb.id
-            WHERE classes.teacher_id = ? OR classes.backup_teacher_id = ?
+            WHERE classes.teacher_id = %s OR classes.backup_teacher_id = %s
         ''', (teacher_id, teacher_id))
         debug_rows = c.fetchall()
         print(f"[DEBUG] SQL rows for teacher: {debug_rows}")
@@ -1227,7 +1227,7 @@ def list_classes():
             LEFT JOIN levels l ON classes.level_id = l.id
             LEFT JOIN teachers t ON classes.teacher_id = t.id
             LEFT JOIN teachers tb ON classes.backup_teacher_id = tb.id
-            WHERE classes.teacher_id = ? OR classes.backup_teacher_id = ?
+            WHERE classes.teacher_id = %s OR classes.backup_teacher_id = %s
         ''', (teacher_id, teacher_id))
     else:
         c.execute('''
@@ -1296,7 +1296,7 @@ def add_class():
     print('[DEBUG] Processed:', name, level_id, teacher_id, backup_teacher_id)
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    sql = 'INSERT INTO classes (name, local_admin_id, level_id, teacher_id, backup_teacher_id) VALUES (?, ?, ?, ?, ?)'
+    sql = 'INSERT INTO classes (name, local_admin_id, level_id, teacher_id, backup_teacher_id) VALUES (%s, %s, %s, %s, %s)'
     values = (name, session['user_id'], level_id, teacher_id, backup_teacher_id)
     print('[DEBUG] SQL:', sql)
     print('[DEBUG] VALUES:', values)
@@ -1310,7 +1310,7 @@ def add_class():
 def delete_class(class_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('DELETE FROM classes WHERE id=? AND local_admin_id=?', (class_id, session['user_id']))
+    c.execute('DELETE FROM classes WHERE id=%s AND local_admin_id=%s', (class_id, session['user_id']))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1335,7 +1335,7 @@ def class_detail(class_id):
             LEFT JOIN users ut ON t.user_id = ut.id
             LEFT JOIN teachers bt ON classes.backup_teacher_id = bt.id
             LEFT JOIN users ub ON bt.user_id = ub.id
-            WHERE classes.id=? AND classes.local_admin_id=?
+            WHERE classes.id=%s AND classes.local_admin_id=%s
         ''', (class_id, session['user_id']))
         row = c.fetchone()
         conn.close()
@@ -1392,35 +1392,35 @@ def class_detail(class_id):
     updates = []
     params = []
     if name is not None:
-        updates.append('name = ?')
+        updates.append('name = %s')
         params.append(name)
     if level_id is not None:
-        updates.append('level_id = ?')
+        updates.append('level_id = %s')
         params.append(level_id)
     if teacher_id is not None:
-        updates.append('teacher_id = ?')
+        updates.append('teacher_id = %s')
         params.append(teacher_id)
     if backup_teacher_id is not None:
-        updates.append('backup_teacher_id = ?')
+        updates.append('backup_teacher_id = %s')
         params.append(backup_teacher_id)
-    updates.append('dawra1_pub_start = ?')
+    updates.append('dawra1_pub_start = %s')
     params.append(dawra1_pub_start)
-    updates.append('dawra1_pub_end = ?')
+    updates.append('dawra1_pub_end = %s')
     params.append(dawra1_pub_end)
-    updates.append('dawra2_pub_start = ?')
+    updates.append('dawra2_pub_start = %s')
     params.append(dawra2_pub_start)
-    updates.append('dawra2_pub_end = ?')
+    updates.append('dawra2_pub_end = %s')
     params.append(dawra2_pub_end)
-    updates.append('dawra3_pub_start = ?')
+    updates.append('dawra3_pub_start = %s')
     params.append(dawra3_pub_start)
-    updates.append('dawra3_pub_end = ?')
+    updates.append('dawra3_pub_end = %s')
     params.append(dawra3_pub_end)
-    updates.append('year_pub_start = ?')
+    updates.append('year_pub_start = %s')
     params.append(year_pub_start)
-    updates.append('year_pub_end = ?')
+    updates.append('year_pub_end = %s')
     params.append(year_pub_end)
     params.append(class_id)
-    sql = f'UPDATE classes SET {", ".join(updates)} WHERE id = ?'
+    sql = f'UPDATE classes SET {", ".join(updates)} WHERE id = %s'
     print('Updating class:', class_id)
     print('SQL:', sql)
     print('Params:', params)
@@ -1464,32 +1464,32 @@ def class_detail(class_id):
     updates = []
     params = []
     if name is not None:
-        updates.append('name = ?')
+        updates.append('name = %s')
         params.append(name)
-    updates.append('level_id = ?')
+    updates.append('level_id = %s')
     params.append(level_id)
-    updates.append('teacher_id = ?')
+    updates.append('teacher_id = %s')
     params.append(teacher_id)
-    updates.append('backup_teacher_id = ?')
+    updates.append('backup_teacher_id = %s')
     params.append(backup_teacher_id)
-    updates.append('dawra1_pub_start = ?')
+    updates.append('dawra1_pub_start = %s')
     params.append(dawra1_pub_start)
-    updates.append('dawra1_pub_end = ?')
+    updates.append('dawra1_pub_end = %s')
     params.append(dawra1_pub_end)
-    updates.append('dawra2_pub_start = ?')
+    updates.append('dawra2_pub_start = %s')
     params.append(dawra2_pub_start)
-    updates.append('dawra2_pub_end = ?')
+    updates.append('dawra2_pub_end = %s')
     params.append(dawra2_pub_end)
-    updates.append('dawra3_pub_start = ?')
+    updates.append('dawra3_pub_start = %s')
     params.append(dawra3_pub_start)
-    updates.append('dawra3_pub_end = ?')
+    updates.append('dawra3_pub_end = %s')
     params.append(dawra3_pub_end)
-    updates.append('year_pub_start = ?')
+    updates.append('year_pub_start = %s')
     params.append(year_pub_start)
-    updates.append('year_pub_end = ?')
+    updates.append('year_pub_end = %s')
     params.append(year_pub_end)
     params.append(class_id)
-    sql = f'UPDATE classes SET {", ".join(updates)} WHERE id = ?'
+    sql = f'UPDATE classes SET {", ".join(updates)} WHERE id = %s'
     print('Updating class:', class_id)
     print('SQL:', sql)
     print('Params:', params)
@@ -1505,7 +1505,7 @@ def class_detail(class_id):
 def get_class_courses(class_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('''SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=?''', (class_id,))
+    c.execute('''SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=%s''', (class_id,))
     courses = [{'id': row[0], 'name': row[1]} for row in c.fetchall()]
     conn.close()
     return jsonify(courses)
@@ -1517,7 +1517,7 @@ def add_course_to_class(class_id):
     curriculum_item_id = data['curriculum_item_id']
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('INSERT INTO class_courses (class_id, curriculum_item_id) VALUES (?, ?)', (class_id, curriculum_item_id))
+    c.execute('INSERT INTO class_courses (class_id, curriculum_item_id) VALUES (%s, %s)', (class_id, curriculum_item_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1527,7 +1527,7 @@ def add_course_to_class(class_id):
 def remove_course_from_class(class_id, curriculum_item_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('DELETE FROM class_courses WHERE class_id=? AND curriculum_item_id=?', (class_id, curriculum_item_id))
+    c.execute('DELETE FROM class_courses WHERE class_id=%s AND curriculum_item_id=%s', (class_id, curriculum_item_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1547,7 +1547,7 @@ def get_students():
                      FROM students s
                      LEFT JOIN users u ON s.email = u.username
                      LEFT JOIN classes c ON s.class_id = c.id
-                     WHERE c.teacher_id = ? OR c.backup_teacher_id = ?
+                     WHERE c.teacher_id = %s OR c.backup_teacher_id = %s
                      ORDER BY s.id DESC''', (teacher_id, teacher_id))
         rows = c.fetchall()
     else:
@@ -1598,7 +1598,7 @@ def search_students():
                 FROM students s
                 LEFT JOIN users u ON s.email = u.username
                 LEFT JOIN classes c ON s.class_id = c.id
-                WHERE (c.teacher_id = ? OR c.backup_teacher_id = ?)
+                WHERE (c.teacher_id = %s OR c.backup_teacher_id = %s)
                 ORDER BY s.id DESC''', (teacher_id, teacher_id))
             rows = c.fetchall()
         else:
@@ -1608,7 +1608,7 @@ def search_students():
                 FROM students s
                 LEFT JOIN users u ON s.email = u.username
                 LEFT JOIN classes c ON s.class_id = c.id
-                WHERE (c.teacher_id = ? OR c.backup_teacher_id = ?) AND (
+                WHERE (c.teacher_id = %s OR c.backup_teacher_id = %s) AND (
                     s.name LIKE ? OR u.username LIKE ? OR s.email LIKE ? OR s.phone LIKE ?
                 )
                 ORDER BY s.id DESC''', (teacher_id, teacher_id, like_query, like_query, like_query, like_query))
@@ -1629,7 +1629,7 @@ def search_students():
                 FROM students s
                 LEFT JOIN users u ON s.email = u.username
                 LEFT JOIN classes c ON s.class_id = c.id
-                WHERE s.name LIKE ? OR u.username LIKE ? OR s.email LIKE ? OR s.phone LIKE ?
+                WHERE s.name LIKE %s OR u.username LIKE %s OR s.email LIKE %s OR s.phone LIKE %s
                 ORDER BY s.id DESC''', (like_query, like_query, like_query, like_query))
             rows = c.fetchall()
     students = [
@@ -1673,16 +1673,16 @@ def create_student():
         conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
         c = conn.cursor()
         # Check if user exists
-        c.execute('SELECT id FROM users WHERE username=?', (username,))
+        c.execute('SELECT id FROM users WHERE username=%s', (username,))
         user = c.fetchone()
         if user:
             user_id = user[0]
         else:
             password_hash = generate_password_hash(password)
-            c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', (username, password_hash, 'student'))
-            user_id = c.lastrowid
+            c.execute('INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id', (username, password_hash, 'student'))
+            user_id = c.fetchone()[0]
         # Insert student with parent's email
-        c.execute('INSERT INTO students (name, class_id, email, phone, notes, alerts, date_of_birth, secondary_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        c.execute('INSERT INTO students (name, class_id, email, phone, notes, alerts, date_of_birth, secondary_email) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
                   (name, class_id, email or '', phone or '', notes or '', alerts or '', date_of_birth or '', secondary_email or ''))
         conn.commit()
         conn.close()
@@ -1708,12 +1708,12 @@ def update_student(student_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     # Fetch old email for cleanup logic
-    c.execute('SELECT email FROM students WHERE id=?', (student_id,))
+    c.execute('SELECT email FROM students WHERE id=%s', (student_id,))
     row = c.fetchone()
     old_email = row[0] if row else None
     # If new_username is provided and different, check for conflicts and update
     if new_username and new_username != old_email:
-        c.execute('SELECT id FROM users WHERE username=?', (new_username,))
+        c.execute('SELECT id FROM users WHERE username=%s', (new_username,))
         user = c.fetchone()
         if not user:
             # Accept password from JSON or form, robustly handle both new_password and password fields
@@ -1730,47 +1730,47 @@ def update_student(student_id):
                 return jsonify({'success': False, 'error': 'يجب إدخال كلمة مرور للمستخدم الجديد', 'debug_data': str(debug_data), 'debug_new_password': str(new_password)}), 400
             password_hash = generate_password_hash(new_password)
             print(f"[DEBUG][early] Creating user {new_username} with password_hash: {repr(password_hash)}", file=sys.stderr)
-            c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', (new_username, password_hash, 'student'))
+            c.execute('INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id', (new_username, password_hash, 'student'))
         # Update student's email to new_username
         email = new_username
     # Update student fields
     updates = []
     params = []
     if email is not None:
-        updates.append('email = ?')
+        updates.append('email = %s')
         params.append(email)
     if phone is not None:
-        updates.append('phone = ?')
+        updates.append('phone = %s')
         params.append(phone)
     if notes is not None:
-        updates.append('notes = ?')
+        updates.append('notes = %s')
         params.append(notes)
     if alerts is not None:
-        updates.append('alerts = ?')
+        updates.append('alerts = %s')
         params.append(alerts)
     if name is not None:
-        updates.append('name = ?')
+        updates.append('name = %s')
         params.append(name)
     if date_of_birth is not None:
-        updates.append('date_of_birth = ?')
+        updates.append('date_of_birth = %s')
         params.append(date_of_birth)
     if secondary_email is not None:
-        updates.append('secondary_email = ?')
+        updates.append('secondary_email = %s')
         params.append(secondary_email)
     if 'sex' in data:
-        updates.append('sex = ?')
+        updates.append('sex = %s')
         params.append(data['sex'])
     if updates:
         params.append(student_id)
-        c.execute(f'UPDATE students SET {", ".join(updates)} WHERE id=?', params)
+        c.execute(f'UPDATE students SET {", ".join(updates)} WHERE id=%s', params)
     # Clean up: if no students left with old_email, remove user
     if old_email and email and old_email != email:
-        c.execute('SELECT COUNT(*) FROM students WHERE email=?', (old_email,))
+        c.execute('SELECT COUNT(*) FROM students WHERE email=%s', (old_email,))
         count = c.fetchone()[0]
         if count == 0:
-            c.execute('DELETE FROM users WHERE username=?', (old_email,))
+            c.execute('DELETE FROM users WHERE username=%s', (old_email,))
         # Now: check if new email exists in users, if not, prompt for password (frontend should handle prompt and send password)
-        c.execute('SELECT id FROM users WHERE username=?', (email,))
+        c.execute('SELECT id FROM users WHERE username=%s', (email,))
         user_exists = c.fetchone()
         if not user_exists:
             # Debug: log the full incoming data
@@ -1789,12 +1789,12 @@ def update_student(student_id):
             password_hash = generate_password_hash(new_password)
             print(f"[DEBUG] Creating user {email} with password_hash: {repr(password_hash)}", file=sys.stderr)
             # You can choose a default role (e.g., 'student' or 'parent'), adjust as needed
-            c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', (email, password_hash, 'student'))
+            c.execute('INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id', (email, password_hash, 'student'))
     # If a new password is provided, update the user's password hash
     if data.get('new_password'):
         password_hash = generate_password_hash(data['new_password'])
         # Update the user with the current email/username
-        c.execute('UPDATE users SET password_hash=? WHERE username=?', (password_hash, email))
+        c.execute('UPDATE users SET password_hash=%s WHERE username=%s', (password_hash, email))
         print(f"[DEBUG] Updated password for user {email}", file=sys.stderr)
     conn.commit()
     conn.close()
@@ -1815,15 +1815,15 @@ def update_student_post(student_id):
             c = conn.cursor()
             # Only update fields that are provided
             if class_id is not None:
-                c.execute('UPDATE students SET class_id=? WHERE id=?', (class_id, student_id))
+                c.execute('UPDATE students SET class_id=%s WHERE id=%s', (class_id, student_id))
             if email is not None:
-                c.execute('UPDATE students SET email=? WHERE id=?', (email, student_id))
+                c.execute('UPDATE students SET email=%s WHERE id=%s', (email, student_id))
             if phone is not None:
-                c.execute('UPDATE students SET phone=? WHERE id=?', (phone, student_id))
+                c.execute('UPDATE students SET phone=%s WHERE id=%s', (phone, student_id))
             if notes is not None:
-                c.execute('UPDATE students SET notes=? WHERE id=?', (notes, student_id))
+                c.execute('UPDATE students SET notes=%s WHERE id=%s', (notes, student_id))
             if alerts is not None:
-                c.execute('UPDATE students SET alerts=? WHERE id=?', (alerts, student_id))
+                c.execute('UPDATE students SET alerts=%s WHERE id=%s', (alerts, student_id))
             conn.commit()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1836,7 +1836,7 @@ def list_students(class_id):
     c = conn.cursor()
     c.execute('''SELECT s.id, u.username, s.name, s.email, s.phone, s.notes, s.alerts
                  FROM students s LEFT JOIN users u ON s.id = u.id
-                 WHERE s.class_id=?''', (class_id,))
+                 WHERE s.class_id=%s''', (class_id,))
     students = [
         {
             'id': row[0],
@@ -1860,12 +1860,12 @@ def add_student(class_id):
     sex = data.get('sex')
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('INSERT INTO students (name, class_id, sex) VALUES (?, ?, ?)', (name, class_id, sex))
+    c.execute('INSERT INTO students (name, class_id, sex) VALUES (%s, %s, %s)', (name, class_id, sex))
     conn.commit()
     # Now fetch the updated list
     c.execute('''SELECT u.id, u.username, s.name, s.email, s.phone, s.notes, s.alerts, s.sex
                  FROM users u LEFT JOIN students s ON u.id = s.id
-                 WHERE u.role="student" AND s.class_id=?''', (class_id,))
+                 WHERE u.role="student" AND s.class_id=%s''', (class_id,))
     students = [
         {
             'id': row[0],
@@ -1887,7 +1887,7 @@ def add_student(class_id):
 def delete_student(class_id, student_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('DELETE FROM students WHERE id=? AND class_id=?', (student_id, class_id))
+    c.execute('DELETE FROM students WHERE id=%s AND class_id=%s', (student_id, class_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -1899,17 +1899,17 @@ def get_student_card(student_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     # Get student's class
-    c.execute('SELECT class_id FROM students WHERE id=?', (student_id,))
+    c.execute('SELECT class_id FROM students WHERE id=%s', (student_id,))
     row = c.fetchone()
     if not row:
         conn.close()
         return jsonify({'error': 'Student not found'}), 404
     class_id = row[0]
     # Get courses attached to class
-    c.execute('''SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=?''', (class_id,))
+    c.execute('''SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=%s''', (class_id,))
     courses = [{'id': r[0], 'name': r[1]} for r in c.fetchall()]
     # Get grades for student
-    c.execute('SELECT curriculum_item_id, level, comment FROM student_grades WHERE student_id=?', (student_id,))
+    c.execute('SELECT curriculum_item_id, level, comment FROM student_grades WHERE student_id=%s', (student_id,))
     rows = c.fetchall()
     scores = {row[0]: row[1] for row in rows}
     comments = {row[0]: row[2] or '' for row in rows}
@@ -1924,11 +1924,11 @@ def delete_student_api():
     try:
         with sqlite3.connect('ArabicSchool.db', timeout=2, check_same_thread=False) as conn:
             c = conn.cursor()
-            c.execute('SELECT * FROM users WHERE id=? AND role="student"', (student_id,))
+            c.execute('SELECT * FROM users WHERE id=%s AND role="student"', (student_id,))
             student = c.fetchone()
             if not student:
                 return jsonify({'success': False, 'error': 'الطالب غير موجود'}), 404
-            c.execute('DELETE FROM users WHERE id=?', (student_id,))
+            c.execute('DELETE FROM users WHERE id=%s', (student_id,))
             conn.commit()
     except sqlite3.OperationalError as e:
         return jsonify({'success': False, 'error': 'Database is busy, try again.'}), 500
@@ -1953,7 +1953,7 @@ def student_abilities(student_id, class_id):
     else:
         school_info = {"name": "", "logo": "school_logo.png"}
     # Get class name and level
-    c.execute('SELECT name, level_id FROM classes WHERE id=?', (class_id,))
+    c.execute('SELECT name, level_id FROM classes WHERE id=%s', (class_id,))
     row = c.fetchone()
     if not row or not row[0] or not row[1]:
         conn.close()
@@ -1962,18 +1962,18 @@ def student_abilities(student_id, class_id):
     class_name = row[0]
     level_id = row[1]
     # Fetch level name
-    c.execute('SELECT name FROM levels WHERE id=?', (level_id,))
+    c.execute('SELECT name FROM levels WHERE id=%s', (level_id,))
     level_row = c.fetchone()
     class_level = level_row[0] if level_row else ''
     # Get all curriculum groups and items for this level
-    c.execute('''SELECT cg.id, cg.name FROM curriculum_groups cg WHERE cg.level_id=?''', (level_id,))
+    c.execute('''SELECT cg.id, cg.name FROM curriculum_groups cg WHERE cg.level_id=%s''', (level_id,))
     groups = []
     for group_id, group_name in c.fetchall():
-        c.execute('''SELECT ci.id, ci.name FROM curriculum_items ci WHERE ci.group_id=?''', (group_id,))
+        c.execute('''SELECT ci.id, ci.name FROM curriculum_items ci WHERE ci.group_id=%s''', (group_id,))
         items = [{'id': cid, 'name': name} for cid, name in c.fetchall()]
         groups.append({'group_name': group_name, 'items': items})
     # Get scores for this student
-    c.execute('SELECT curriculum_item_id, level, comment, comment_updated_at, comment_user FROM student_grades WHERE student_id=?', (student_id,))
+    c.execute('SELECT curriculum_item_id, level, comment, comment_updated_at, comment_user FROM student_grades WHERE student_id=%s', (student_id,))
     rows = c.fetchall()
     scores = {row[0]: row[1] for row in rows}
     comments = {row[0]: row[2] or '' for row in rows}
@@ -1993,11 +1993,11 @@ def student_abilities(student_id, class_id):
                 val = data.get(str(cid))
                 comment_in_request = f'comment_{cid}' in data
                 comment = data.get(f'comment_{cid}', None)
-                c.execute('SELECT id, comment FROM student_grades WHERE student_id=? AND curriculum_item_id=?', (student_id, cid))
+                c.execute('SELECT id, comment FROM student_grades WHERE student_id=%s AND curriculum_item_id=%s', (student_id, cid))
                 row = c.fetchone()
                 if (val is None or val == '') and (not comment_in_request or not comment):
                     # Only delete if both score and comment are empty
-                    c.execute('DELETE FROM student_grades WHERE student_id=? AND curriculum_item_id=?', (student_id, cid))
+                    c.execute('DELETE FROM student_grades WHERE student_id=%s AND curriculum_item_id=%s', (student_id, cid))
                 else:
                     try:
                         val_int = int(val) if val not in (None, '') else None
@@ -2006,13 +2006,13 @@ def student_abilities(student_id, class_id):
                     if row:
                         if comment_in_request:
                             # Update both level and comment
-                            c.execute('UPDATE student_grades SET level=?, comment=?, comment_updated_at=?, comment_user=? WHERE student_id=? AND curriculum_item_id=?', (val_int, comment, comment_updated_at, comment_user, student_id, cid))
+                            c.execute('UPDATE student_grades SET level=%s, comment=%s, comment_updated_at=%s, comment_user=%s WHERE student_id=%s AND curriculum_item_id=%s', (val_int, comment, comment_updated_at, comment_user, student_id, cid))
                         else:
                             # Only update level, leave comment untouched
-                            c.execute('UPDATE student_grades SET level=? WHERE student_id=? AND curriculum_item_id=?', (val_int, student_id, cid))
+                            c.execute('UPDATE student_grades SET level=%s WHERE student_id=%s AND curriculum_item_id=%s', (val_int, student_id, cid))
                     else:
                         # Insert new row. If no comment in request, use empty string
-                        c.execute('INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (?, ?, ?, ?, ?, ?)', (student_id, cid, val_int, comment if comment is not None else '', comment_updated_at, comment_user))
+                        c.execute('INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (%s, %s, %s, %s, %s, %s)', (student_id, cid, val_int, comment if comment is not None else '', comment_updated_at, comment_user))
         conn.commit()
         conn.close()
         return jsonify({'success': True})
@@ -2025,7 +2025,7 @@ def student_abilities(student_id, class_id):
         { 'label': 'متميز', 'class': 'level-master', 'icon': '🏆' },
     ]
     # Fetch student name
-    c.execute('SELECT name FROM students WHERE id=?', (student_id,))
+    c.execute('SELECT name FROM students WHERE id=%s', (student_id,))
     row = c.fetchone()
     student_name = row[0] if row else ''
     # Fetch all active homeworks for this class (due_date >= today)
@@ -2033,7 +2033,7 @@ def student_abilities(student_id, class_id):
     today_str = datetime.now().strftime('%Y-%m-%d')
     conn2 = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c2 = conn2.cursor()
-    c2.execute('SELECT id, due_date, description, files FROM homework WHERE class_id=? AND due_date >= ? ORDER BY due_date ASC', (class_id, today_str))
+    c2.execute('SELECT id, due_date, description, files FROM homework WHERE class_id=%s AND due_date >= %s ORDER BY due_date ASC', (class_id, today_str))
     homework_rows = c2.fetchall()
     conn2.close()
     homeworks = []
@@ -2069,12 +2069,12 @@ def save_comment():
     c = conn.cursor()
     comment_user = session.get('username', 'unknown')
     comment_updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    c.execute('SELECT id FROM student_grades WHERE student_id=? AND curriculum_item_id=?', (student_id, course_id))
+    c.execute('SELECT id FROM student_grades WHERE student_id=%s AND curriculum_item_id=%s', (student_id, course_id))
     if c.fetchone():
-        c.execute('UPDATE student_grades SET comment=?, comment_updated_at=?, comment_user=? WHERE student_id=? AND curriculum_item_id=?', (comment, comment_updated_at, comment_user, student_id, course_id))
+        c.execute('UPDATE student_grades SET comment=%s, comment_updated_at=%s, comment_user=%s WHERE student_id=%s AND curriculum_item_id=%s', (comment, comment_updated_at, comment_user, student_id, course_id))
     else:
         # Insert with level=NULL
-        c.execute('INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (?, ?, ?, ?, ?, ?)', (student_id, course_id, 0, comment, comment_updated_at, comment_user))
+        c.execute('INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (%s, %s, %s, %s, %s, %s)', (student_id, course_id, 0, comment, comment_updated_at, comment_user))
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'comment': comment, 'comment_updated_at': comment_updated_at, 'comment_user': comment_user})
@@ -2087,7 +2087,7 @@ app.register_blueprint(super_badges_bp)
 def list_homework(class_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT id, due_date, description, files FROM homework WHERE class_id=? ORDER BY due_date DESC', (class_id,))
+    c.execute('SELECT id, due_date, description, files FROM homework WHERE class_id=%s ORDER BY due_date DESC', (class_id,))
     rows = c.fetchall()
     conn.close()
     result = []
@@ -2111,7 +2111,7 @@ def edit_homework(homework_id):
     import os
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT class_id, files FROM homework WHERE id=?', (homework_id,))
+    c.execute('SELECT class_id, files FROM homework WHERE id=%s', (homework_id,))
     row = c.fetchone()
     if not row:
         conn.close()
@@ -2126,7 +2126,7 @@ def edit_homework(homework_id):
     all_files = old_files.split(';') if old_files else []
     all_files.extend(new_files)
     all_files_str = ';'.join([f for f in all_files if f])
-    c.execute('UPDATE homework SET due_date=?, description=?, files=? WHERE id=?', (due_date, description, all_files_str, homework_id))
+    c.execute('UPDATE homework SET due_date=%s, description=%s, files=%s WHERE id=%s', (due_date, description, all_files_str, homework_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -2136,7 +2136,7 @@ def delete_homework(homework_id):
     import os
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT class_id, files FROM homework WHERE id=?', (homework_id,))
+    c.execute('SELECT class_id, files FROM homework WHERE id=%s', (homework_id,))
     row = c.fetchone()
     if not row:
         conn.close()
@@ -2152,7 +2152,7 @@ def delete_homework(homework_id):
                     os.remove(fpath)
                 except Exception:
                     pass
-    c.execute('DELETE FROM homework WHERE id=?', (homework_id,))
+    c.execute('DELETE FROM homework WHERE id=%s', (homework_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -2184,7 +2184,7 @@ def upload_homework():
         files TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
-    c.execute('INSERT INTO homework (class_id, due_date, description, files) VALUES (?, ?, ?, ?)',
+    c.execute('INSERT INTO homework (class_id, due_date, description, files) VALUES (%s, %s, %s, %s)',
               (class_id, due_date, description, ','.join(saved_files)))
     conn.commit()
     conn.close()
@@ -2240,7 +2240,7 @@ def add_super_badge():
         c.execute('ALTER TABLE super_badges ADD COLUMN active INTEGER DEFAULT 1')
     except sqlite3.OperationalError:
         pass
-    c.execute('INSERT INTO super_badges (id, name, icon_type, icon_value, active) VALUES (?, ?, ?, ?, ?)',
+    c.execute('INSERT INTO super_badges (id, name, icon_type, icon_value, active) VALUES (%s, %s, %s, %s, %s)',
               (badge_id, name, icon_type, icon_value, 1))
     conn.commit()
     conn.close()
@@ -2250,7 +2250,7 @@ def add_super_badge():
 def get_super_badge(badge_id):
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
-    c.execute('SELECT id, name, icon_type, icon_value, active FROM super_badges WHERE id = ?', (badge_id,))
+    c.execute('SELECT id, name, icon_type, icon_value, active FROM super_badges WHERE id = %s', (badge_id,))
     row = c.fetchone()
     conn.close()
     if row:
@@ -2266,11 +2266,11 @@ def update_super_badge(badge_id):
     icon_value = data.get('icon_value')
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
-    c.execute('SELECT id FROM super_badges WHERE id = ?', (badge_id,))
+    c.execute('SELECT id FROM super_badges WHERE id = %s', (badge_id,))
     if not c.fetchone():
         conn.close()
         return jsonify({'error': 'Not found'}), 404
-    c.execute('UPDATE super_badges SET name = ?, icon_type = ?, icon_value = ? WHERE id = ?',
+    c.execute('UPDATE super_badges SET name = %s, icon_type = %s, icon_value = %s WHERE id = %s',
               (name, icon_type, icon_value, badge_id))
     conn.commit()
     conn.close()
@@ -2282,7 +2282,7 @@ def toggle_super_badge_active(badge_id):
     set_active = data.get('active')
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
-    c.execute('SELECT active FROM super_badges WHERE id = ?', (badge_id,))
+    c.execute('SELECT active FROM super_badges WHERE id = %s', (badge_id,))
     row = c.fetchone()
     if not row:
         conn.close()
@@ -2292,7 +2292,7 @@ def toggle_super_badge_active(badge_id):
         new_active = 0 if current_active else 1
     else:
         new_active = 1 if set_active else 0
-    c.execute('UPDATE super_badges SET active = ? WHERE id = ?', (new_active, badge_id))
+    c.execute('UPDATE super_badges SET active = %s WHERE id = %s', (new_active, badge_id))
     conn.commit()
     conn.close()
     return jsonify({'id': badge_id, 'active': new_active})
@@ -2301,11 +2301,11 @@ def toggle_super_badge_active(badge_id):
 def delete_super_badge(badge_id):
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
-    c.execute('SELECT id FROM super_badges WHERE id = ?', (badge_id,))
+    c.execute('SELECT id FROM super_badges WHERE id = %s', (badge_id,))
     if not c.fetchone():
         conn.close()
         return jsonify({'error': 'Not found'}), 404
-    c.execute('DELETE FROM super_badges WHERE id = ?', (badge_id,))
+    c.execute('DELETE FROM super_badges WHERE id = %s', (badge_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -2317,7 +2317,7 @@ def list_exams(class_id):
     c = conn.cursor()
     c.execute('''SELECT exams.id, exams.name, exams.status, exams.curriculum_group_id, cg.name as subject_name, exams.is_final, exams.weight, exams.dawra, exams.is_year_final
                  FROM exams LEFT JOIN curriculum_groups cg ON exams.curriculum_group_id = cg.id
-                 WHERE exams.class_id = ? ORDER BY exams.id''', (class_id,))
+                 WHERE exams.class_id = %s ORDER BY exams.id''', (class_id,))
     exams = []
     for row in c.fetchall():
         exams.append({
@@ -2353,10 +2353,10 @@ def add_exam(class_id):
         return jsonify({'error': 'Subject is required'}), 400
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
-    c.execute('INSERT INTO exams (class_id, name, status, curriculum_group_id, is_final, weight, dawra, is_year_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    c.execute('INSERT INTO exams (class_id, name, status, curriculum_group_id, is_final, weight, dawra, is_year_final) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
               (class_id, name, status, curriculum_group_id, is_final, weight, dawra_to_save, is_year_final))
     conn.commit()
-    exam_id = c.lastrowid
+    exam_id = c.fetchone()[0]
     conn.close()
     return jsonify({'id': exam_id, 'name': name, 'status': status, 'curriculum_group_id': curriculum_group_id, 'is_final': is_final, 'weight': weight, 'dawra': dawra_to_save, 'is_year_final': is_year_final})
 
@@ -2374,24 +2374,24 @@ def edit_exam(exam_id):
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
     if name is not None:
-        c.execute('UPDATE exams SET name = ? WHERE id = ?', (name, exam_id))
+        c.execute('UPDATE exams SET name = %s WHERE id = %s', (name, exam_id))
     if curriculum_group_id is not None:
-        c.execute('UPDATE exams SET curriculum_group_id = ? WHERE id = ?', (curriculum_group_id, exam_id))
+        c.execute('UPDATE exams SET curriculum_group_id = %s WHERE id = %s', (curriculum_group_id, exam_id))
     if status is not None:
-        c.execute('UPDATE exams SET status = ? WHERE id = ?', (status, exam_id))
+        c.execute('UPDATE exams SET status = %s WHERE id = %s', (status, exam_id))
     if is_final is not None:
-        c.execute('UPDATE exams SET is_final = ? WHERE id = ?', (is_final, exam_id))
+        c.execute('UPDATE exams SET is_final = %s WHERE id = %s', (is_final, exam_id))
     if weight is not None:
-        c.execute('UPDATE exams SET weight = ? WHERE id = ?', (weight, exam_id))
+        c.execute('UPDATE exams SET weight = %s WHERE id = %s', (weight, exam_id))
     if is_year_final is not None:
         # If year final, dawra must be NULL
-        c.execute('UPDATE exams SET is_year_final = ? WHERE id = ?', (int(is_year_final), exam_id))
+        c.execute('UPDATE exams SET is_year_final = %s WHERE id = %s', (int(is_year_final), exam_id))
         if int(is_year_final):
-            c.execute('UPDATE exams SET dawra = NULL WHERE id = ?', (exam_id,))
+            c.execute('UPDATE exams SET dawra = NULL WHERE id = %s', (exam_id,))
         elif dawra is not None:
-            c.execute('UPDATE exams SET dawra = ? WHERE id = ?', (dawra, exam_id))
+            c.execute('UPDATE exams SET dawra = %s WHERE id = %s', (dawra, exam_id))
     elif dawra is not None:
-        c.execute('UPDATE exams SET dawra = ? WHERE id = ?', (dawra, exam_id))
+        c.execute('UPDATE exams SET dawra = %s WHERE id = %s', (dawra, exam_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -2401,8 +2401,8 @@ def edit_exam(exam_id):
 def delete_exam(exam_id):
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
-    c.execute('DELETE FROM exams WHERE id = ?', (exam_id,))
-    c.execute('DELETE FROM grades WHERE exam_id = ?', (exam_id,))
+    c.execute('DELETE FROM exams WHERE id = %s', (exam_id,))
+    c.execute('DELETE FROM grades WHERE exam_id = %s', (exam_id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -2413,12 +2413,12 @@ def list_grades(class_id):
     conn = sqlite3.connect('ArabicSchool.db')
     c = conn.cursor()
     # Get students
-    c.execute('SELECT id, name FROM students WHERE class_id = ? ORDER BY id', (class_id,))
+    c.execute('SELECT id, name FROM students WHERE class_id = %s ORDER BY id', (class_id,))
     students = [{'id': row[0], 'name': row[1]} for row in c.fetchall()]
     # Get exams (with subject)
     c.execute('''SELECT exams.id, exams.name, exams.curriculum_group_id, cg.name as subject_name, exams.is_final, exams.weight, exams.dawra, exams.is_year_final
                  FROM exams LEFT JOIN curriculum_groups cg ON exams.curriculum_group_id = cg.id
-                 WHERE exams.class_id = ? ORDER BY exams.id''', (class_id,))
+                 WHERE exams.class_id = %s ORDER BY exams.id''', (class_id,))
     exams = [
         {
             'id': row[0],
@@ -2433,7 +2433,7 @@ def list_grades(class_id):
         for row in c.fetchall()
     ]
     # Get grades
-    c.execute('SELECT student_id, exam_id, grade FROM grades WHERE exam_id IN (SELECT id FROM exams WHERE class_id = ?)', (class_id,))
+    c.execute('SELECT student_id, exam_id, grade FROM grades WHERE exam_id IN (SELECT id FROM exams WHERE class_id = %s)', (class_id,))
     grade_map = {}
     for student_id, exam_id, grade in c.fetchall():
         grade_map[(student_id, exam_id)] = grade
@@ -2461,7 +2461,7 @@ def update_grades(class_id):
         # Upsert using SQLite ON CONFLICT
         c.execute('''
             INSERT INTO grades (student_id, exam_id, grade)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
             ON CONFLICT(student_id, exam_id) DO UPDATE SET grade=excluded.grade, updated_at=CURRENT_TIMESTAMP
         ''', (student_id, exam_id, grade))
     conn.commit()
@@ -2473,7 +2473,7 @@ def update_grades(class_id):
 def continuous_monitoring(class_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT name FROM classes WHERE id=?', (class_id,))
+    c.execute('SELECT name FROM classes WHERE id=%s', (class_id,))
     row = c.fetchone()
     conn.close()
     class_name = row[0] if row else ''
@@ -2484,7 +2484,7 @@ def continuous_monitoring(class_id):
 def attendance(class_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('SELECT name FROM classes WHERE id=?', (class_id,))
+    c.execute('SELECT name FROM classes WHERE id=%s', (class_id,))
     row = c.fetchone()
     class_name = row[0] if row else ''
     conn.close()
@@ -2513,11 +2513,11 @@ def get_attendance(class_id):
         UNIQUE(student_id, class_id, day)
     )''')
     # Get students
-    c.execute('SELECT id, name FROM students WHERE class_id=? ORDER BY id', (class_id,))
+    c.execute('SELECT id, name FROM students WHERE class_id=%s ORDER BY id', (class_id,))
     students = [{'id': row[0], 'name': row[1]} for row in c.fetchall()]
     # Attendance records for this week
     q_marks = ','.join(['?']*len(week_dates))
-    c.execute(f'SELECT student_id, day, present FROM attendance WHERE class_id=? AND day IN ({q_marks})', (class_id, *week_dates))
+    c.execute(f'SELECT student_id, day, present FROM attendance WHERE class_id=%s AND day IN ({q_marks})', (class_id, *week_dates))
     attendance = {(str(row[0]) + '_' + row[1]): row[2] for row in c.fetchall()}
     conn.close()
     return jsonify({'students': students, 'attendance': attendance})
@@ -2540,7 +2540,7 @@ def update_attendance(class_id):
         UNIQUE(student_id, class_id, day)
     )''')
     c.execute('''INSERT INTO attendance (student_id, class_id, day, present)
-                 VALUES (?, ?, ?, ?)
+                 VALUES (%s, %s, %s, %s)
                  ON CONFLICT(student_id, class_id, day) DO UPDATE SET present=excluded.present''',
               (student_id, class_id, day, present))
     conn.commit()
@@ -2599,7 +2599,7 @@ def upload_support_material(level_id):
     try:
         conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
         c = conn.cursor()
-        c.execute('''INSERT INTO support_material (level_id, filename, original_filename, description, uploader, date) VALUES (?, ?, ?, ?, ?, ?)''',
+        c.execute('''INSERT INTO support_material (level_id, filename, original_filename, description, uploader, date) VALUES (%s, %s, %s, %s, %s, %s)''',
                   (level_id, filename, original_filename, description, uploader, date))
         conn.commit()
         conn.close()
@@ -2613,7 +2613,7 @@ def upload_support_material(level_id):
 def list_support_material(level_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('''SELECT id, filename, original_filename, description, uploader, date FROM support_material WHERE level_id=? ORDER BY id DESC''', (level_id,))
+    c.execute('''SELECT id, filename, original_filename, description, uploader, date FROM support_material WHERE level_id=%s ORDER BY id DESC''', (level_id,))
     files = [
         {
             'id': row[0],
@@ -2637,7 +2637,7 @@ def delete_support_material(support_id):
     try:
         conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
         c = conn.cursor()
-        c.execute('SELECT filename FROM support_material WHERE id=?', (support_id,))
+        c.execute('SELECT filename FROM support_material WHERE id=%s', (support_id,))
         row = c.fetchone()
         if not row:
             conn.close()
@@ -2649,7 +2649,7 @@ def delete_support_material(support_id):
                 os.remove(file_path)
         except Exception as e:
             print(f"[ERROR] Failed to delete file: {e}")
-        c.execute('DELETE FROM support_material WHERE id=?', (support_id,))
+        c.execute('DELETE FROM support_material WHERE id=%s', (support_id,))
         conn.commit()
         conn.close()
         return jsonify({'success': True})
@@ -2674,7 +2674,7 @@ def edit_support_material(support_id):
             conn.close()
             return jsonify({'success': False, 'error': 'الوصف مطلوب'}), 400
         # Get current file info
-        c.execute('SELECT filename, level_id FROM support_material WHERE id=?', (support_id,))
+        c.execute('SELECT filename, level_id FROM support_material WHERE id=%s', (support_id,))
         row = c.fetchone()
         if not row:
             conn.close()
@@ -2703,9 +2703,9 @@ def edit_support_material(support_id):
             update_file = True
         # Update DB
         if update_file:
-            c.execute('UPDATE support_material SET description=?, filename=?, original_filename=? WHERE id=?', (new_desc, new_filename, original_filename, support_id))
+            c.execute('UPDATE support_material SET description=%s, filename=%s, original_filename=%s WHERE id=%s', (new_desc, new_filename, original_filename, support_id))
         else:
-            c.execute('UPDATE support_material SET description=? WHERE id=?', (new_desc, support_id))
+            c.execute('UPDATE support_material SET description=%s WHERE id=%s', (new_desc, support_id))
         conn.commit()
         conn.close()
         return jsonify({'success': True})
@@ -2817,19 +2817,19 @@ def score_card(student_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     # Get student basic info
-    c.execute('SELECT name, class_id FROM students WHERE id=?', (student_id,))
+    c.execute('SELECT name, class_id FROM students WHERE id=%s', (student_id,))
     stu_row = c.fetchone()
     if not stu_row:
         conn.close()
         return render_template('score_card.html', error_message='لم يتم العثور على الطالب.', school_info=school_info)
     student_name, class_id = stu_row
     # Get class name and level
-    c.execute('SELECT name, level_id FROM classes WHERE id=?', (class_id,))
+    c.execute('SELECT name, level_id FROM classes WHERE id=%s', (class_id,))
     class_row = c.fetchone()
     class_name, level_id = class_row if class_row else (None, None)
     class_level = None
     if level_id:
-        c.execute('SELECT name FROM levels WHERE id=?', (level_id,))
+        c.execute('SELECT name FROM levels WHERE id=%s', (level_id,))
         lvl_row = c.fetchone()
         class_level = lvl_row[0] if lvl_row else None
     # Build score summary using 'grades' table
@@ -2844,7 +2844,7 @@ def score_card(student_id):
         JOIN students s ON g.student_id = s.id
         JOIN exams e ON g.exam_id = e.id
         JOIN curriculum_items ci ON e.curriculum_group_id = ci.id
-        WHERE g.student_id=?
+        WHERE g.student_id=%s
         GROUP BY s.name, ci.name
         ORDER BY ci.name
     '''
@@ -2862,7 +2862,7 @@ def score_card(student_id):
         })
     # --- Absenteeism Info ---
     c = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False).cursor()
-    c.execute('''SELECT day FROM attendance WHERE student_id=? AND class_id=? AND present=0 ORDER BY day''', (student_id, class_id))
+    c.execute('''SELECT day FROM attendance WHERE student_id=%s AND class_id=%s AND present=0 ORDER BY day''', (student_id, class_id))
     absent_days = [row[0] for row in c.fetchall()]
     total_absences = len(absent_days)
     c.connection.close()
@@ -2938,7 +2938,7 @@ def api_score_card(student_id):
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
     # Get student info
-    c.execute('SELECT id, name, class_id FROM students WHERE id=?', (student_id,))
+    c.execute('SELECT id, name, class_id FROM students WHERE id=%s', (student_id,))
     stu = c.fetchone()
     if not stu:
         conn.close()
@@ -2950,7 +2950,7 @@ def api_score_card(student_id):
                  LEFT JOIN levels l ON classes.level_id = l.id
                  LEFT JOIN teachers t ON classes.teacher_id = t.id
                  LEFT JOIN teachers tb ON classes.backup_teacher_id = tb.id
-                 WHERE classes.id = ?''', (class_id,))
+                 WHERE classes.id = %s''', (class_id,))
     class_row = c.fetchone()
     class_info = {
         'class_name': class_row[0] if class_row else '',
@@ -2974,7 +2974,7 @@ def api_score_card(student_id):
     # Get exams (with subject) for this class - same as /api/grades/<class_id>
     c.execute('''SELECT exams.id, exams.name, exams.curriculum_group_id, cg.name as subject_name, exams.is_final, exams.weight, exams.dawra, exams.is_year_final
                  FROM exams LEFT JOIN curriculum_groups cg ON exams.curriculum_group_id = cg.id
-                 WHERE exams.class_id = ? ORDER BY exams.id''', (class_id,))
+                 WHERE exams.class_id = %s ORDER BY exams.id''', (class_id,))
     exams = [
         {
             'id': row[0],
@@ -2989,7 +2989,7 @@ def api_score_card(student_id):
         for row in c.fetchall()
     ]
     # Get grades for this student for these exams, using the same mapping as /api/grades/<class_id>
-    c.execute('SELECT student_id, exam_id, grade FROM grades WHERE exam_id IN (SELECT id FROM exams WHERE class_id = ?)', (class_id,))
+    c.execute('SELECT student_id, exam_id, grade FROM grades WHERE exam_id IN (SELECT id FROM exams WHERE class_id = %s)', (class_id,))
     grade_map = {}
     for student_id_row, exam_id_row, grade in c.fetchall():
         grade_map[(student_id_row, exam_id_row)] = grade
@@ -3000,7 +3000,7 @@ def api_score_card(student_id):
 
     # Fetch publication dates for this class
     c = sqlite3.connect('ArabicSchool.db').cursor()
-    c.execute('''SELECT dawra1_pub_start, dawra2_pub_start, dawra3_pub_start, year_pub_start FROM classes WHERE id=?''', (class_id,))
+    c.execute('''SELECT dawra1_pub_start, dawra2_pub_start, dawra3_pub_start, year_pub_start FROM classes WHERE id=%s''', (class_id,))
     pub_row = c.fetchone()
     pub_dates = {
         'dawra1_pub_start': pub_row[0],
@@ -3085,7 +3085,7 @@ def _log_backup(username):
     """Log a backup entry in backup_log table."""
     conn = sqlite3.connect('ArabicSchool.db', timeout=10, check_same_thread=False)
     c = conn.cursor()
-    c.execute('INSERT INTO backup_log (backup_date, backup_by) VALUES (?, ?)',
+    c.execute('INSERT INTO backup_log (backup_date, backup_by) VALUES (%s, %s)',
               (datetime.now().isoformat(), username))
     conn.commit()
     conn.close()

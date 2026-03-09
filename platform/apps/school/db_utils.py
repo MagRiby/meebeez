@@ -1,65 +1,34 @@
-"""Tenant-aware database utilities for the School app.
+"""Tenant-aware database utilities for the School app (PostgreSQL / Neon)."""
 
-Provides a get_school_db() function that returns a raw DB connection
-to the tenant's database, replacing the hardcoded sqlite3.connect()
-calls from the original arabicschool app.
-"""
-
-import sqlite3
-import os
-
-from flask import g, current_app
-from core.models import Tenant
-
-
-def _get_tenant_db_path(tenant_slug):
-    """Get the SQLite database file path for a tenant."""
-    instance_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "instance",
-        "tenants",
-    )
-    os.makedirs(instance_dir, exist_ok=True)
-    return os.path.join(instance_dir, f"{tenant_slug}.db")
+from flask import g
+from core.tenants.db_manager import get_tenant_connection
 
 
 def get_school_db(tenant_slug):
-    """Get a SQLite connection for the given tenant.
+    """Get a PostgreSQL connection for the given tenant.
 
-    Uses Flask's g object to cache the connection per-request.
+    Returns a psycopg connection with dict_row and search_path
+    set to the tenant's schema.  Cached per-request via db_manager.
     """
-    cache_key = f"school_db_{tenant_slug}"
-    if not hasattr(g, cache_key):
-        db_path = _get_tenant_db_path(tenant_slug)
-        conn = sqlite3.connect(db_path, timeout=10)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA foreign_keys=ON;")
-        setattr(g, cache_key, conn)
-    return getattr(g, cache_key)
+    return get_tenant_connection(tenant_slug)
 
 
 def close_school_db(tenant_slug):
     """Close the cached connection for a tenant."""
-    cache_key = f"school_db_{tenant_slug}"
-    conn = g.pop(cache_key, None)
-    if conn is not None:
-        conn.close()
+    from core.tenants.db_manager import close_tenant_connection
+    close_tenant_connection(tenant_slug)
 
 
 def init_school_db(tenant_slug):
-    """Initialize the school database schema for a tenant using raw SQL.
+    """Initialize the school database schema for a tenant using raw SQL."""
+    from core.tenants.db_manager import create_tenant_schema
+    create_tenant_schema(tenant_slug)
 
-    This is called during tenant provisioning as an alternative to
-    SQLAlchemy's create_all() for maximum compatibility with the
-    existing arabicschool schema.
-    """
-    conn = sqlite3.connect(_get_tenant_db_path(tenant_slug), timeout=10)
+    conn = get_tenant_connection(tenant_slug)
     c = conn.cursor()
-    conn.execute("PRAGMA journal_mode=WAL;")
 
     c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         name TEXT,
@@ -70,7 +39,7 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS teachers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL,
         local_admin_id INTEGER NOT NULL,
         name TEXT,
@@ -83,14 +52,14 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS levels (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         local_admin_id INTEGER NOT NULL,
         FOREIGN KEY(local_admin_id) REFERENCES users(id)
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS classes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         teacher_id INTEGER,
         local_admin_id INTEGER NOT NULL,
@@ -111,7 +80,7 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         class_id INTEGER,
         email TEXT,
@@ -125,7 +94,7 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS curriculum_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         local_admin_id INTEGER NOT NULL,
         level_id INTEGER NOT NULL,
@@ -134,14 +103,14 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS curriculum_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         group_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         FOREIGN KEY(group_id) REFERENCES curriculum_groups(id)
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS class_courses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         class_id INTEGER NOT NULL,
         curriculum_item_id INTEGER NOT NULL,
         FOREIGN KEY(class_id) REFERENCES classes(id),
@@ -149,7 +118,7 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS student_grades (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         student_id INTEGER NOT NULL,
         curriculum_item_id INTEGER NOT NULL,
         level INTEGER,
@@ -161,12 +130,12 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         class_id INTEGER NOT NULL,
         title TEXT NOT NULL,
         description TEXT,
-        start DATETIME NOT NULL,
-        end DATETIME,
+        start TIMESTAMP NOT NULL,
+        "end" TIMESTAMP,
         color TEXT,
         recurrence TEXT,
         recurrence_group_id TEXT,
@@ -175,7 +144,7 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS exams (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         class_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         status TEXT DEFAULT 'active',
@@ -184,24 +153,24 @@ def init_school_db(tenant_slug):
         weight REAL DEFAULT 1.0,
         dawra INTEGER DEFAULT 1,
         is_year_final INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY(class_id) REFERENCES classes(id),
         FOREIGN KEY(curriculum_group_id) REFERENCES curriculum_groups(id)
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS grades (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         student_id INTEGER NOT NULL,
         exam_id INTEGER NOT NULL,
         grade TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY(student_id) REFERENCES students(id),
         FOREIGN KEY(exam_id) REFERENCES exams(id),
         UNIQUE(student_id, exam_id)
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         student_id INTEGER NOT NULL,
         class_id INTEGER NOT NULL,
         day TEXT NOT NULL,
@@ -212,17 +181,17 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS homework (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         class_id INTEGER NOT NULL,
         due_date TEXT,
         description TEXT,
         files TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY(class_id) REFERENCES classes(id)
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS announcements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         class_id INTEGER NOT NULL,
         text TEXT NOT NULL,
         created_at TEXT NOT NULL,
@@ -231,7 +200,7 @@ def init_school_db(tenant_slug):
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS support_material (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         level_id INTEGER NOT NULL,
         filename TEXT,
         original_filename TEXT,
@@ -246,16 +215,16 @@ def init_school_db(tenant_slug):
         name TEXT NOT NULL,
         icon_type TEXT,
         icon_value TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
         active INTEGER DEFAULT 1
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS student_super_badges (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         student_id INTEGER NOT NULL,
         super_badge_id TEXT NOT NULL,
         active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY(student_id) REFERENCES students(id),
         FOREIGN KEY(super_badge_id) REFERENCES super_badges(id),
         UNIQUE(student_id, super_badge_id)
@@ -265,15 +234,14 @@ def init_school_db(tenant_slug):
         student_id INTEGER PRIMARY KEY,
         note TEXT,
         updated_at TEXT,
-        user TEXT,
+        "user" TEXT,
         FOREIGN KEY(student_id) REFERENCES students(id)
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS backup_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         backup_date TEXT NOT NULL,
         backup_by TEXT
     )''')
 
     conn.commit()
-    conn.close()

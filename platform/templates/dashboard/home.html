@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --nav-bg: #0f1923;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --accent-light: #d1fae5;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --bg: #f3f4f6;
+            --border: #e5e7eb;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            min-height: 100vh;
+        }
+
+        /* ── Top navbar ───────────────────────────────────────── */
+        .platform-nav {
+            background: var(--nav-bg);
+            padding: 13px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+        .platform-nav .brand { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+        .platform-nav .brand span { color: var(--accent); }
+        .platform-nav .greeting { color: rgba(255,255,255,0.55); font-size: 13px; margin-top: 1px; }
+        .platform-nav .nav-right { display: flex; align-items: center; gap: 8px; }
+        .btn-new-app {
+            font-size: 12px; font-weight: 600;
+            padding: 5px 14px; border-radius: 20px;
+            background: rgba(16,185,129,0.15);
+            color: #34d399;
+            border: 1px solid rgba(16,185,129,0.3);
+            cursor: pointer; text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-new-app:hover { background: rgba(16,185,129,0.25); color: #34d399; }
+
+        /* ── Search bar ───────────────────────────────────────── */
+        .search-wrap {
+            position: sticky;
+            top: 55px;
+            z-index: 150;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px 8px;
+        }
+        .search-input-row { position: relative; }
+        .search-input-row .si-icon {
+            position: absolute; left: 12px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary); font-size: 13px;
+        }
+        .search-input-row input {
+            width: 100%;
+            border: 1.5px solid var(--border);
+            border-radius: 22px;
+            padding: 8px 36px 8px 34px;
+            font-size: 14px; outline: none;
+            background: var(--bg);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .search-input-row input:focus { border-color: var(--accent); background: #fff; }
+        .si-clear {
+            position: absolute; right: 10px; top: 50%;
+            transform: translateY(-50%);
+            border: none; background: none;
+            color: var(--text-secondary); cursor: pointer;
+            padding: 4px; display: none;
+        }
+        .search-pills { display: flex; gap: 6px; margin-top: 7px; }
+        .s-pill {
+            padding: 4px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+            border: 1.5px solid var(--border);
+            background: #fff; color: var(--text-secondary);
+            cursor: pointer; transition: all 0.15s;
+        }
+        .s-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        /* ── Layout ───────────────────────────────────────────── */
+        .page-body { display: flex; min-height: calc(100vh - 55px); }
+
+        /* ── Main content ─────────────────────────────────────── */
+        .main-content { flex: 1; padding: 20px 16px; overflow: hidden; min-width: 0; }
+
+        /* ── Category section ─────────────────────────────────── */
+        .cat-section { margin-bottom: 28px; }
+        .cat-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 14px; padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+        }
+        .cat-icon-lg {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; flex-shrink: 0;
+        }
+        .cat-label { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+
+        /* ── Business cards ───────────────────────────────────── */
+        .biz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .biz-card {
+            background: #fff; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .biz-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .biz-card-banner {
+            height: 72px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .biz-card-logo {
+            width: 56px; height: 56px; border-radius: 14px;
+            object-fit: contain; background: rgba(255,255,255,0.9);
+            padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: absolute; bottom: -20px; left: 16px;
+        }
+        .biz-card-logo-placeholder {
+            width: 56px; height: 56px; border-radius: 14px;
+            background: rgba(255,255,255,0.85);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            position: absolute; bottom: -20px; left: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .biz-card-body { padding: 28px 16px 14px; }
+        .biz-card-name {
+            font-size: 15px; font-weight: 700; color: var(--text-primary);
+            margin-bottom: 3px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .biz-card-tagline {
+            font-size: 12px; color: var(--text-secondary);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            margin-bottom: 10px;
+        }
+        .biz-card-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+        .biz-card-btn {
+            display: inline-block; font-size: 12px; font-weight: 600;
+            padding: 5px 14px; border-radius: 20px;
+            background: var(--accent); color: #fff; border: none; cursor: pointer;
+        }
+
+        /* ── Right category sidebar ───────────────────────────── */
+        .cat-sidebar {
+            width: 64px; background: #fff;
+            border-left: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            align-items: center; padding: 16px 0; gap: 6px;
+            position: sticky; top: 55px;
+            height: calc(100vh - 55px);
+            overflow-y: auto; flex-shrink: 0;
+        }
+        .cat-pill {
+            width: 46px; height: 46px; border-radius: 12px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            cursor: pointer; transition: background 0.15s, transform 0.1s;
+            border: none; background: transparent; gap: 2px; text-decoration: none;
+        }
+        .cat-pill:hover { background: var(--bg); transform: scale(1.08); }
+        .cat-pill.active { background: var(--accent-light); }
+        .cat-pill i { font-size: 18px; color: var(--text-secondary); }
+        .cat-pill.active i { color: var(--accent); }
+        .cat-pill-label { font-size: 8px; color: #9ca3af; font-weight: 600; text-transform: uppercase; line-height: 1; }
+        .cat-pill.active .cat-pill-label { color: var(--accent); }
+        .cat-divider { width: 30px; height: 1px; background: var(--border); margin: 4px 0; }
+
+        /* ── Search results ───────────────────────────────────── */
+        .sr-card {
+            background: #fff; border: 1px solid var(--border); border-radius: 12px;
+            margin-bottom: 10px; overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;
+            transition: box-shadow 0.15s;
+        }
+        .sr-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .sr-card-img { width: 100%; max-height: 200px; object-fit: contain; background: #f8f9fa; display: block; }
+        .sr-card-body { padding: 12px 14px; }
+        .sr-biz-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+        .sr-biz-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 18px; flex-shrink: 0;
+        }
+
+        /* ── Owner banner ─────────────────────────────────────── */
+        .owner-banner {
+            background: var(--nav-bg); border-radius: 16px;
+            padding: 16px 20px; margin-bottom: 20px;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        }
+        .owner-banner .ob-title { color: #fff; font-size: 15px; font-weight: 700; }
+        .owner-banner .ob-sub { color: rgba(255,255,255,0.55); font-size: 13px; }
+        .ob-btn {
+            background: var(--accent); color: #fff; border: none;
+            border-radius: 20px; padding: 7px 18px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .ob-btn:hover { background: var(--accent-hover); color: #fff; }
+
+        /* ── Empty / loading ──────────────────────────────────── */
+        .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; display: block; }
+        .empty-state p { font-size: 15px; }
+        .skeleton {
+            background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+            background-size: 200%; animation: shimmer 1.2s infinite; border-radius: 8px;
+        }
+        @keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
+
+        /* Search-active state: sidebar hides, main expands */
+        .search-active .cat-sidebar { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Top navbar -->
+    <nav class="platform-nav" id="mainNav">
+        <div>
+            <div class="brand">my<span>nexus</span></div>
+            <div class="greeting" id="greeting">Welcome back</div>
+        </div>
+        <div class="nav-right">
+            <a href="/dashboard" class="btn-new-app" id="newAppBtn" style="display:none">
+                <i class="fas fa-plus me-1"></i>New App
+            </a>
+            <button class="btn btn-sm btn-outline-secondary text-white border-secondary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Search bar (clients only, shown after role check) -->
+    <div class="search-wrap" id="searchWrap" style="display:none">
+        <div class="search-input-row">
+            <i class="fas fa-search si-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search businesses and items…"
+                   autocomplete="off" oninput="onSearchInput()">
+            <button class="si-clear" id="clearBtn" onclick="clearSearch()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="search-pills">
+            <button class="s-pill active" id="pillAll" onclick="setSearchType('all')">
+                <i class="fas fa-search me-1"></i>All
+            </button>
+            <button class="s-pill" id="pillBiz" onclick="setSearchType('businesses')">
+                <i class="fas fa-store me-1"></i>Businesses
+            </button>
+            <button class="s-pill" id="pillItems" onclick="setSearchType('items')">
+                <i class="fas fa-tag me-1"></i>Items
+            </button>
+        </div>
+    </div>
+
+    <!-- Page body -->
+    <div class="page-body" id="pageBody">
+        <div class="main-content" id="mainContent">
+            <!-- Home view -->
+            <div id="homeView">
+                <div class="empty-state">
+                    <div class="skeleton" style="height:200px;border-radius:16px;margin-bottom:16px"></div>
+                    <div class="skeleton" style="height:200px;border-radius:16px"></div>
+                </div>
+            </div>
+            <!-- Search results view -->
+            <div id="searchView" style="display:none"></div>
+        </div>
+        <!-- Right category sidebar (clients only) -->
+        <nav class="cat-sidebar" id="catSidebar" style="display:none"></nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/login'; }
+
+    const authHeaders = { 'Authorization': 'Bearer ' + token };
+    let _role = null;
+    let _activeCategory = null;
+    let _searchTimeout = null;
+    let _searchType = 'all';
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    function primaryColor(colors) {
+        return (colors && colors[0] && /^#[0-9a-f]{6}$/i.test(colors[0])) ? colors[0] : '#10b981';
+    }
+    function secondaryColor(colors) {
+        return (colors && colors[1] && /^#[0-9a-f]{6}$/i.test(colors[1])) ? colors[1] : primaryColor(colors);
+    }
+    function contrastColor(hex) {
+        try {
+            const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+            return (0.299*r+0.587*g+0.114*b)/255 > 0.55 ? '#111827' : '#ffffff';
+        } catch(e) { return '#ffffff'; }
+    }
+
+    const APP_TYPE_META = {
+        myfomo: { icon: 'fas fa-store',          color: '#7c83fd', bg: '#eef0ff' },
+        school: { icon: 'fas fa-graduation-cap',  color: '#3b82f6', bg: '#eff6ff' },
+        barber: { icon: 'fas fa-cut',             color: '#8b5cf6', bg: '#f5f3ff' },
+        shop:   { icon: 'fas fa-shopping-cart',   color: '#f97316', bg: '#fff7ed' },
+    };
+
+    const CATEGORIES = {
+        restaurants: { label: 'Eats',      icon: 'fas fa-utensils',        color: '#ef4444', bg: '#fef2f2' },
+        food:        { label: 'Food',       icon: 'fas fa-shopping-basket', color: '#f97316', bg: '#fff7ed' },
+        clothing:    { label: 'Fashion',    icon: 'fas fa-tshirt',          color: '#8b5cf6', bg: '#f5f3ff' },
+        care:        { label: 'Care',       icon: 'fas fa-spa',             color: '#ec4899', bg: '#fdf2f8' },
+        learning:    { label: 'Learn',      icon: 'fas fa-graduation-cap',  color: '#3b82f6', bg: '#eff6ff' },
+        education:   { label: 'Education',  icon: 'fas fa-school',          color: '#3b82f6', bg: '#eff6ff' },
+        services:    { label: 'Services',   icon: 'fas fa-cut',             color: '#8b5cf6', bg: '#f5f3ff' },
+        shopping:    { label: 'Shopping',   icon: 'fas fa-shopping-cart',   color: '#f97316', bg: '#fff7ed' },
+        general:     { label: 'General',    icon: 'fas fa-store',           color: '#6b7280', bg: '#f9fafb' },
+    };
+
+    function openBusiness(slug, appType) {
+        window.location.href = '/t/' + slug + '/' + appType + '/';
+    }
+
+    // ─── CLIENT VIEW ─────────────────────────────────────────
+    function renderClientHome(businesses) {
+        const homeView = document.getElementById('homeView');
+        if (!businesses.length) {
+            homeView.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-compass" style="color:#10b981"></i>
+                    <p>You haven't joined any businesses yet.<br>Use the search bar to discover businesses.</p>
+                </div>`;
+            return;
+        }
+
+        const groups = {};
+        businesses.forEach(biz => {
+            const cat = biz.category || 'general';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(biz);
+        });
+
+        const catOrder = ['restaurants', 'food', 'clothing', 'care', 'learning',
+                          'education', 'services', 'shopping', 'general'];
+        const presentCats = catOrder.filter(c => groups[c]);
+        Object.keys(groups).forEach(c => { if (!presentCats.includes(c)) presentCats.push(c); });
+
+        if (presentCats.length) setActiveCategory(presentCats[0]);
+        renderSidebar(presentCats);
+
+        homeView.innerHTML = '';
+        presentCats.forEach(cat => {
+            const meta = CATEGORIES[cat] || CATEGORIES.general;
+            const section = document.createElement('div');
+            section.className = 'cat-section';
+            section.id = 'cat-' + cat;
+            section.innerHTML = `
+                <div class="cat-header">
+                    <div class="cat-icon-lg" style="background:${meta.bg};color:${meta.color}">
+                        <i class="${meta.icon}"></i>
+                    </div>
+                    <span class="cat-label">${meta.label}</span>
+                </div>
+                <div class="biz-grid">
+                    ${groups[cat].map(biz => {
+                        const p = primaryColor(biz.brand_colors);
+                        const s = secondaryColor(biz.brand_colors);
+                        const txt = contrastColor(p);
+                        const catMeta = CATEGORIES[biz.category] || CATEGORIES.general;
+                        const logoHtml = biz.logo_path
+                            ? `<img class="biz-card-logo" src="${esc(biz.logo_path)}" alt="">`
+                            : `<div class="biz-card-logo-placeholder"><i class="${catMeta.icon}" style="color:${catMeta.color}"></i></div>`;
+                        return `
+                            <div class="biz-card" onclick="openBusiness('${esc(biz.slug)}','${esc(biz.app_type)}')">
+                                <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
+                                    ${logoHtml}
+                                </div>
+                                <div class="biz-card-body">
+                                    <div class="biz-card-name">${esc(biz.name)}</div>
+                                    <div class="biz-card-tagline">${esc(biz.tagline || '')}</div>
+                                    <button class="biz-card-btn" style="background:${p};color:${txt}">Open</button>
+                                </div>
+                            </div>`;
+                    }).join('')}
+                </div>`;
+            homeView.appendChild(section);
+        });
+
+        // Update active sidebar item on scroll
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) setActiveCategory(e.target.id.replace('cat-', '')); });
+        }, { threshold: 0.3 });
+        document.querySelectorAll('.cat-section').forEach(s => observer.observe(s));
+    }
+
+    function renderSidebar(categories) {
+        const sb = document.getElementById('catSidebar');
+        sb.style.display = '';
+        sb.innerHTML = '';
+        // Adjust sticky offset now that search bar is visible
+        const navH = document.getElementById('mainNav').offsetHeight;
+        const searchH = document.getElementById('searchWrap').offsetHeight;
+        sb.style.top = (navH + searchH) + 'px';
+        sb.style.height = `calc(100vh - ${navH + searchH}px)`;
+
+        categories.forEach((cat, i) => {
+            const meta = CATEGORIES[cat] || CATEGORIES.general;
+            const pill = document.createElement('a');
+            pill.href = '#cat-' + cat;
+            pill.className = 'cat-pill' + (_activeCategory === cat ? ' active' : '');
+            pill.dataset.cat = cat;
+            pill.innerHTML = `<i class="${meta.icon}"></i><span class="cat-pill-label">${meta.label}</span>`;
+            pill.addEventListener('click', e => {
+                e.preventDefault();
+                setActiveCategory(cat);
+                document.getElementById('cat-' + cat)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            sb.appendChild(pill);
+            if (i < categories.length - 1) {
+                const div = document.createElement('div');
+                div.className = 'cat-divider';
+                sb.appendChild(div);
+            }
+        });
+    }
+
+    function setActiveCategory(cat) {
+        _activeCategory = cat;
+        document.querySelectorAll('.cat-pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.cat === cat);
+        });
+    }
+
+    // ─── OWNER VIEW ──────────────────────────────────────────
+    function renderOwnerHome(tenants) {
+        document.getElementById('newAppBtn').style.display = '';
+        const homeView = document.getElementById('homeView');
+        const active = tenants.filter(t => t.status === 'active');
+
+        if (active.length === 1) {
+            const t = active[0];
+            homeView.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-circle-notch fa-spin" style="color:#10b981"></i>
+                    <p>Taking you to <strong>${esc(t.name)}</strong>…</p>
+                </div>`;
+            setTimeout(() => { window.location.href = '/t/' + t.slug + '/' + t.app_type + '/'; }, 700);
+            return;
+        }
+
+        if (!tenants.length) {
+            homeView.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-rocket" style="color:#10b981"></i>
+                    <p>No apps deployed yet.</p>
+                    <a href="/dashboard" class="btn btn-sm mt-2"
+                       style="background:#10b981;color:#fff;border-radius:20px;padding:7px 20px">
+                        Deploy your first app
+                    </a>
+                </div>`;
+            return;
+        }
+
+        homeView.innerHTML = `
+            <div class="owner-banner">
+                <div>
+                    <div class="ob-title">My Apps</div>
+                    <div class="ob-sub">${tenants.length} app${tenants.length !== 1 ? 's' : ''} deployed</div>
+                </div>
+                <a href="/dashboard" class="ob-btn"><i class="fas fa-plus"></i>New App</a>
+            </div>
+            <div class="biz-grid" id="ownerGrid"></div>`;
+
+        const grid = document.getElementById('ownerGrid');
+        tenants.forEach(t => {
+            const appMeta = APP_TYPE_META[t.app_type] || APP_TYPE_META.myfomo;
+            const p = t.brand_colors && t.brand_colors[0] ? t.brand_colors[0] : appMeta.color;
+            const s = t.brand_colors && t.brand_colors[1] ? t.brand_colors[1] : appMeta.bg;
+            const txt = contrastColor(p);
+            const logoHtml = t.logo_path
+                ? `<img class="biz-card-logo" src="${esc(t.logo_path)}" alt="">`
+                : `<div class="biz-card-logo-placeholder"><i class="${appMeta.icon}" style="color:${appMeta.color}"></i></div>`;
+            const statusNote = t.status !== 'active'
+                ? `<span style="font-size:10px;color:#f97316;font-weight:600;margin-right:4px">${t.status}</span>` : '';
+            const card = document.createElement('div');
+            card.className = 'biz-card';
+            card.innerHTML = `
+                <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
+                    ${logoHtml}
+                </div>
+                <div class="biz-card-body">
+                    <div class="biz-card-name">${esc(t.name)}</div>
+                    <div class="biz-card-meta">${statusNote}${esc(t.app_type)}</div>
+                    <button class="biz-card-btn" style="background:${p};color:${txt}">Manage</button>
+                </div>`;
+            card.addEventListener('click', () => { window.location.href = '/t/' + t.slug + '/' + t.app_type + '/'; });
+            grid.appendChild(card);
+        });
+    }
+
+    // ─── SEARCH ──────────────────────────────────────────────
+    function onSearchInput() {
+        const q = document.getElementById('searchInput').value;
+        document.getElementById('clearBtn').style.display = q ? '' : 'none';
+        clearTimeout(_searchTimeout);
+        if (q.trim().length < 2) { showHomeView(); return; }
+        _searchTimeout = setTimeout(() => runSearch(q.trim()), 350);
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('clearBtn').style.display = 'none';
+        showHomeView();
+    }
+
+    function setSearchType(type) {
+        _searchType = type;
+        document.getElementById('pillAll').className  = 's-pill' + (type === 'all'        ? ' active' : '');
+        document.getElementById('pillBiz').className  = 's-pill' + (type === 'businesses' ? ' active' : '');
+        document.getElementById('pillItems').className = 's-pill' + (type === 'items'     ? ' active' : '');
+        const q = document.getElementById('searchInput').value.trim();
+        if (q.length >= 2) runSearch(q);
+    }
+
+    function showHomeView() {
+        document.getElementById('searchView').style.display = 'none';
+        document.getElementById('homeView').style.display = '';
+        document.getElementById('catSidebar').style.display = _role === 'client' ? '' : 'none';
+        document.getElementById('pageBody').classList.remove('search-active');
+    }
+
+    async function runSearch(q) {
+        document.getElementById('homeView').style.display = 'none';
+        document.getElementById('catSidebar').style.display = 'none';
+        document.getElementById('pageBody').classList.add('search-active');
+        const sv = document.getElementById('searchView');
+        sv.style.display = '';
+        sv.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>';
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=${_searchType}`);
+            const data = await res.json();
+            renderSearchResults(data, q);
+        } catch(e) {
+            sv.innerHTML = '<p class="text-muted text-center py-3">Search failed. Try again.</p>';
+        }
+    }
+
+    function renderSearchResults(data, q) {
+        const sv = document.getElementById('searchView');
+        const businesses = data.businesses || [];
+        const items = data.items || [];
+        if (!businesses.length && !items.length) {
+            sv.innerHTML = `<div class="empty-state"><i class="fas fa-search-minus"></i><p>No results for "<strong>${esc(q)}</strong>"</p></div>`;
+            return;
+        }
+
+        const bizHtml = businesses.length ? `
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;margin:4px 0 8px">
+                <i class="fas fa-store me-1"></i>Businesses
+            </div>
+            ${businesses.map(b => `
+                <div class="sr-card" onclick="openBusiness('${esc(b.slug)}','${esc(b.app_type)}')">
+                    <div class="sr-biz-row">
+                        <div class="sr-biz-icon"><i class="fas fa-store"></i></div>
+                        <div class="flex-grow-1">
+                            <strong>${esc(b.name)}</strong>
+                            <div style="font-size:12px;color:#6b7280">${esc(b.app_type)}</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="font-size:12px;color:#9ca3af"></i>
+                    </div>
+                </div>`).join('')}` : '';
+
+        const itemsHtml = items.length ? `
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;margin:${businesses.length ? '20px' : '4px'} 0 8px">
+                <i class="fas fa-tag me-1"></i>Items
+            </div>
+            ${items.map(item => {
+                const typeIcon = {service:'fas fa-cut', class:'fas fa-graduation-cap', product:'fas fa-tag'}[item.item_type] || 'fas fa-tag';
+                const typeLabel = {service:'Service', class:'Class', product:'Product'}[item.item_type] || 'Item';
+                const stockLabel = item.remaining_quantity === null ? '' : item.remaining_quantity > 0 ? item.remaining_quantity + ' left' : 'Out of stock';
+                return `
+                <div class="sr-card" onclick="openBusiness('${esc(item.business_slug)}','${esc(item.business_app_type)}')">
+                    ${item.image_path ? `<img class="sr-card-img" src="${esc(item.image_path)}" alt="">` : ''}
+                    <div class="sr-card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px">
+                            <strong>${esc(item.title)}</strong>
+                            ${item.price ? `<span style="font-weight:700;color:#059669">$${Number(item.price).toFixed(2)}</span>` : ''}
+                        </div>
+                        ${item.body ? `<p style="font-size:12px;color:#6b7280;margin-bottom:6px">${esc(item.body)}</p>` : ''}
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:11px;background:#f3f4f6;border-radius:10px;padding:2px 8px;color:#495057">
+                                <i class="fas fa-store me-1"></i>${esc(item.business_name)}
+                            </span>
+                            <span style="font-size:11px;color:#9ca3af">
+                                <i class="${typeIcon} me-1"></i>${typeLabel}${stockLabel ? ' · ' + stockLabel : ''}
+                            </span>
+                        </div>
+                    </div>
+                </div>`;}).join('')}` : '';
+
+        sv.innerHTML = bizHtml + itemsHtml;
+    }
+
+    // ─── LOAD DATA ───────────────────────────────────────────
+    async function loadHomeData() {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000);
+            const res = await fetch('/api/home-data', { headers: authHeaders, signal: controller.signal });
+            clearTimeout(timeout);
+            if (!res.ok) {
+                if (res.status === 401) { window.location.href = '/login'; return; }
+                throw new Error('api-error');
+            }
+            const data = await res.json();
+            _role = data.role;
+            document.getElementById('greeting').textContent = 'Welcome back, ' + (data.name || '');
+
+            if (data.role === 'business_owner') {
+                renderOwnerHome(data.tenants || []);
+            } else {
+                document.getElementById('searchWrap').style.display = '';
+                renderClientHome(data.businesses || []);
+            }
+        } catch(e) {
+            document.getElementById('homeView').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>Could not load your home. Please try again.</p>
+                </div>`;
+        }
+    }
+
+    function logout() {
+        window.location.href = '/signout';
+    }
+
+    loadHomeData();
+    </script>
+</body>
+</html>

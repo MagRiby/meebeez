@@ -58,6 +58,8 @@ class Tenant(db.Model):
     status = db.Column(
         db.String(50), nullable=False, default="provisioning"
     )  # provisioning | active | suspended
+    stripe_account_id = db.Column(db.String(255), nullable=True)
+    stripe_onboarded = db.Column(db.Boolean, default=False)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc)
     )

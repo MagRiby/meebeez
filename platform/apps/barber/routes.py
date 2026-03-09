@@ -3,9 +3,10 @@
 import os
 from functools import wraps
 
+import jwt as pyjwt
 from flask import (
     Blueprint, jsonify, request, session, redirect, url_for,
-    render_template,
+    render_template, current_app,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -18,6 +19,31 @@ barber_bp = Blueprint(
 )
 
 
+# ── SSO helper ──────────────────────────────────────────────────────
+
+def _sso_auto_login(tenant_slug):
+    """Auto-login using the platform JWT cookie. Returns True on success."""
+    token = request.cookies.get("token")
+    if not token:
+        return False
+    try:
+        payload = pyjwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        email = payload.get("email")
+        if not email:
+            return False
+    except Exception:
+        return False
+    db = get_barber_db(tenant_slug)
+    user = db.execute("SELECT * FROM users WHERE username=%s AND is_active=1", (email,)).fetchone()
+    if not user:
+        return False
+    session["barber_user_id"] = user["id"]
+    session["barber_role"] = user["role"]
+    session["barber_username"] = user["username"]
+    session["barber_tenant"] = tenant_slug
+    return True
+
+
 # ── Auth decorator ──────────────────────────────────────────────────
 
 def login_required(*roles):
@@ -26,10 +52,9 @@ def login_required(*roles):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             tenant_slug = kwargs.get("tenant_slug", "")
-            if "barber_user_id" not in session:
-                return redirect(url_for("barber.barber_login", tenant_slug=tenant_slug))
-            if session.get("barber_tenant") != tenant_slug:
-                return redirect(url_for("barber.barber_login", tenant_slug=tenant_slug))
+            if "barber_user_id" not in session or session.get("barber_tenant") != tenant_slug:
+                if not _sso_auto_login(tenant_slug):
+                    return redirect("/")
             if roles and session.get("barber_role") not in roles:
                 return "Unauthorized", 403
             return f(*args, **kwargs)
@@ -43,7 +68,9 @@ def login_required(*roles):
 def index(tenant_slug):
     if "barber_user_id" in session and session.get("barber_tenant") == tenant_slug:
         return redirect(url_for("barber.dashboard", tenant_slug=tenant_slug))
-    return redirect(url_for("barber.barber_login", tenant_slug=tenant_slug))
+    if _sso_auto_login(tenant_slug):
+        return redirect(url_for("barber.dashboard", tenant_slug=tenant_slug))
+    return redirect("/home")
 
 
 @barber_bp.route("/login", methods=["GET", "POST"])
@@ -58,7 +85,7 @@ def barber_login(tenant_slug):
         return render_template("barber/login.html", tenant_slug=tenant_slug, error="Username and password are required")
 
     db = get_barber_db(tenant_slug)
-    user = db.execute("SELECT * FROM users WHERE username=? AND is_active=1", (username,)).fetchone()
+    user = db.execute("SELECT * FROM users WHERE username=%s AND is_active=1", (username,)).fetchone()
 
     if not user or not check_password_hash(user["password_hash"], password):
         return render_template("barber/login.html", tenant_slug=tenant_slug, error="Invalid credentials")
@@ -76,7 +103,7 @@ def barber_logout(tenant_slug):
     session.pop("barber_role", None)
     session.pop("barber_username", None)
     session.pop("barber_tenant", None)
-    return redirect(url_for("barber.barber_login", tenant_slug=tenant_slug))
+    return redirect("/signout")
 
 
 # ── Dashboard ───────────────────────────────────────────────────────
@@ -112,7 +139,7 @@ def create_service(tenant_slug):
 
     db = get_barber_db(tenant_slug)
     db.execute(
-        "INSERT INTO services (name, description, duration_minutes, price, is_active) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO services (name, description, duration_minutes, price, is_active) VALUES (%s, %s, %s, %s, %s)",
         (name, data.get("description", ""), data.get("duration_minutes", 30),
          data.get("price", 0.0), 1),
     )
@@ -125,12 +152,12 @@ def create_service(tenant_slug):
 def update_service(tenant_slug, service_id):
     data = request.get_json() or {}
     db = get_barber_db(tenant_slug)
-    existing = db.execute("SELECT id FROM services WHERE id=?", (service_id,)).fetchone()
+    existing = db.execute("SELECT id FROM services WHERE id=%s", (service_id,)).fetchone()
     if not existing:
         return jsonify({"error": "Service not found"}), 404
 
     db.execute(
-        "UPDATE services SET name=?, description=?, duration_minutes=?, price=?, is_active=? WHERE id=?",
+        "UPDATE services SET name=%s, description=%s, duration_minutes=%s, price=%s, is_active=%s WHERE id=%s",
         (data.get("name", ""), data.get("description", ""),
          data.get("duration_minutes", 30), data.get("price", 0.0),
          1 if data.get("is_active", True) else 0, service_id),
@@ -143,7 +170,7 @@ def update_service(tenant_slug, service_id):
 @login_required("admin")
 def delete_service(tenant_slug, service_id):
     db = get_barber_db(tenant_slug)
-    db.execute("DELETE FROM services WHERE id=?", (service_id,))
+    db.execute("DELETE FROM services WHERE id=%s", (service_id,))
     db.commit()
     return jsonify({"message": "Service deleted"})
 
@@ -168,7 +195,7 @@ def create_staff(tenant_slug):
 
     db = get_barber_db(tenant_slug)
     db.execute(
-        "INSERT INTO staff (user_id, name, email, phone, specialization, is_active) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO staff (user_id, name, email, phone, specialization, is_active) VALUES (%s, %s, %s, %s, %s, %s)",
         (data.get("user_id"), name, data.get("email", ""),
          data.get("phone", ""), data.get("specialization", ""), 1),
     )
@@ -181,12 +208,12 @@ def create_staff(tenant_slug):
 def update_staff(tenant_slug, staff_id):
     data = request.get_json() or {}
     db = get_barber_db(tenant_slug)
-    existing = db.execute("SELECT id FROM staff WHERE id=?", (staff_id,)).fetchone()
+    existing = db.execute("SELECT id FROM staff WHERE id=%s", (staff_id,)).fetchone()
     if not existing:
         return jsonify({"error": "Staff not found"}), 404
 
     db.execute(
-        "UPDATE staff SET name=?, email=?, phone=?, specialization=?, is_active=? WHERE id=?",
+        "UPDATE staff SET name=%s, email=%s, phone=%s, specialization=%s, is_active=%s WHERE id=%s",
         (data.get("name", ""), data.get("email", ""),
          data.get("phone", ""), data.get("specialization", ""),
          1 if data.get("is_active", True) else 0, staff_id),
@@ -199,7 +226,7 @@ def update_staff(tenant_slug, staff_id):
 @login_required("admin")
 def delete_staff(tenant_slug, staff_id):
     db = get_barber_db(tenant_slug)
-    db.execute("DELETE FROM staff WHERE id=?", (staff_id,))
+    db.execute("DELETE FROM staff WHERE id=%s", (staff_id,))
     db.commit()
     return jsonify({"message": "Staff deleted"})
 
@@ -214,7 +241,7 @@ def list_clients(tenant_slug):
     if search:
         like = f"%{search}%"
         rows = db.execute(
-            "SELECT * FROM clients WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? ORDER BY id",
+            "SELECT * FROM clients WHERE name LIKE %s OR email LIKE %s OR phone LIKE %s ORDER BY id",
             (like, like, like),
         ).fetchall()
     else:
@@ -232,7 +259,7 @@ def create_client(tenant_slug):
 
     db = get_barber_db(tenant_slug)
     db.execute(
-        "INSERT INTO clients (name, email, phone, notes) VALUES (?, ?, ?, ?)",
+        "INSERT INTO clients (name, email, phone, notes) VALUES (%s, %s, %s, %s)",
         (name, data.get("email", ""), data.get("phone", ""), data.get("notes", "")),
     )
     db.commit()
@@ -244,12 +271,12 @@ def create_client(tenant_slug):
 def update_client(tenant_slug, client_id):
     data = request.get_json() or {}
     db = get_barber_db(tenant_slug)
-    existing = db.execute("SELECT id FROM clients WHERE id=?", (client_id,)).fetchone()
+    existing = db.execute("SELECT id FROM clients WHERE id=%s", (client_id,)).fetchone()
     if not existing:
         return jsonify({"error": "Client not found"}), 404
 
     db.execute(
-        "UPDATE clients SET name=?, email=?, phone=?, notes=? WHERE id=?",
+        "UPDATE clients SET name=%s, email=%s, phone=%s, notes=%s WHERE id=%s",
         (data.get("name", ""), data.get("email", ""),
          data.get("phone", ""), data.get("notes", ""), client_id),
     )
@@ -261,7 +288,7 @@ def update_client(tenant_slug, client_id):
 @login_required("admin")
 def delete_client(tenant_slug, client_id):
     db = get_barber_db(tenant_slug)
-    db.execute("DELETE FROM clients WHERE id=?", (client_id,))
+    db.execute("DELETE FROM clients WHERE id=%s", (client_id,))
     db.commit()
     return jsonify({"message": "Client deleted"})
 
@@ -314,7 +341,7 @@ def create_appointment(tenant_slug):
     db = get_barber_db(tenant_slug)
     db.execute(
         """INSERT INTO appointments (client_id, staff_id, service_id, date, time, duration, status, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
         (data["client_id"], data["staff_id"], data["service_id"],
          data["date"], data["time"], data.get("duration", 30),
          data.get("status", "scheduled"), data.get("notes", "")),
@@ -328,13 +355,13 @@ def create_appointment(tenant_slug):
 def update_appointment(tenant_slug, appt_id):
     data = request.get_json() or {}
     db = get_barber_db(tenant_slug)
-    existing = db.execute("SELECT id FROM appointments WHERE id=?", (appt_id,)).fetchone()
+    existing = db.execute("SELECT id FROM appointments WHERE id=%s", (appt_id,)).fetchone()
     if not existing:
         return jsonify({"error": "Appointment not found"}), 404
 
     db.execute(
-        """UPDATE appointments SET client_id=?, staff_id=?, service_id=?, date=?, time=?,
-           duration=?, status=?, notes=? WHERE id=?""",
+        """UPDATE appointments SET client_id=%s, staff_id=%s, service_id=%s, date=%s, time=%s,
+           duration=%s, status=%s, notes=%s WHERE id=%s""",
         (data.get("client_id"), data.get("staff_id"), data.get("service_id"),
          data.get("date"), data.get("time"), data.get("duration", 30),
          data.get("status", "scheduled"), data.get("notes", ""), appt_id),
@@ -347,7 +374,7 @@ def update_appointment(tenant_slug, appt_id):
 @login_required("admin")
 def delete_appointment(tenant_slug, appt_id):
     db = get_barber_db(tenant_slug)
-    db.execute("DELETE FROM appointments WHERE id=?", (appt_id,))
+    db.execute("DELETE FROM appointments WHERE id=%s", (appt_id,))
     db.commit()
     return jsonify({"message": "Appointment deleted"})
 
@@ -359,7 +386,7 @@ def delete_appointment(tenant_slug, appt_id):
 def get_working_hours(tenant_slug, staff_id):
     db = get_barber_db(tenant_slug)
     rows = db.execute(
-        "SELECT * FROM working_hours WHERE staff_id=? ORDER BY day_of_week, start_time",
+        "SELECT * FROM working_hours WHERE staff_id=%s ORDER BY day_of_week, start_time",
         (staff_id,),
     ).fetchall()
     return jsonify([dict(r) for r in rows])
@@ -376,7 +403,7 @@ def create_working_hours(tenant_slug):
 
     db = get_barber_db(tenant_slug)
     db.execute(
-        "INSERT INTO working_hours (staff_id, day_of_week, start_time, end_time, is_active) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO working_hours (staff_id, day_of_week, start_time, end_time, is_active) VALUES (%s, %s, %s, %s, %s)",
         (data["staff_id"], data["day_of_week"], data["start_time"],
          data["end_time"], 1),
     )
@@ -388,6 +415,6 @@ def create_working_hours(tenant_slug):
 @login_required("admin")
 def delete_working_hours(tenant_slug, wh_id):
     db = get_barber_db(tenant_slug)
-    db.execute("DELETE FROM working_hours WHERE id=?", (wh_id,))
+    db.execute("DELETE FROM working_hours WHERE id=%s", (wh_id,))
     db.commit()
     return jsonify({"message": "Working hours deleted"})

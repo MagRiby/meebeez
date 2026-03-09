@@ -52,7 +52,7 @@ def get_student_super_badges(student_id):
         created_at DATETIME,
         UNIQUE(student_id, super_badge_id)
     )''')
-    c.execute('SELECT super_badge_id, created_at FROM student_super_badges WHERE student_id=? AND active=1', (student_id,))
+    c.execute('SELECT super_badge_id, created_at FROM student_super_badges WHERE student_id=%s AND active=1', (student_id,))
     active_badge_info = {row[0]: row[1] for row in c.fetchall()}
     # Compose response
     badges = []
@@ -88,14 +88,14 @@ def toggle_student_super_badge(student_id, badge_id):
         UNIQUE(student_id, super_badge_id)
     )''')
     # Check current state
-    c.execute('SELECT id, active FROM student_super_badges WHERE student_id=? AND super_badge_id=?', (student_id, badge_id))
+    c.execute('SELECT id, active FROM student_super_badges WHERE student_id=%s AND super_badge_id=%s', (student_id, badge_id))
     row = c.fetchone()
     if row:
         new_active = 0 if row[1] else 1
-        c.execute('UPDATE student_super_badges SET active=? WHERE id=?', (new_active, row[0]))
+        c.execute('UPDATE student_super_badges SET active=%s WHERE id=%s', (new_active, row[0]))
     else:
         new_active = 1
-        c.execute('INSERT INTO student_super_badges (student_id, super_badge_id, active) VALUES (?, ?, ?)', (student_id, badge_id, new_active))
+        c.execute('INSERT INTO student_super_badges (student_id, super_badge_id, active) VALUES (%s, %s, %s)', (student_id, badge_id, new_active))
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'active': bool(new_active)})
@@ -119,19 +119,19 @@ def batch_update_student_super_badges(student_id):
     )''')
     import datetime
     for badge_id, is_active in badge_states.items():
-        c.execute('SELECT id FROM student_super_badges WHERE student_id=? AND super_badge_id=?', (student_id, badge_id))
+        c.execute('SELECT id FROM student_super_badges WHERE student_id=%s AND super_badge_id=%s', (student_id, badge_id))
         row = c.fetchone()
         now_str = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         if row:
             if is_active:
                 # Reactivating: set active=1 and update created_at
-                c.execute('UPDATE student_super_badges SET active=?, created_at=? WHERE id=?', (1, now_str, row[0]))
+                c.execute('UPDATE student_super_badges SET active=%s, created_at=%s WHERE id=%s', (1, now_str, row[0]))
             else:
                 # Deactivating: set active=0 only
-                c.execute('UPDATE student_super_badges SET active=? WHERE id=?', (0, row[0]))
+                c.execute('UPDATE student_super_badges SET active=%s WHERE id=%s', (0, row[0]))
         else:
             # Insert new record with created_at
-            c.execute('INSERT INTO student_super_badges (student_id, super_badge_id, active, created_at) VALUES (?, ?, ?, ?)',
+            c.execute('INSERT INTO student_super_badges (student_id, super_badge_id, active, created_at) VALUES (%s, %s, %s, %s)',
                       (student_id, badge_id, 1 if is_active else 0, now_str))
     conn.commit()
     conn.close()
@@ -152,19 +152,19 @@ def get_super_badges_notes(student_id):
         updated_at TEXT,
         user TEXT
     )''')
-    c.execute('SELECT note, updated_at, user FROM student_super_badges_notes WHERE student_id=?', (student_id,))
+    c.execute('SELECT note, updated_at, user FROM student_super_badges_notes WHERE student_id=%s', (student_id,))
     row = c.fetchone()
     display_name = ''
     if row and row[2]:
         user_id = row[2]
         # Try users table first
-        c.execute('SELECT name FROM users WHERE id=?', (user_id,))
+        c.execute('SELECT name FROM users WHERE id=%s', (user_id,))
         user_row = c.fetchone()
         if user_row and user_row[0]:
             display_name = user_row[0]
         else:
             # Try teachers table
-            c.execute('SELECT name FROM teachers WHERE id=?', (user_id,))
+            c.execute('SELECT name FROM teachers WHERE id=%s', (user_id,))
             teacher_row = c.fetchone()
             if teacher_row and teacher_row[0]:
                 display_name = teacher_row[0]
@@ -190,12 +190,12 @@ def save_super_badges_notes(student_id):
         updated_at TEXT,
         user TEXT
     )''')
-    c.execute('SELECT student_id FROM student_super_badges_notes WHERE student_id=?', (student_id,))
+    c.execute('SELECT student_id FROM student_super_badges_notes WHERE student_id=%s', (student_id,))
     exists = c.fetchone()
     if exists:
-        c.execute('UPDATE student_super_badges_notes SET note=?, updated_at=?, user=? WHERE student_id=?', (note, updated_at, str(user_id), student_id))
+        c.execute('UPDATE student_super_badges_notes SET note=%s, updated_at=%s, user=%s WHERE student_id=%s', (note, updated_at, str(user_id), student_id))
     else:
-        c.execute('INSERT INTO student_super_badges_notes (student_id, note, updated_at, user) VALUES (?, ?, ?, ?)', (student_id, note, updated_at, str(user_id)))
+        c.execute('INSERT INTO student_super_badges_notes (student_id, note, updated_at, user) VALUES (%s, %s, %s, %s)', (student_id, note, updated_at, str(user_id)))
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'updated_at': updated_at, 'user': user_id})

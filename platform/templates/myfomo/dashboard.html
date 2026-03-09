@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ business_name }} - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet">
+    <script src="/static/i18n/i18n.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Bebas+Neue&family=Lobster&family=Oswald:wght@500;700&family=Raleway:wght@400;700&family=Pacifico&family=Montserrat:wght@400;700;900&family=Dancing+Script:wght@700&family=Righteous&family=Permanent+Marker&family=Poppins:wght@400;700;900&family=Archivo+Black&display=swap" rel="stylesheet">
+    <style>
+        :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { padding-bottom: calc(60px + var(--safe-bottom)); background: #f5f6fa; }
+        .form-control, .form-select { font-size: 16px; }
+
+        /* ── Bottom tab bar (mobile) ─────────────────────────────── */
+        .bottom-tabs {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050;
+            background: #fff; border-top: 1px solid #dee2e6;
+            display: flex; padding-bottom: var(--safe-bottom);
+        }
+        .bottom-tabs .btab {
+            flex: 1 1 0; padding: 6px 4px 4px;
+            text-align: center; font-size: 10px; color: #6c757d;
+            text-decoration: none; border: none; background: none;
+            white-space: nowrap;
+        }
+        .bottom-tabs .btab.active { color: #0d6efd; font-weight: 600; }
+        .bottom-tabs .btab i { display: block; font-size: 18px; margin-bottom: 2px; }
+
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+            .bottom-tabs { display: none; }
+            .desktop-tabs { display: flex !important; }
+        }
+        @media (max-width: 767.98px) {
+            .desktop-tabs { display: none !important; }
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        #postsList, #eventsList, #bookingsList {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 14px;
+        }
+        .post-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; }
+        .post-card img { width: 100%; max-height: 240px; object-fit: contain; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; }
+        .form-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .form-card h6 { font-weight: 600; margin-bottom: 12px; }
+        .badge { font-size: 12px; }
+        .section-title { font-weight: 600; font-size: 18px; margin-bottom: 12px; }
+        .ai-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; }
+        .ai-btn:hover { opacity: 0.9; color: #fff; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .stat-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 14px 12px; text-align: center; }
+        .stat-card--cost { border-color: #ffc107; background: #fffdf0; }
+        .stat-val { font-size: 26px; font-weight: 700; color: #0d6efd; line-height: 1.1; }
+        .stat-card--cost .stat-val { color: #e67e00; }
+        .stat-lbl { font-size: 11px; color: #6c757d; margin-top: 2px; }
+
+        /* ── Ad image suggestions ─────────────────────────────────── */
+        .ad-suggestion-item { border-radius: 8px; padding: 3px; transition: outline 0.1s; }
+        .ad-suggestion-item.selected { outline: 3px solid #0d6efd; }
+
+        /* ── Horizontal scroll for ad option groups (mobile) ─────── */
+        .opt-scroll {
+            display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; padding-bottom: 4px; flex-wrap: nowrap;
+        }
+        .opt-scroll::-webkit-scrollbar { display: none; }
+        .opt-scroll .btn { flex-shrink: 0; white-space: nowrap; }
+        @media (min-width: 768px) { .opt-scroll { flex-wrap: wrap; } }
+
+        /* ── Text editor canvas ──────────────────────────────────── */
+        #textEditorWrap { position: relative; background: #1a1a2e; border-radius: 10px; overflow: hidden; }
+        #textEditorWrap canvas { display: block; max-width: 100%; }
+        .te-toolbar { display: flex; gap: 6px; padding: 8px 10px; background: #1a1a2e;
+            overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; align-items: center; }
+        .te-toolbar::-webkit-scrollbar { display: none; }
+        .te-toolbar .btn { flex-shrink: 0; }
+        .te-toolbar input[type="color"] { width: 36px; height: 36px; border: 2px solid #444; border-radius: 6px; padding: 2px; background: transparent; cursor: pointer; flex-shrink: 0; }
+        .te-toolbar input[type="range"] { width: 80px; flex-shrink: 0; }
+        .te-toolbar-row { display: flex; gap: 6px; padding: 6px 10px; background: #1a1a2e;
+            overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; align-items: center; }
+        .te-toolbar-row::-webkit-scrollbar { display: none; }
+        .te-sep { width: 1px; height: 24px; background: #444; flex-shrink: 0; }
+        .te-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; white-space: nowrap; }
+        .te-active { background: #667eea !important; color: #fff !important; border-color: #667eea !important; }
+        .te-layers { max-height: 100px; overflow-y: auto; padding: 4px 10px; background: #12132a; }
+        .te-layers::-webkit-scrollbar { width: 4px; }
+        .te-layers::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        .te-layer-item { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 4px;
+            cursor: pointer; font-size: 12px; color: #ccc; transition: background 0.1s; }
+        .te-layer-item:hover { background: rgba(255,255,255,0.08); }
+        .te-layer-item.active { background: rgba(102,126,234,0.25); color: #fff; }
+
+        /* ── Horizontal option cards (mobile) ─────────────────────── */
+        .ad-opts-strip {
+            display: flex; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; padding: 4px 0; flex-wrap: nowrap; scroll-snap-type: x mandatory;
+        }
+        .ad-opts-strip::-webkit-scrollbar { display: none; }
+        .ad-opt-card {
+            flex: 0 0 auto; min-width: 200px; max-width: 260px;
+            background: #f8f8ff; border: 1px solid #d0d0e8; border-radius: 10px;
+            padding: 10px 12px; scroll-snap-align: start;
+        }
+        @media (min-width: 768px) {
+            .ad-opts-strip { flex-wrap: wrap; scroll-snap-type: none; }
+            .ad-opt-card { flex: 1 1 200px; max-width: none; }
+        }
+
+        /* ── Crop modal ────────────────────────────────────────────── */
+        #cropModal .modal-body { padding: 0; background: #1a1a2e; }
+        #cropImageContainer { max-height: 65vh; overflow: hidden; }
+        #cropImageContainer img { display: block; max-width: 100%; }
+        .crop-toolbar { display: flex; gap: 8px; padding: 10px 16px; background: #1a1a2e; justify-content: center; flex-wrap: wrap; }
+        .crop-toolbar .btn { min-width: 44px; min-height: 44px; }
+    </style>
+</head>
+<body>
+    <!-- ── Navbar ──────────────────────────────────────────────────── -->
+    <nav class="navbar navbar-dark bg-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-bullhorn me-2"></i>{{ business_name }}</a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-light d-none d-sm-inline" style="font-size:14px"><i class="fas fa-user me-1"></i>{{ username }}</span>
+                <span class="badge bg-secondary d-none d-sm-inline">{{ role }}</span>
+                <span id="langSwitcher" class="d-flex align-items-center"></span>
+                <a class="btn btn-outline-light btn-sm" href="/home" title="Platform home"><i class="fas fa-th-large"></i></a>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('myfomo.myfomo_logout', tenant_slug=tenant_slug) }}"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── Desktop top tabs ───────────────────────────────────────── -->
+    <div class="container-fluid">
+        <ul class="nav nav-tabs desktop-tabs pt-2" id="mainTabs">
+            <li class="nav-item"><button class="nav-link active" onclick="switchTab('feed')"><i class="fas fa-th-list me-1"></i><span data-i18n="dashboard.feed">Feed</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('newpost')"><i class="fas fa-plus-circle me-1"></i><span data-i18n="dashboard.newPost">New Post</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('events')"><i class="fas fa-calendar-alt me-1"></i><span data-i18n="dashboard.events">Events</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('bookings')"><i class="fas fa-bookmark me-1"></i><span data-i18n="dashboard.bookings">Bookings</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('analytics')"><i class="fas fa-chart-bar me-1"></i><span data-i18n="dashboard.analytics">Analytics</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('settings')"><i class="fas fa-cog me-1"></i><span data-i18n="dashboard.settings">Settings</span></button></li>
+        </ul>
+    </div>
+
+    <!-- ── Tab content ────────────────────────────────────────────── -->
+    <div class="container-fluid py-3">
+
+        <!-- ═══ FEED TAB ═══ -->
+        <div class="tab-pane active" id="tab-feed">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="section-title mb-0" data-i18n="dashboard.posts">Posts</h5>
+                <select class="form-select form-select-sm" style="width:auto" id="feedFilter" onchange="loadPosts()">
+                    <option value="">All</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
+                </select>
+            </div>
+            <div id="postsList"></div>
+        </div>
+
+        <!-- ═══ NEW POST TAB ═══ -->
+        <div class="tab-pane" id="tab-newpost">
+            <h5 class="section-title" data-i18n="post.createPost">Create Post</h5>
+            <div class="form-card">
+                <h6><i class="fas fa-camera me-1"></i> <span data-i18n="post.photo">Photo</span></h6>
+                <input type="file" class="d-none" id="postImage" accept="image/*">
+                <input type="file" class="d-none" id="postImageCamera" accept="image/*" capture="environment">
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-outline-primary flex-fill" onclick="document.getElementById('postImageCamera').click()"><i class="fas fa-camera me-1"></i><span data-i18n="post.takePhoto">Take Photo</span></button>
+                    <button class="btn btn-outline-secondary flex-fill" onclick="document.getElementById('postImage').click()"><i class="fas fa-images me-1"></i><span data-i18n="post.gallery">Gallery</span></button>
+                    <button class="btn btn-outline-info btn-sm" id="loadLogoBtn" onclick="loadLogoAsImage()" style="display:none" title="Use store logo as image"><i class="fas fa-trademark"></i></button>
+                </div>
+                <div id="postImagePreview" class="mb-2"></div>
+                <div class="opt-scroll align-items-center">
+                    <button class="btn ai-btn btn-sm" onclick="aiGenerateAdImage()"><i class="fas fa-palette me-1"></i><span data-i18n="post.generateAdImage">Generate Ad Image</span></button>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#adOptions" aria-expanded="false" aria-controls="adOptions">
+                        <i class="fas fa-sliders-h me-1"></i>Options
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="restoreOriginalImage()" title="Revert to original photo">
+                        <i class="fas fa-undo me-1"></i>Original
+                    </button>
+                </div>
+                <div class="collapse mt-2" id="adOptions">
+                    <div class="ad-opts-strip">
+                        <!-- Background card -->
+                        <div class="ad-opt-card">
+                            <div class="small fw-semibold text-muted mb-1"><i class="fas fa-fill-drip me-1"></i>Background</div>
+                            <div class="opt-scroll mb-1">
+                                <button type="button" class="btn btn-sm btn-primary adBgOpt"   data-val="basic">AI Choice</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary adBgOpt" data-val="brand">Brand Colors</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary adBgOpt" data-val="audience">Target Audience</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary adBgOpt" data-val="custom">Custom</button>
+                            </div>
+                            <input type="text" class="form-control form-control-sm d-none" id="adBgCustom" placeholder="Describe the background">
+                        </div>
+                        <!-- Detail card -->
+                        <div class="ad-opt-card">
+                            <div class="small fw-semibold text-muted mb-1"><i class="fas fa-sliders-h me-1"></i>Detail Level</div>
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>Minimal</span>
+                                <span id="adDetailLabel">Moderate</span>
+                                <span>Intricate</span>
+                            </div>
+                            <input type="range" class="form-range" id="adBgDetail" min="1" max="5" value="3"
+                                oninput="document.getElementById('adDetailLabel').textContent = ['','Minimal','Simple','Moderate','Detailed','Intricate'][this.value]">
+                        </div>
+                        <!-- Frame card -->
+                        <div class="ad-opt-card">
+                            <div class="small fw-semibold text-muted mb-1"><i class="fas fa-border-style me-1"></i>Frame</div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="adFrameToggle">
+                                <label class="form-check-label small text-muted" for="adFrameToggle">Add decorative frame</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="aiImageResult" class="mt-2"></div>
+                <div id="aiAdImageResult" class="mt-2"></div>
+
+                <!-- ── Text Editor (canvas-based) ─────────────────────── -->
+                <div class="mt-2">
+                    <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#textEditorSection">
+                        <i class="fas fa-font me-1"></i>Add Text to Image
+                    </button>
+                </div>
+                <div class="collapse mt-2" id="textEditorSection">
+                    <div id="textEditorWrap">
+                        <canvas id="textEditorCanvas"></canvas>
+                        <!-- Row 1: Add + Font + Size -->
+                        <div class="te-toolbar">
+                            <button class="btn btn-sm btn-light" onclick="teAddText()" title="Add text"><i class="fas fa-plus"></i> Text</button>
+                            <div class="te-sep"></div>
+                            <select class="form-select form-select-sm" id="teFont" onchange="teUpdateStyle()" style="width:auto;flex-shrink:0">
+                                <optgroup label="Display">
+                                    <option value="Bebas Neue" style="font-family:'Bebas Neue'">Bebas Neue</option>
+                                    <option value="Archivo Black" style="font-family:'Archivo Black'">Archivo Black</option>
+                                    <option value="Oswald" style="font-family:'Oswald'">Oswald</option>
+                                    <option value="Righteous" style="font-family:'Righteous'">Righteous</option>
+                                    <option value="Permanent Marker" style="font-family:'Permanent Marker'">Permanent Marker</option>
+                                </optgroup>
+                                <optgroup label="Elegant">
+                                    <option value="Playfair Display" style="font-family:'Playfair Display'">Playfair Display</option>
+                                    <option value="Montserrat" style="font-family:'Montserrat'" selected>Montserrat</option>
+                                    <option value="Poppins" style="font-family:'Poppins'">Poppins</option>
+                                    <option value="Raleway" style="font-family:'Raleway'">Raleway</option>
+                                </optgroup>
+                                <optgroup label="Script">
+                                    <option value="Lobster" style="font-family:'Lobster'">Lobster</option>
+                                    <option value="Pacifico" style="font-family:'Pacifico'">Pacifico</option>
+                                    <option value="Dancing Script" style="font-family:'Dancing Script'">Dancing Script</option>
+                                </optgroup>
+                                <optgroup label="System">
+                                    <option value="Arial Black">Arial Black</option>
+                                    <option value="Impact">Impact</option>
+                                    <option value="Georgia">Georgia</option>
+                                </optgroup>
+                            </select>
+                            <input type="range" id="teFontSize" min="12" max="150" value="36" oninput="teUpdateStyle()" title="Font size">
+                            <span id="teFontSizeVal" style="font-size:11px;color:#aaa;flex-shrink:0;min-width:28px">36</span>
+                        </div>
+                        <!-- Row 2: Colors + Style -->
+                        <div class="te-toolbar-row">
+                            <te-label class="te-label">Color</te-label>
+                            <input type="color" id="teColor" value="#ffffff" onchange="teUpdateStyle()" title="Text color" style="width:36px;height:32px;border:2px solid #444;border-radius:6px;padding:2px;background:transparent;cursor:pointer;flex-shrink:0">
+                            <div class="te-sep"></div>
+                            <te-label class="te-label">BG</te-label>
+                            <input type="color" id="teBgColor" value="#000000" onchange="teUpdateStyle()" title="Background color" style="width:36px;height:32px;border:2px solid #444;border-radius:6px;padding:2px;background:transparent;cursor:pointer;flex-shrink:0">
+                            <button class="btn btn-sm btn-outline-light" id="teBgToggle" onclick="teToggleBg()" title="Toggle text background">
+                                <i class="fas fa-square"></i>
+                            </button>
+                            <div class="te-sep"></div>
+                            <button class="btn btn-sm btn-outline-light" id="teBoldBtn" onclick="teToggleBold()" title="Bold"><i class="fas fa-bold"></i></button>
+                            <button class="btn btn-sm btn-outline-light" id="teItalicBtn" onclick="teToggleItalic()" title="Italic"><i class="fas fa-italic"></i></button>
+                            <div class="te-sep"></div>
+                            <button class="btn btn-sm btn-outline-light" onclick="teSetAlign('left')" title="Align left"><i class="fas fa-align-left"></i></button>
+                            <button class="btn btn-sm btn-outline-light" onclick="teSetAlign('center')" title="Align center"><i class="fas fa-align-center"></i></button>
+                            <button class="btn btn-sm btn-outline-light" onclick="teSetAlign('right')" title="Align right"><i class="fas fa-align-right"></i></button>
+                        </div>
+                        <!-- Row 3: Effects -->
+                        <div class="te-toolbar-row">
+                            <te-label class="te-label">Effect</te-label>
+                            <button class="btn btn-sm btn-outline-light te-fx-btn te-active" data-fx="none" onclick="teSetEffect('none')">None</button>
+                            <button class="btn btn-sm btn-outline-light te-fx-btn" data-fx="shadow" onclick="teSetEffect('shadow')">Shadow</button>
+                            <button class="btn btn-sm btn-outline-light te-fx-btn" data-fx="outline" onclick="teSetEffect('outline')">Outline</button>
+                            <button class="btn btn-sm btn-outline-light te-fx-btn" data-fx="neon" onclick="teSetEffect('neon')">Neon</button>
+                            <button class="btn btn-sm btn-outline-light te-fx-btn" data-fx="box" onclick="teSetEffect('box')">Box</button>
+                            <button class="btn btn-sm btn-outline-light te-fx-btn" data-fx="vintage" onclick="teSetEffect('vintage')">Vintage</button>
+                            <div class="te-sep"></div>
+                            <button class="btn btn-sm btn-outline-light" onclick="teDeleteSelected()" title="Delete selected"><i class="fas fa-trash text-danger"></i></button>
+                        </div>
+                        <!-- Layer list -->
+                        <div class="te-layers" id="teLayers"></div>
+                        <!-- Actions -->
+                        <div class="d-flex gap-2 p-2" style="background:#1a1a2e">
+                            <button class="btn btn-primary btn-sm flex-fill" onclick="teApply()"><i class="fas fa-check me-1"></i>Apply Text</button>
+                            <button class="btn btn-outline-light btn-sm" onclick="teReset()">Reset</button>
+                        </div>
+                    </div>
+                    <p class="text-muted small mt-1 mb-0"><i class="fas fa-info-circle me-1"></i>Tap "Add Text", then drag to position. Pinch/resize handles to scale.</p>
+                </div>
+            </div>
+            <div class="form-card">
+                <h6><i class="fas fa-pen me-1"></i> <span data-i18n="post.details">Details</span></h6>
+                <input type="text" class="form-control mb-2" id="postTitle" data-i18n-placeholder="post.title" placeholder="Title">
+                <textarea class="form-control mb-2" id="postBody" rows="3" data-i18n-placeholder="post.description" placeholder="Description / ad copy"></textarea>
+                <button class="btn ai-btn btn-sm mb-2" onclick="aiGenerateCopy()"><i class="fas fa-magic me-1"></i><span data-i18n="post.generateAdCopy">Generate Ad Copy</span></button>
+                <div id="aiCopyResult" class="mb-2"></div>
+                <select class="form-select mb-2" id="postType">
+                    <option value="product">Product</option>
+                    <option value="announcement">Announcement</option>
+                </select>
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><input type="number" class="form-control" id="postPrice" placeholder="Price" step="0.01" min="0"></div>
+                    <div class="col-6"><input type="number" class="form-control" id="postQty" placeholder="Quantity" min="0"></div>
+                </div>
+                <label class="form-label small text-muted">Sale ends at</label>
+                <input type="datetime-local" class="form-control mb-3" id="postSaleEnds">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" onclick="createPost('published')"><i class="fas fa-paper-plane me-1"></i><span data-i18n="post.publish">Publish</span></button>
+                    <button class="btn btn-outline-secondary flex-fill" onclick="createPost('draft')"><i class="fas fa-save me-1"></i><span data-i18n="post.saveDraft">Save Draft</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ EVENTS TAB ═══ -->
+        <div class="tab-pane" id="tab-events">
+            <h5 class="section-title">Events</h5>
+            <div class="form-card">
+                <h6><i class="fas fa-plus me-1"></i> New Event</h6>
+                <input type="text" class="form-control mb-2" id="eventTitle" placeholder="Event title">
+                <textarea class="form-control mb-2" id="eventDesc" rows="2" placeholder="Description"></textarea>
+                <button class="btn ai-btn btn-sm mb-2" onclick="aiGenerateEvent()"><i class="fas fa-magic me-1"></i>Ask AI for Description</button>
+                <div id="aiEventResult" class="mb-2"></div>
+                <input type="file" class="d-none" id="eventImage" accept="image/*">
+                <input type="file" class="d-none" id="eventImageCamera" accept="image/*" capture="environment">
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-outline-primary flex-fill" onclick="document.getElementById('eventImageCamera').click()"><i class="fas fa-camera me-1"></i>Take Photo</button>
+                    <button class="btn btn-outline-secondary flex-fill" onclick="document.getElementById('eventImage').click()"><i class="fas fa-images me-1"></i>Gallery</button>
+                </div>
+                <div id="eventImagePreview" class="mb-2"></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><input type="date" class="form-control" id="eventDate"></div>
+                    <div class="col-6"><input type="time" class="form-control" id="eventTime"></div>
+                </div>
+                <input type="text" class="form-control mb-2" id="eventLocation" placeholder="Location">
+                <button class="btn btn-primary w-100" onclick="createEvent()"><i class="fas fa-calendar-plus me-1"></i>Create Event</button>
+            </div>
+            <div id="eventsList" class="mt-3"></div>
+        </div>
+
+        <!-- ═══ BOOKINGS TAB ═══ -->
+        <div class="tab-pane" id="tab-bookings">
+            <h5 class="section-title">Bookings</h5>
+            <div id="bookingsList"></div>
+        </div>
+
+        <!-- ═══ ANALYTICS TAB ═══ -->
+        <div class="tab-pane" id="tab-analytics">
+            <h5 class="section-title">Analytics</h5>
+            <div id="analyticsContent">
+                <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+            </div>
+        </div>
+
+        <!-- ═══ SETTINGS TAB ═══ -->
+        <div class="tab-pane" id="tab-settings">
+            <h5 class="section-title" data-i18n="settings.storeSettings">Store Settings</h5>
+            <div class="form-card">
+                <h6><i class="fas fa-store me-1"></i> <span data-i18n="settings.businessProfile">Business Profile</span></h6>
+                <p class="text-muted small mb-3" data-i18n="settings.profileHint">This info is shown to followers on your store page.</p>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-8"><input type="text" class="form-control" id="profTagline" placeholder="Tagline / short description"></div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="profCategory">
+                            <option value="restaurants">🍽️ Restaurants</option>
+                            <option value="food">🛒 Food &amp; Groceries</option>
+                            <option value="clothing">👕 Clothing</option>
+                            <option value="care">💆 Care &amp; Beauty</option>
+                            <option value="learning">📚 Learning</option>
+                            <option value="general" selected>🏪 General</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="text" class="form-control mb-2" id="profAudience" placeholder="Target audience — e.g. African women 25-45, Latino families, Young professionals (used in AI ad generation)">
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6"><input type="tel" class="form-control" id="profPhone" placeholder="Phone number"></div>
+                    <div class="col-md-6"><input type="email" class="form-control" id="profEmail" placeholder="Email address"></div>
+                </div>
+                <input type="text" class="form-control mb-2" id="profAddress" placeholder="Physical address (clickable → Maps)">
+                <input type="url" class="form-control mb-2" id="profWebsite" placeholder="Website URL — https://...">
+                <textarea class="form-control mb-2" id="profHours" rows="3" placeholder="Opening hours&#10;e.g. Mon–Fri: 9am – 6pm&#10;Sat: 10am – 4pm"></textarea>
+                <p class="form-label small fw-semibold mt-2 mb-1"><i class="fas fa-share-alt me-1"></i>Social Media <span class="fw-normal text-muted">(handles only, no @ or full URL)</span></p>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text"><i class="fab fa-instagram"></i></span><input type="text" class="form-control" id="profInstagram" placeholder="username"></div></div>
+                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text"><i class="fab fa-facebook"></i></span><input type="text" class="form-control" id="profFacebook" placeholder="page name"></div></div>
+                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text"><i class="fab fa-twitter"></i></span><input type="text" class="form-control" id="profTwitter" placeholder="username"></div></div>
+                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text"><i class="fab fa-tiktok"></i></span><input type="text" class="form-control" id="profTiktok" placeholder="username"></div></div>
+                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text"><i class="fab fa-whatsapp"></i></span><input type="text" class="form-control" id="profWhatsapp" placeholder="number with country code"></div></div>
+                </div>
+                <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-save me-1"></i><span data-i18n="settings.saveProfile">Save Profile</span></button>
+                <div id="profStatus" class="mt-2"></div>
+            </div>
+            <div class="form-card">
+                <h6><i class="fas fa-palette me-1"></i> <span data-i18n="settings.brandIdentity">Brand Identity</span></h6>
+                <p class="text-muted small mb-2">Upload your logo — the AI will extract your brand colors, style, and mood to use when generating ad images.</p>
+                <div id="brandingPreview" class="mb-3"></div>
+                <input type="file" class="d-none" id="logoInput" accept="image/*">
+                <button class="btn btn-outline-primary btn-sm" onclick="document.getElementById('logoInput').click()">
+                    <i class="fas fa-upload me-1"></i>Upload Logo
+                </button>
+                <div id="brandingStatus" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Bottom tabs (mobile) ───────────────────────────────────── -->
+    <div class="bottom-tabs">
+        <button class="btab active" onclick="switchTab('feed')"><i class="fas fa-th-list"></i><span data-i18n="dashboard.feed">Feed</span></button>
+        <button class="btab" onclick="switchTab('newpost')"><i class="fas fa-plus-circle"></i><span data-i18n="dashboard.newPost">New Post</span></button>
+        <button class="btab" onclick="switchTab('bookings')"><i class="fas fa-bookmark"></i><span data-i18n="dashboard.bookings">Bookings</span></button>
+        <button class="btab" onclick="switchTab('settings')"><i class="fas fa-cog"></i><span data-i18n="dashboard.settings">Settings</span></button>
+        <a class="btab" href="/home"><i class="fas fa-th-large"></i><span data-i18n="nav.home">Home</span></a>
+    </div>
+
+    <!-- ── Edit Post Modal ────────────────────────────────────────── -->
+    <div class="modal fade" id="editPostModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-i18n="post.editPost">Edit Post</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editPostId">
+                    <input type="hidden" id="editPostImagePath">
+                    <input type="hidden" id="editPostOriginalImagePath">
+                    <div id="editOriginalPreview" class="mb-3" style="display:none">
+                        <label class="form-label small fw-semibold mb-1"><i class="fas fa-image me-1"></i>Original Photo</label>
+                        <div class="d-flex align-items-end gap-2">
+                            <img id="editOriginalImg" src="" class="rounded" style="max-height:80px;object-fit:contain;background:#f8f9fa;cursor:zoom-in"
+                                 onclick="openAdPreview(this.src,'feed')">
+                            <button class="btn btn-sm btn-outline-warning" onclick="useEditImage(document.getElementById('editPostOriginalImagePath').value)">
+                                <i class="fas fa-undo me-1"></i>Restore
+                            </button>
+                        </div>
+                    </div>
+                    <div id="editPostSuggestions" class="mb-3" style="display:none">
+                        <label class="form-label small fw-semibold mb-2"><i class="fas fa-palette me-1"></i>AI Image Suggestions — pick a different one</label>
+                        <div id="editSuggGrid"></div>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-link p-0 text-decoration-none" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#editRegenCollapse" aria-expanded="false">
+                                <i class="fas fa-redo me-1"></i>Generate more suggestions
+                            </button>
+                            <div class="collapse" id="editRegenCollapse">
+                                <div class="mt-2 p-2 rounded" style="background:#f0f0ff;border:1px dashed #b0b0e0">
+                                    <p class="small text-muted mb-2">Generates 3 new suggestions from the post's current image and adds them to the list above.</p>
+                                    <button class="btn ai-btn btn-sm" onclick="editRegenerateImages()"><i class="fas fa-palette me-1"></i>Generate</button>
+                                    <div id="editRegenResult" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="text" class="form-control mb-2" id="editPostTitle" placeholder="Title">
+                    <textarea class="form-control mb-2" id="editPostBody" rows="3" placeholder="Body"></textarea>
+                    <select class="form-select mb-2" id="editPostType">
+                        <option value="product">Product</option>
+                        <option value="announcement">Announcement</option>
+                    </select>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6"><input type="number" class="form-control" id="editPostPrice" placeholder="Price" step="0.01" min="0"></div>
+                        <div class="col-6"><input type="number" class="form-control" id="editPostQty" placeholder="Remaining Qty" min="0"></div>
+                    </div>
+                    <select class="form-select mb-2" id="editPostStatus">
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="savePost()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Crop Modal ─────────────────────────────────────────────── -->
+    <div class="modal fade" id="cropModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-fullscreen-sm-down modal-lg modal-dialog-centered">
+            <div class="modal-content" style="background:#1a1a2e">
+                <div class="modal-header border-0 py-2" style="background:#1a1a2e">
+                    <h6 class="modal-title text-white"><i class="fas fa-crop-alt me-1"></i>Crop Image</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="cropImageContainer">
+                        <img id="cropImage" src="" alt="">
+                    </div>
+                    <div class="crop-toolbar">
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperRotate(-90)" title="Rotate left"><i class="fas fa-undo"></i></button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperRotate(90)" title="Rotate right"><i class="fas fa-redo"></i></button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperFlipH()" title="Flip horizontal"><i class="fas fa-arrows-alt-h"></i></button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperFlipV()" title="Flip vertical"><i class="fas fa-arrows-alt-v"></i></button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperRatio(NaN)" title="Free crop">Free</button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperRatio(1)" title="Square">1:1</button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperRatio(4/3)" title="4:3">4:3</button>
+                        <button class="btn btn-outline-light btn-sm" onclick="cropperRatio(16/9)" title="16:9">16:9</button>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 py-2" style="background:#1a1a2e">
+                    <button class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="applyCrop()"><i class="fas fa-check me-1"></i>Use Cropped Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+    <script>
+    const BASE = '/t/{{ tenant_slug }}/myfomo';
+    let uploadedImageUrl = '';
+    let originalImageUrl = '';   // always keeps the user's original (non-AI) photo
+
+    /* ── Cropper state ─────────────────────────────────────────── */
+    let cropper = null;
+    let cropTarget = null;          // 'post' or 'event'
+    let croppedBlobs = { post: null, event: null };
+    const cropModalEl = document.getElementById('cropModal');
+    const cropModal = new bootstrap.Modal(cropModalEl);
+    let flipH = 1, flipV = 1;
+
+    function openCropper(file, target) {
+        if (!file) return;
+        cropTarget = target;
+        flipH = 1; flipV = 1;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.getElementById('cropImage');
+            img.src = e.target.result;
+            cropModal.show();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    cropModalEl.addEventListener('shown.bs.modal', function() {
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(document.getElementById('cropImage'), {
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 0.9,
+            responsive: true,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: true,
+            background: false,
+        });
+    });
+
+    cropModalEl.addEventListener('hidden.bs.modal', function() {
+        if (cropper) { cropper.destroy(); cropper = null; }
+        document.getElementById('cropImage').src = '';
+    });
+
+    function cropperRotate(deg) { if (cropper) cropper.rotate(deg); }
+    function cropperFlipH() { flipH = -flipH; if (cropper) cropper.scaleX(flipH); }
+    function cropperFlipV() { flipV = -flipV; if (cropper) cropper.scaleY(flipV); }
+    function cropperRatio(r) { if (cropper) cropper.setAspectRatio(r); }
+
+    function applyCrop() {
+        if (!cropper) return;
+        const canvas = cropper.getCroppedCanvas({ maxWidth: 1200, maxHeight: 1200 });
+        canvas.toBlob(blob => {
+            croppedBlobs[cropTarget] = blob;
+            const url = URL.createObjectURL(blob);
+            const previewId = cropTarget === 'post' ? 'postImagePreview' : 'eventImagePreview';
+            document.getElementById(previewId).innerHTML =
+                `<img src="${url}" class="img-fluid rounded" style="max-height:200px">`;
+            if (cropTarget === 'post') {
+                uploadedImageUrl = '';
+                originalImageUrl = '';
+                // Auto-analyze as soon as photo is ready
+                document.getElementById('aiImageResult').innerHTML =
+                    '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Analyzing photo…</div>';
+                cropModal.hide();
+                aiAnalyzeImage();
+            } else {
+                cropModal.hide();
+            }
+        }, 'image/jpeg', 0.85);
+    }
+
+    /* ── Tab switching ─────────────────────────────────────────── */
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+
+        document.querySelectorAll('.bottom-tabs .btab, #mainTabs .nav-link').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.bottom-tabs .btab, #mainTabs .nav-link').forEach(b => {
+            if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tab + "'")) b.classList.add('active');
+        });
+
+        if (tab === 'feed') loadPosts();
+        if (tab === 'events') loadEvents();
+        if (tab === 'bookings') loadBookings();
+        if (tab === 'analytics') loadAnalytics();
+        if (tab === 'settings') { loadBranding(); loadProfile(); }
+    }
+
+    /* ── API helpers ───────────────────────────────────────────── */
+    async function api(path, opts = {}) {
+        const res = await fetch(BASE + path, {
+            headers: opts.body instanceof FormData ? {} : { 'Content-Type': 'application/json' },
+            ...opts,
+            body: opts.body instanceof FormData ? opts.body : (opts.body ? JSON.stringify(opts.body) : undefined)
+        });
+        return res.json();
+    }
+
+    /* ── Upload helper (uses cropped blob if available) ─────── */
+    async function uploadImage(target) {
+        const blob = croppedBlobs[target];
+        if (blob) {
+            const fd = new FormData();
+            fd.append('image', blob, 'photo.jpg');
+            const res = await fetch(BASE + '/api/upload', { method: 'POST', body: fd });
+            const data = await res.json();
+            return data.url || '';
+        }
+        // Fallback: raw file from input
+        let file = null;
+        if (target === 'post') {
+            const cam = document.getElementById('postImageCamera');
+            const gal = document.getElementById('postImage');
+            file = cam.files.length ? cam.files[0] : (gal.files.length ? gal.files[0] : null);
+        } else {
+            const cam = document.getElementById('eventImageCamera');
+            const gal = document.getElementById('eventImage');
+            file = cam.files.length ? cam.files[0] : (gal.files.length ? gal.files[0] : null);
+        }
+        if (file) {
+            const fd = new FormData();
+            fd.append('image', file);
+            const res = await fetch(BASE + '/api/upload', { method: 'POST', body: fd });
+            const data = await res.json();
+            return data.url || '';
+        }
+        return '';
+    }
+
+    /* ── Posts ──────────────────────────────────────────────────── */
+    async function loadPosts() {
+        const filter = document.getElementById('feedFilter').value;
+        const qs = filter ? `?status=${filter}` : '';
+        const posts = await api(`/api/posts${qs}`);
+        const el = document.getElementById('postsList');
+        if (!posts.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('dashboard.noPosts') + '</p>'; return; }
+        el.innerHTML = posts.map(p => `
+            <div class="post-card">
+                ${p.image_path ? `<img src="${p.image_path}" alt="" style="cursor:zoom-in" onclick="openAdPreview('${p.image_path}','feed')">` : ''}
+                ${p.original_image_path && p.original_image_path !== p.image_path ? `<div class="d-flex align-items-center gap-1 mb-1"><img src="${p.original_image_path}" style="height:28px;width:28px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6" title="Original photo"><span class="text-muted" style="font-size:10px">Original saved</span></div>` : ''}
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${esc(p.title)}</strong>
+                        <span class="badge ${p.status === 'published' ? 'bg-success' : p.status === 'draft' ? 'bg-warning text-dark' : 'bg-secondary'} ms-1">${p.status}</span>
+                    </div>
+                    <span class="badge bg-info">${p.post_type}</span>
+                </div>
+                <p class="text-muted small mt-1 mb-1">${esc(p.body || '').substring(0, 120)}</p>
+                <div class="d-flex justify-content-between align-items-center small">
+                    <span>${p.price ? '$' + Number(p.price).toFixed(2) : ''} ${p.remaining_quantity != null ? '| Stock: ' + p.remaining_quantity : ''}</span>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editPost(${p.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deletePost(${p.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function createPost(status) {
+        const title = document.getElementById('postTitle').value.trim();
+        if (!title) { alert('Title is required'); return; }
+
+        // Upload original image (cropped or raw) if not already uploaded
+        if ((croppedBlobs.post || document.getElementById('postImage').files.length || document.getElementById('postImageCamera').files.length) && !originalImageUrl) {
+            originalImageUrl = await uploadImage('post');
+            if (!uploadedImageUrl) uploadedImageUrl = originalImageUrl;
+        }
+
+        const result = await api('/api/posts', { method: 'POST', body: {
+            title,
+            body: document.getElementById('postBody').value,
+            image_path: uploadedImageUrl,
+            original_image_path: originalImageUrl,
+            post_type: document.getElementById('postType').value,
+            price: parseFloat(document.getElementById('postPrice').value) || 0,
+            original_quantity: parseInt(document.getElementById('postQty').value) || 0,
+            sale_ends_at: document.getElementById('postSaleEnds').value || null,
+            status
+        }});
+        // Save AI suggestions to localStorage so they're available in edit modal
+        if (result && result.id) {
+            const suggUrls = [...document.querySelectorAll('#aiAdImageResult .ad-suggestion-item')]
+                .map(el => el.dataset.url).filter(Boolean);
+            if (suggUrls.length) {
+                localStorage.setItem('post_sugg_' + result.id, JSON.stringify(suggUrls));
+            }
+        }
+        // Reset form
+        ['postTitle','postBody','postPrice','postQty','postSaleEnds'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('postImage').value = '';
+        document.getElementById('postImageCamera').value = '';
+        document.getElementById('postImagePreview').innerHTML = '';
+        document.getElementById('aiImageResult').innerHTML = '';
+        document.getElementById('aiAdImageResult').innerHTML = '';
+        document.getElementById('aiCopyResult').innerHTML = '';
+        uploadedImageUrl = '';
+        originalImageUrl = '';
+        croppedBlobs.post = null;
+        switchTab('feed');
+    }
+
+    async function editPost(id) {
+        const posts = await api('/api/posts');
+        const p = posts.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('editPostId').value = p.id;
+        document.getElementById('editPostImagePath').value = p.image_path || '';
+        document.getElementById('editPostOriginalImagePath').value = p.original_image_path || '';
+        // Show original photo thumbnail if available and different from current
+        const origPreview = document.getElementById('editOriginalPreview');
+        const origImg = document.getElementById('editOriginalImg');
+        if (p.original_image_path && p.original_image_path !== p.image_path) {
+            origImg.src = p.original_image_path;
+            origPreview.style.display = '';
+        } else {
+            origPreview.style.display = 'none';
+        }
+        document.getElementById('editPostTitle').value = p.title;
+        document.getElementById('editPostBody').value = p.body || '';
+        document.getElementById('editPostType').value = p.post_type;
+        document.getElementById('editPostPrice').value = p.price || '';
+        document.getElementById('editPostQty').value = p.remaining_quantity || '';
+        document.getElementById('editPostStatus').value = p.status;
+
+        // Load AI suggestions from localStorage if available
+        const stored = localStorage.getItem('post_sugg_' + id);
+        let storedUrls = [];
+        try { storedUrls = stored ? JSON.parse(stored) : []; } catch(e) {}
+        renderEditSuggGrid(storedUrls, p.image_path || '');
+
+        new bootstrap.Modal(document.getElementById('editPostModal')).show();
+    }
+
+    function renderEditSuggGrid(urls, activeImg) {
+        const suggEl = document.getElementById('editPostSuggestions');
+        const suggGrid = document.getElementById('editSuggGrid');
+        if (!suggEl || !suggGrid) return;
+        if (!urls.length) { suggEl.style.display = 'none'; return; }
+        suggEl.style.display = '';
+        suggGrid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            ${urls.map(url => `
+                <div class="ad-suggestion-item text-center" data-url="${url}">
+                    <img src="${url}" class="img-fluid rounded mb-1" style="width:100%;max-height:100px;object-fit:contain;background:#f8f9fa;cursor:zoom-in" onclick="openAdPreview('${url}','edit')">
+                    <button class="btn btn-sm btn-outline-primary w-100 use-btn" onclick="useEditImage('${url}')"><i class="fas fa-check me-1"></i>Use</button>
+                </div>
+            `).join('')}
+        </div>`;
+        if (activeImg) {
+            suggGrid.querySelectorAll('.ad-suggestion-item').forEach(item => {
+                if (item.dataset.url === activeImg) {
+                    item.classList.add('selected');
+                    const btn = item.querySelector('.use-btn');
+                    if (btn) { btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected'; btn.className = 'btn btn-sm btn-primary w-100 use-btn'; }
+                }
+            });
+        }
+    }
+
+    function useEditImage(url) {
+        document.getElementById('editPostImagePath').value = url;
+        document.querySelectorAll('#editSuggGrid .ad-suggestion-item').forEach(item => {
+            const sel = item.dataset.url === url;
+            item.classList.toggle('selected', sel);
+            const btn = item.querySelector('.use-btn');
+            if (!btn) return;
+            if (sel) {
+                btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected';
+                btn.className = 'btn btn-sm btn-primary w-100 use-btn';
+            } else {
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Use';
+                btn.className = 'btn btn-sm btn-outline-primary w-100 use-btn';
+            }
+        });
+    }
+
+    async function editRegenerateImages() {
+        const postId = document.getElementById('editPostId').value;
+        const imgPath = document.getElementById('editPostImagePath').value;
+        const el = document.getElementById('editRegenResult');
+        if (!imgPath) { el.innerHTML = '<div class="alert alert-warning small py-2">No image to regenerate from.</div>'; return; }
+        el.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Generating 3 new suggestions…</div>';
+        try {
+            const imgRes = await fetch(imgPath);
+            const imgBlob = await imgRes.blob();
+            const fd = new FormData();
+            fd.append('image', imgBlob, 'image.jpg');
+            fd.append('product_name', document.getElementById('editPostTitle').value || '');
+            fd.append('style', 'promotional, social media ready');
+            fd.append('background_mode', 'basic');
+            fd.append('background_detail', '3');
+            const res = await fetch(BASE + '/api/ai/generate-ad-image', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) { el.innerHTML = `<div class="alert alert-warning small py-2">${esc(data.error)}</div>`; return; }
+            const newUrls = data.urls || [];
+            // Merge with existing suggestions in localStorage
+            let stored = [];
+            try { stored = JSON.parse(localStorage.getItem('post_sugg_' + postId) || '[]'); } catch(e) {}
+            const allUrls = [...stored, ...newUrls.filter(u => !stored.includes(u))];
+            localStorage.setItem('post_sugg_' + postId, JSON.stringify(allUrls));
+            // Re-render grid with all suggestions, keep current selection
+            const currentImg = document.getElementById('editPostImagePath').value;
+            renderEditSuggGrid(allUrls, currentImg);
+            el.innerHTML = `<div class="alert alert-success small py-2">${newUrls.length} new suggestions added.</div>`;
+        } catch(err) {
+            el.innerHTML = '<div class="alert alert-warning small py-2">Failed to generate. Try again.</div>';
+        }
+    }
+
+    async function savePost() {
+        const id = document.getElementById('editPostId').value;
+        const imgPath = document.getElementById('editPostImagePath').value;
+        const body = {
+            title: document.getElementById('editPostTitle').value,
+            body: document.getElementById('editPostBody').value,
+            post_type: document.getElementById('editPostType').value,
+            price: parseFloat(document.getElementById('editPostPrice').value) || 0,
+            remaining_quantity: parseInt(document.getElementById('editPostQty').value) || 0,
+            status: document.getElementById('editPostStatus').value
+        };
+        if (imgPath) body.image_path = imgPath;
+        await api(`/api/posts/${id}`, { method: 'PUT', body });
+        bootstrap.Modal.getInstance(document.getElementById('editPostModal')).hide();
+        loadPosts();
+    }
+
+    async function deletePost(id) {
+        if (!confirm(i18n.t('post.deleteConfirm'))) return;
+        await api(`/api/posts/${id}`, { method: 'DELETE' });
+        loadPosts();
+    }
+
+    /* ── Events ────────────────────────────────────────────────── */
+    async function loadEvents() {
+        const events = await api('/api/events');
+        const el = document.getElementById('eventsList');
+        if (!events.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('event.noEvents') + '</p>'; return; }
+        el.innerHTML = events.map(e => `
+            <div class="post-card">
+                ${e.image_path ? `<img src="${e.image_path}" alt="">` : ''}
+                <div class="d-flex justify-content-between">
+                    <strong>${esc(e.title)}</strong>
+                    <span class="badge ${e.status === 'upcoming' ? 'bg-primary' : e.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'}">${e.status}</span>
+                </div>
+                <p class="text-muted small mt-1 mb-1">${esc(e.description || '').substring(0, 120)}</p>
+                <div class="small text-muted">
+                    ${e.event_date ? '<i class="fas fa-calendar me-1"></i>' + e.event_date : ''}
+                    ${e.event_time ? ' <i class="fas fa-clock me-1"></i>' + e.event_time : ''}
+                    ${e.location ? ' <i class="fas fa-map-marker-alt me-1"></i>' + esc(e.location) : ''}
+                </div>
+                <div class="d-flex gap-1 mt-2">
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent(${e.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function createEvent() {
+        const title = document.getElementById('eventTitle').value.trim();
+        if (!title) { alert('Title is required'); return; }
+
+        let imgUrl = '';
+        if (croppedBlobs.event || document.getElementById('eventImage').files.length || document.getElementById('eventImageCamera').files.length) {
+            imgUrl = await uploadImage('event');
+        }
+
+        await api('/api/events', { method: 'POST', body: {
+            title,
+            description: document.getElementById('eventDesc').value,
+            image_path: imgUrl,
+            event_date: document.getElementById('eventDate').value || null,
+            event_time: document.getElementById('eventTime').value || null,
+            location: document.getElementById('eventLocation').value
+        }});
+        ['eventTitle','eventDesc','eventDate','eventTime','eventLocation'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('eventImage').value = '';
+        document.getElementById('eventImageCamera').value = '';
+        document.getElementById('eventImagePreview').innerHTML = '';
+        document.getElementById('aiEventResult').innerHTML = '';
+        croppedBlobs.event = null;
+        loadEvents();
+    }
+
+    async function deleteEvent(id) {
+        if (!confirm(i18n.t('event.deleteConfirm'))) return;
+        await api(`/api/events/${id}`, { method: 'DELETE' });
+        loadEvents();
+    }
+
+    /* ── Bookings ──────────────────────────────────────────────── */
+    async function loadBookings() {
+        const bookings = await api('/api/bookings');
+        const el = document.getElementById('bookingsList');
+        if (!bookings.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('booking.noBookings') + '</p>'; return; }
+        el.innerHTML = bookings.map(b => `
+            <div class="post-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${esc(b.post_title || 'Post #' + b.post_id)}</strong>
+                        <div class="small text-muted">By: ${esc(b.user_name || b.user_username || 'User #' + b.user_id)} | Qty: ${b.quantity}</div>
+                        ${b.notes ? `<div class="small text-muted">Notes: ${esc(b.notes)}</div>` : ''}
+                    </div>
+                    <select class="form-select form-select-sm" style="width:auto" onchange="updateBooking(${b.id}, this.value)">
+                        ${['pending','confirmed','cancelled','collected'].map(s => `<option value="${s}" ${b.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function updateBooking(id, status) {
+        await api(`/api/bookings/${id}`, { method: 'PUT', body: { status } });
+        loadBookings();
+    }
+
+    /* ── Analytics ─────────────────────────────────────────────── */
+    async function loadAnalytics() {
+        const el = document.getElementById('analyticsContent');
+        el.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+        try {
+            const d = await api('/api/analytics');
+            const bookingBadges = (d.booking_statuses || []).map(s =>
+                `<span class="badge bg-secondary me-1">${s.status}: ${s.count}</span>`
+            ).join('');
+            const topItems = (d.top_items || []).map(i =>
+                `<div class="d-flex justify-content-between small py-1 border-bottom">
+                    <span>${esc(i.name)}</span>
+                    <span class="fw-semibold">${i.views} views</span>
+                </div>`
+            ).join('') || '<p class="text-muted small">No item views yet</p>';
+            const aiPosts = (d.ai_per_post || []).map(p =>
+                `<div class="d-flex justify-content-between small py-1 border-bottom">
+                    <span>${esc(p.title)}</span>
+                    <span>${p.gens} gen · <strong>$${p.cost.toFixed(4)}</strong></span>
+                </div>`
+            ).join('') || '<p class="text-muted small">No generations yet</p>';
+            const recentIcons = {
+                page_view: 'fa-eye', item_view: 'fa-image', booking: 'fa-shopping-bag',
+                ai_generation: 'fa-palette', follow: 'fa-user-plus',
+            };
+            const recent = (d.recent_events || []).map(e =>
+                `<div class="d-flex align-items-center gap-2 py-1 border-bottom small">
+                    <i class="fas ${recentIcons[e.type] || 'fa-circle'} text-primary" style="width:16px"></i>
+                    <span class="flex-grow-1">${esc(e.name)}</span>
+                    <span class="text-muted" style="font-size:11px">${e.at ? e.at.substring(0,16) : ''}</span>
+                </div>`
+            ).join('') || '<p class="text-muted small">No activity yet</p>';
+
+            el.innerHTML = `
+                <!-- Stat cards -->
+                <div class="stat-grid mb-3">
+                    <div class="stat-card">
+                        <div class="stat-val">${d.followers}</div>
+                        <div class="stat-lbl"><i class="fas fa-user-friends me-1"></i>Followers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val">${d.page_views}</div>
+                        <div class="stat-lbl"><i class="fas fa-eye me-1"></i>Page Views</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val">${d.item_views}</div>
+                        <div class="stat-lbl"><i class="fas fa-image me-1"></i>Item Views</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val">${d.total_bookings}</div>
+                        <div class="stat-lbl"><i class="fas fa-shopping-bag me-1"></i>Bookings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val">${d.ai_generations}</div>
+                        <div class="stat-lbl"><i class="fas fa-palette me-1"></i>AI Generations</div>
+                    </div>
+                    <div class="stat-card stat-card--cost">
+                        <div class="stat-val">$${(d.estimated_ai_cost || 0).toFixed(3)}</div>
+                        <div class="stat-lbl"><i class="fas fa-dollar-sign me-1"></i>AI Spend</div>
+                    </div>
+                </div>
+                <!-- Bookings breakdown -->
+                <div class="form-card mb-3">
+                    <h6 class="mb-2"><i class="fas fa-shopping-bag me-1"></i>Bookings by Status</h6>
+                    <div>${bookingBadges || '<span class="text-muted small">No bookings yet</span>'}</div>
+                </div>
+                <!-- Two columns on desktop -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-card h-100">
+                            <h6 class="mb-2"><i class="fas fa-fire me-1"></i>Top Viewed Items</h6>
+                            ${topItems}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-card h-100">
+                            <h6 class="mb-2"><i class="fas fa-palette me-1"></i>AI Cost per Post</h6>
+                            ${aiPosts}
+                        </div>
+                    </div>
+                </div>
+                <!-- Recent activity -->
+                <div class="form-card mt-3">
+                    <h6 class="mb-2"><i class="fas fa-stream me-1"></i>Recent Activity</h6>
+                    ${recent}
+                </div>`;
+        } catch(e) {
+            el.innerHTML = '<p class="text-muted text-center py-4">Could not load analytics.</p>';
+        }
+    }
+
+    /* ── Branding ──────────────────────────────────────────────── */
+    async function loadBranding() {
+        const data = await api('/api/branding');
+        renderBrandingPreview(data);
+        // Show the logo button in New Post if a logo is stored
+        document.getElementById('loadLogoBtn').style.display = data.logo_path ? '' : 'none';
+    }
+
+    function renderBrandingPreview(data) {
+        const el = document.getElementById('brandingPreview');
+        if (!el) return;
+        if (!data.logo_path) {
+            el.innerHTML = '<p class="text-muted small mb-0">No logo uploaded yet.</p>';
+            return;
+        }
+        const colors = Array.isArray(data.brand_colors) ? data.brand_colors : [];
+        el.innerHTML = `
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <img src="${data.logo_path}" style="max-height:64px;max-width:120px;object-fit:contain;border-radius:6px;border:1px solid #e9ecef;padding:4px;background:#fff">
+                <div>
+                    <div class="d-flex gap-1 mb-1">
+                        ${colors.map(c => `<div style="width:22px;height:22px;background:${esc(c)};border-radius:4px;border:1px solid #ddd" title="${esc(c)}"></div>`).join('')}
+                    </div>
+                    <div class="small text-muted">
+                        ${data.brand_style ? `<span class="me-2"><i class="fas fa-eye me-1"></i>${esc(data.brand_style)}</span>` : ''}
+                        ${data.font_style ? `<span class="me-2"><i class="fas fa-font me-1"></i>${esc(data.font_style)}</span>` : ''}
+                        ${data.mood ? `<span><i class="fas fa-heart me-1"></i>${esc(data.mood)}</span>` : ''}
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    document.getElementById('logoInput').addEventListener('change', async function() {
+        if (!this.files.length) return;
+        const statusEl = document.getElementById('brandingStatus');
+        statusEl.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Analyzing logo…</div>';
+        const fd = new FormData();
+        fd.append('logo', this.files[0]);
+        try {
+            const res = await fetch(BASE + '/api/branding/logo', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) { statusEl.innerHTML = `<div class="alert alert-warning small py-1">${esc(data.error)}</div>`; return; }
+            renderBrandingPreview(data);
+            statusEl.innerHTML = '<div class="alert alert-success small py-1">Brand identity extracted!</div>';
+            document.getElementById('loadLogoBtn').style.display = '';
+            setTimeout(() => { statusEl.innerHTML = ''; }, 3000);
+        } catch(e) {
+            statusEl.innerHTML = '<div class="alert alert-warning small py-1">Upload failed. Try again.</div>';
+        }
+        this.value = '';
+    });
+
+    async function loadLogoAsImage() {
+        const data = await api('/api/branding');
+        if (!data.logo_path) { alert('No logo uploaded yet. Go to Settings → Brand Identity.'); return; }
+        try {
+            const res = await fetch(data.logo_path);
+            const blob = await res.blob();
+            croppedBlobs.post = blob;
+            uploadedImageUrl = '';
+            const url = URL.createObjectURL(blob);
+            document.getElementById('postImagePreview').innerHTML =
+                `<img src="${url}" class="img-fluid rounded" style="max-height:200px">`;
+            document.getElementById('aiImageResult').innerHTML =
+                '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Analyzing logo…</div>';
+            aiAnalyzeImage();
+        } catch(e) {
+            alert('Could not load logo. Try again.');
+        }
+    }
+
+    /* ── Ad option toggle groups ───────────────────────────────── */
+    ['adBgOpt'].forEach(cls => {
+        document.querySelectorAll('.' + cls).forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.' + cls).forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary');
+                if (cls === 'adBgOpt') {
+                    document.getElementById('adBgCustom').classList.toggle('d-none', this.dataset.val !== 'custom');
+                }
+            });
+        });
+    });
+
+    function _adVal(cls) {
+        return document.querySelector('.' + cls + '.btn-primary')?.dataset.val || '';
+    }
+
+    /* ── Business Profile ─────────────────────────────────────── */
+    async function loadProfile() {
+        try {
+            const p = await api('/api/profile');
+            document.getElementById('profTagline').value   = p.business_tagline || '';
+            document.getElementById('profCategory').value  = p.category || 'general';
+            document.getElementById('profAudience').value  = p.market_audience  || '';
+            document.getElementById('profPhone').value     = p.business_phone   || '';
+            document.getElementById('profEmail').value     = p.business_email   || '';
+            document.getElementById('profAddress').value  = p.business_address  || '';
+            document.getElementById('profWebsite').value  = p.business_website  || '';
+            document.getElementById('profHours').value    = p.business_hours    || '';
+            document.getElementById('profInstagram').value = p.social_instagram || '';
+            document.getElementById('profFacebook').value  = p.social_facebook  || '';
+            document.getElementById('profTwitter').value   = p.social_twitter   || '';
+            document.getElementById('profTiktok').value    = p.social_tiktok    || '';
+            document.getElementById('profWhatsapp').value  = p.social_whatsapp  || '';
+        } catch(e) {}
+    }
+
+    async function saveProfile() {
+        const statusEl = document.getElementById('profStatus');
+        statusEl.innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div>';
+        try {
+            const res = await api('/api/profile', { method: 'POST', body: {
+                business_tagline:  document.getElementById('profTagline').value.trim(),
+                category:          document.getElementById('profCategory').value,
+                market_audience:   document.getElementById('profAudience').value.trim(),
+                business_phone:    document.getElementById('profPhone').value.trim(),
+                business_email:    document.getElementById('profEmail').value.trim(),
+                business_address:  document.getElementById('profAddress').value.trim(),
+                business_website:  document.getElementById('profWebsite').value.trim(),
+                business_hours:    document.getElementById('profHours').value.trim(),
+                social_instagram:  document.getElementById('profInstagram').value.trim(),
+                social_facebook:   document.getElementById('profFacebook').value.trim(),
+                social_twitter:    document.getElementById('profTwitter').value.trim(),
+                social_tiktok:     document.getElementById('profTiktok').value.trim(),
+                social_whatsapp:   document.getElementById('profWhatsapp').value.trim(),
+            }});
+            if (res.ok) {
+                statusEl.innerHTML = '<div class="alert alert-success small py-1">Profile saved!</div>';
+                setTimeout(() => { statusEl.innerHTML = ''; }, 3000);
+            } else {
+                statusEl.innerHTML = '<div class="alert alert-warning small py-1">Save failed. Try again.</div>';
+            }
+        } catch(e) {
+            statusEl.innerHTML = '<div class="alert alert-warning small py-1">Error saving profile.</div>';
+        }
+    }
+
+    /* ── AI Features ───────────────────────────────────────────── */
+    async function aiAnalyzeImage() {
+        const blob = croppedBlobs.post;
+        if (!blob) {
+            const cam = document.getElementById('postImageCamera');
+            const gal = document.getElementById('postImage');
+            if (!cam.files.length && !gal.files.length) {
+                alert('Please take a photo or select an image first'); return;
+            }
+        }
+        const fd = new FormData();
+        if (blob) {
+            fd.append('image', blob, 'photo.jpg');
+        } else {
+            const cam = document.getElementById('postImageCamera');
+            const gal = document.getElementById('postImage');
+            fd.append('image', cam.files.length ? cam.files[0] : gal.files[0]);
+        }
+        const res = await fetch(BASE + '/api/ai/analyze-image', { method: 'POST', body: fd });
+        const data = await res.json();
+        const el = document.getElementById('aiImageResult');
+        if (data.items && data.items.length) {
+            const item = data.items[0];
+            el.innerHTML = `<div class="alert alert-info small py-2">
+                <strong>AI Detected:</strong> ${esc(item.name)}<br>
+                ${esc(item.description)}<br>
+                Suggested price: $${item.suggested_price}
+                <br><button class="btn btn-sm btn-outline-primary mt-1" onclick="document.getElementById('postTitle').value='${esc(item.name)}'; document.getElementById('postPrice').value=${item.suggested_price}">Use Suggestion</button>
+            </div>`;
+        }
+    }
+
+    async function aiGenerateAdImage() {
+        const blob = croppedBlobs.post;
+        const cam = document.getElementById('postImageCamera');
+        const gal = document.getElementById('postImage');
+        if (!blob && !cam.files.length && !gal.files.length) {
+            alert('Please take a photo or select an image first'); return;
+        }
+
+        // Upload original first so we always keep it
+        if (!originalImageUrl) {
+            originalImageUrl = await uploadImage('post');
+        }
+
+        const fd = new FormData();
+        if (blob) {
+            fd.append('image', blob, 'photo.jpg');
+        } else {
+            fd.append('image', cam.files.length ? cam.files[0] : gal.files[0]);
+        }
+        fd.append('product_name', document.getElementById('postTitle').value || '');
+        fd.append('style', 'promotional, social media ready');
+        fd.append('background_mode',   _adVal('adBgOpt') || 'basic');
+        fd.append('background_detail', document.getElementById('adBgDetail').value || '3');
+        fd.append('background_custom', document.getElementById('adBgCustom').value || '');
+        fd.append('text_content',   '');
+        fd.append('text_placement', 'bottom');
+        fd.append('text_size',      'medium');
+        fd.append('text_effect',    'none');
+        fd.append('add_frame',      document.getElementById('adFrameToggle').checked ? 'true' : 'false');
+
+        const el = document.getElementById('aiAdImageResult');
+        el.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Generating 3 ad suggestions…</div>';
+
+        try {
+            const res = await fetch(BASE + '/api/ai/generate-ad-image', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) {
+                el.innerHTML = `<div class="alert alert-warning small py-2">${esc(data.error)}</div>`;
+                return;
+            }
+            const urls = data.urls || [];
+            el.innerHTML = `
+                <div class="alert alert-success small py-2">
+                    <p class="mb-2 fw-bold text-center">Choose an Ad Image</p>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
+                        ${urls.map(url => `
+                            <div class="ad-suggestion-item text-center" data-url="${url}">
+                                <img src="${url}" class="img-fluid rounded mb-1" style="max-height:150px;width:100%;object-fit:contain;background:#f8f9fa;cursor:zoom-in" onclick="openAdPreview('${url}','new')">
+                                <button class="btn btn-sm btn-outline-primary w-100 use-btn" onclick="useAdImage('${url}')"><i class="fas fa-check me-1"></i>Use</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+        } catch (err) {
+            el.innerHTML = '<div class="alert alert-warning small py-2">Failed to generate images. Try again later.</div>';
+        }
+    }
+
+    function useAdImage(url) {
+        uploadedImageUrl = url;
+        document.getElementById('postImagePreview').innerHTML = `<img src="${url}" class="img-fluid rounded" style="max-height:200px">`;
+        // Highlight selected suggestion, keep all 3 visible
+        document.querySelectorAll('#aiAdImageResult .ad-suggestion-item').forEach(item => {
+            const sel = item.dataset.url === url;
+            item.classList.toggle('selected', sel);
+            const btn = item.querySelector('.use-btn');
+            if (!btn) return;
+            if (sel) {
+                btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected';
+                btn.className = 'btn btn-sm btn-primary w-100 use-btn';
+            } else {
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Use';
+                btn.className = 'btn btn-sm btn-outline-primary w-100 use-btn';
+            }
+        });
+    }
+
+    async function aiGenerateCopy() {
+        const name = document.getElementById('postTitle').value || 'Amazing Product';
+        const res = await api('/api/ai/generate-copy', { method: 'POST', body: { name } });
+        const el = document.getElementById('aiCopyResult');
+        el.innerHTML = `<div class="alert alert-info small py-2">
+            <strong>${esc(res.headline)}</strong><br>
+            ${esc(res.body)}<br>
+            <em>${(res.hashtags || []).join(' ')}</em>
+            <br><button class="btn btn-sm btn-outline-primary mt-1" onclick="document.getElementById('postBody').value=\`${esc(res.headline)}\\n${esc(res.body)}\\n${(res.hashtags || []).join(' ')}\`">Use Copy</button>
+        </div>`;
+    }
+
+    async function aiGenerateEvent() {
+        const title = document.getElementById('eventTitle').value || 'our special event';
+        const res = await api('/api/ai/generate-event', { method: 'POST', body: { title } });
+        const el = document.getElementById('aiEventResult');
+        el.innerHTML = `<div class="alert alert-info small py-2">
+            ${esc(res.description)}<br>
+            <em>${esc(res.design_notes)}</em>
+            <br><button class="btn btn-sm btn-outline-primary mt-1" onclick="document.getElementById('eventDesc').value='${esc(res.description)}'">Use Description</button>
+        </div>`;
+    }
+
+    /* ── Image input → open cropper ────────────────────────────── */
+    function onImageSelected(input, target, clearOtherId) {
+        if (!input.files.length) return;
+        if (clearOtherId) document.getElementById(clearOtherId).value = '';
+        croppedBlobs[target] = null;
+        if (target === 'post') { uploadedImageUrl = ''; originalImageUrl = ''; }
+        openCropper(input.files[0], target);
+    }
+
+    document.getElementById('postImage').addEventListener('change', function() {
+        onImageSelected(this, 'post', 'postImageCamera');
+    });
+    document.getElementById('postImageCamera').addEventListener('change', function() {
+        onImageSelected(this, 'post', 'postImage');
+    });
+    document.getElementById('eventImage').addEventListener('change', function() {
+        onImageSelected(this, 'event', 'eventImageCamera');
+    });
+    document.getElementById('eventImageCamera').addEventListener('change', function() {
+        onImageSelected(this, 'event', 'eventImage');
+    });
+
+    /* ── Helpers ────────────────────────────────────────────────── */
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    /* ── Init ──────────────────────────────────────────────────── */
+    loadPosts();
+    // Pre-fetch branding so the logo button is visible right away
+    api('/api/branding').then(d => {
+        if (d.logo_path) document.getElementById('loadLogoBtn').style.display = '';
+    });
+    /* ── Canvas Text Editor (Fabric.js) ──────────────────────── */
+    let _teCanvas = null;
+    let _teEffect = 'none';
+    let _teBgEnabled = false;
+    let _teTextCount = 0;
+
+    function _teGetImageUrl() {
+        if (uploadedImageUrl) return uploadedImageUrl;
+        if (originalImageUrl) return originalImageUrl;
+        const prevImg = document.querySelector('#postImagePreview img');
+        return prevImg ? prevImg.src : '';
+    }
+
+    document.getElementById('textEditorSection')?.addEventListener('shown.bs.collapse', function() {
+        teLoadImage();
+    });
+
+    function teLoadImage() {
+        const url = _teGetImageUrl();
+        if (!url) { alert('Upload or generate an image first'); return; }
+
+        const wrapEl = document.getElementById('textEditorWrap');
+        const canvasEl = document.getElementById('textEditorCanvas');
+        const containerW = wrapEl.parentElement.clientWidth - 4;
+
+        if (_teCanvas) { _teCanvas.dispose(); _teCanvas = null; }
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+            const scale = Math.min(containerW / img.width, 600 / img.height, 1);
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+            canvasEl.width = w; canvasEl.height = h;
+            _teCanvas = new fabric.Canvas('textEditorCanvas', { width: w, height: h });
+            const bgImg = new fabric.Image(img, { scaleX: scale, scaleY: scale });
+            _teCanvas.setBackgroundImage(bgImg, _teCanvas.renderAll.bind(_teCanvas));
+            _teCanvas.on('selection:created', _teOnSelect);
+            _teCanvas.on('selection:updated', _teOnSelect);
+            _teCanvas.on('selection:cleared', teUpdateLayers);
+            _teCanvas.on('object:modified', teUpdateLayers);
+            _teTextCount = 0;
+            teUpdateLayers();
+        };
+        img.src = url;
+    }
+
+    function _teOnSelect() {
+        const obj = _teCanvas?.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        // Sync toolbar to selected object
+        document.getElementById('teColor').value = obj.fill || '#ffffff';
+        document.getElementById('teFontSize').value = obj.fontSize || 36;
+        document.getElementById('teFontSizeVal').textContent = obj.fontSize || 36;
+        document.getElementById('teFont').value = obj.fontFamily || 'Montserrat';
+        document.getElementById('teBoldBtn').classList.toggle('te-active', obj.fontWeight === 'bold');
+        document.getElementById('teItalicBtn').classList.toggle('te-active', obj.fontStyle === 'italic');
+        // Sync effect buttons
+        const fx = obj._teEffect || 'none';
+        _teEffect = fx;
+        document.querySelectorAll('.te-fx-btn').forEach(b => b.classList.toggle('te-active', b.dataset.fx === fx));
+        // Sync bg toggle
+        _teBgEnabled = !!obj.backgroundColor;
+        document.getElementById('teBgToggle').classList.toggle('te-active', _teBgEnabled);
+        if (obj.backgroundColor) document.getElementById('teBgColor').value = obj.backgroundColor;
+        teUpdateLayers();
+    }
+
+    function teUpdateLayers() {
+        const el = document.getElementById('teLayers');
+        if (!_teCanvas) { el.innerHTML = ''; return; }
+        const objects = _teCanvas.getObjects().filter(o => o.type === 'i-text');
+        const active = _teCanvas.getActiveObject();
+        if (!objects.length) { el.innerHTML = '<div style="font-size:11px;color:#555;padding:4px 0">No text layers yet</div>'; return; }
+        el.innerHTML = objects.map((o, i) => `
+            <div class="te-layer-item${o === active ? ' active' : ''}" onclick="teSelectLayer(${i})">
+                <i class="fas fa-font" style="font-size:10px;color:#667eea"></i>
+                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.text || 'Text').substring(0, 25)}</span>
+                <button class="btn btn-sm p-0 border-0" onclick="event.stopPropagation();teDeleteLayer(${i})" style="color:#ff6b6b;font-size:11px"><i class="fas fa-times"></i></button>
+            </div>
+        `).join('');
+    }
+
+    function teSelectLayer(index) {
+        const objects = _teCanvas.getObjects().filter(o => o.type === 'i-text');
+        if (objects[index]) {
+            _teCanvas.setActiveObject(objects[index]);
+            _teCanvas.renderAll();
+            _teOnSelect();
+        }
+    }
+
+    function teDeleteLayer(index) {
+        const objects = _teCanvas.getObjects().filter(o => o.type === 'i-text');
+        if (objects[index]) {
+            _teCanvas.remove(objects[index]);
+            _teCanvas.renderAll();
+            teUpdateLayers();
+        }
+    }
+
+    function teAddText() {
+        if (!_teCanvas) { teLoadImage(); return; }
+        _teTextCount++;
+        const color = document.getElementById('teColor').value;
+        const fontSize = parseInt(document.getElementById('teFontSize').value);
+        const fontFamily = document.getElementById('teFont').value;
+
+        const text = new fabric.IText(i18n.t('post.text.yourText'), {
+            left: _teCanvas.width / 2 - 60,
+            top: _teCanvas.height / 2 - 20 + (_teTextCount - 1) * 30,
+            fontFamily: fontFamily,
+            fontSize: fontSize,
+            fill: color,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            editable: true,
+            _teEffect: 'none',
+        });
+        _teApplyEffect(text);
+        _teCanvas.add(text);
+        _teCanvas.setActiveObject(text);
+        _teCanvas.renderAll();
+        teUpdateLayers();
+    }
+
+    function teUpdateStyle() {
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        const size = parseInt(document.getElementById('teFontSize').value);
+        document.getElementById('teFontSizeVal').textContent = size;
+        obj.set({
+            fill: document.getElementById('teColor').value,
+            fontSize: size,
+            fontFamily: document.getElementById('teFont').value,
+        });
+        if (_teBgEnabled) {
+            obj.set('backgroundColor', document.getElementById('teBgColor').value);
+        }
+        _teApplyEffect(obj);
+        _teCanvas.renderAll();
+        teUpdateLayers();
+    }
+
+    function teToggleBold() {
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        const isBold = obj.fontWeight === 'bold';
+        obj.set('fontWeight', isBold ? 'normal' : 'bold');
+        document.getElementById('teBoldBtn').classList.toggle('te-active', !isBold);
+        _teCanvas.renderAll();
+    }
+
+    function teToggleItalic() {
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        const isItalic = obj.fontStyle === 'italic';
+        obj.set('fontStyle', isItalic ? 'normal' : 'italic');
+        document.getElementById('teItalicBtn').classList.toggle('te-active', !isItalic);
+        _teCanvas.renderAll();
+    }
+
+    function teSetAlign(align) {
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        obj.set('textAlign', align);
+        _teCanvas.renderAll();
+    }
+
+    function teToggleBg() {
+        _teBgEnabled = !_teBgEnabled;
+        document.getElementById('teBgToggle').classList.toggle('te-active', _teBgEnabled);
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        obj.set('backgroundColor', _teBgEnabled ? document.getElementById('teBgColor').value : '');
+        _teCanvas.renderAll();
+    }
+
+    function teSetEffect(effect) {
+        _teEffect = effect;
+        document.querySelectorAll('.te-fx-btn').forEach(b => b.classList.toggle('te-active', b.dataset.fx === effect));
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (!obj || obj.type !== 'i-text') return;
+        obj._teEffect = effect;
+        _teApplyEffect(obj);
+        _teCanvas.renderAll();
+    }
+
+    function _teApplyEffect(textObj) {
+        const fx = textObj._teEffect || _teEffect || 'none';
+        textObj.set({ shadow: null, stroke: null, strokeWidth: 0 });
+
+        if (fx === 'shadow') {
+            textObj.set({ shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.7)', blur: 8, offsetX: 3, offsetY: 3 }) });
+        } else if (fx === 'outline') {
+            textObj.set({ stroke: '#000000', strokeWidth: 3 });
+        } else if (fx === 'neon') {
+            const color = textObj.fill || '#ffffff';
+            textObj.set({ shadow: new fabric.Shadow({ color: color, blur: 20, offsetX: 0, offsetY: 0 }) });
+        } else if (fx === 'box') {
+            textObj.set({ backgroundColor: textObj.backgroundColor || 'rgba(0,0,0,0.6)' });
+            if (!_teBgEnabled) {
+                _teBgEnabled = true;
+                document.getElementById('teBgToggle').classList.add('te-active');
+            }
+        } else if (fx === 'vintage') {
+            textObj.set({
+                shadow: new fabric.Shadow({ color: 'rgba(139,69,19,0.5)', blur: 4, offsetX: 2, offsetY: 2 }),
+                stroke: '#8B4513', strokeWidth: 1,
+            });
+        }
+    }
+
+    function teDeleteSelected() {
+        if (!_teCanvas) return;
+        const obj = _teCanvas.getActiveObject();
+        if (obj) { _teCanvas.remove(obj); _teCanvas.renderAll(); teUpdateLayers(); }
+    }
+
+    function teReset() {
+        if (_teCanvas) {
+            _teCanvas.getObjects().slice().forEach(o => _teCanvas.remove(o));
+            _teCanvas.renderAll();
+            _teTextCount = 0;
+            teUpdateLayers();
+        }
+    }
+
+    async function teApply() {
+        if (!_teCanvas) return;
+        const bgImg = _teCanvas.backgroundImage;
+        if (!bgImg) return;
+
+        // Save original before text overlay if not already saved
+        if (!originalImageUrl && uploadedImageUrl) {
+            originalImageUrl = uploadedImageUrl;
+        }
+
+        const origW = bgImg.width;
+        const multiplier = origW / _teCanvas.width;
+        const dataUrl = _teCanvas.toDataURL({ format: 'jpeg', quality: 0.92, multiplier: multiplier });
+
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const fd = new FormData();
+        fd.append('image', blob, 'text-overlay.jpg');
+        const uploadRes = await fetch(BASE + '/api/upload', { method: 'POST', body: fd });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+            uploadedImageUrl = uploadData.url;
+            document.getElementById('postImagePreview').innerHTML =
+                `<img src="${uploadData.url}" class="img-fluid rounded" style="max-height:200px">`;
+            bootstrap.Collapse.getInstance(document.getElementById('textEditorSection'))?.hide();
+        }
+    }
+
+    /* ── Restore original image button ─────────────────────────── */
+    function restoreOriginalImage() {
+        if (!originalImageUrl) { alert(i18n.t('common.noOriginal')); return; }
+        uploadedImageUrl = originalImageUrl;
+        document.getElementById('postImagePreview').innerHTML =
+            `<img src="${originalImageUrl}" class="img-fluid rounded" style="max-height:200px">`;
+    }
+
+    /* ── Ad image preview lightbox ─────────────────────────────── */
+    let _adPreviewUrl = '', _adPreviewContext = 'new';
+    function openAdPreview(url, context) {
+        _adPreviewUrl = url;
+        _adPreviewContext = context || 'new';
+        document.getElementById('adPreviewImg').src = url;
+        document.getElementById('adPreviewUseBtn').style.display = context === 'feed' ? 'none' : '';
+        const lb = document.getElementById('adPreviewLightbox');
+        lb.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeAdPreview() {
+        document.getElementById('adPreviewLightbox').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    function useAdImageFromPreview() {
+        if (_adPreviewContext === 'edit') {
+            useEditImage(_adPreviewUrl);
+        } else {
+            useAdImage(_adPreviewUrl);
+        }
+        closeAdPreview();
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAdPreview(); });
+
+    // ── Language switcher ──────────────────────────────────────────
+    i18n.init().then(() => i18n.renderSwitcher(document.getElementById('langSwitcher')));
+    </script>
+
+    <!-- Ad image full-view lightbox -->
+    <div id="adPreviewLightbox" onclick="closeAdPreview()"
+         style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);
+                align-items:center;justify-content:center;cursor:zoom-out;
+                flex-direction:column;gap:14px;padding:16px">
+        <img id="adPreviewImg" src="" alt=""
+             style="max-width:95vw;max-height:78vh;object-fit:contain;border-radius:10px;display:block">
+        <div class="d-flex gap-2" onclick="event.stopPropagation()">
+            <button id="adPreviewUseBtn" class="btn btn-primary" onclick="useAdImageFromPreview()">
+                <i class="fas fa-check me-1"></i>Use this image
+            </button>
+            <button class="btn btn-outline-light" onclick="closeAdPreview()">
+                <i class="fas fa-times me-1"></i>Close
+            </button>
+        </div>
+    </div>
+</body>
+</html>

@@ -60,7 +60,7 @@ def _sso_auto_login(tenant_slug):
     except Exception:
         return False
     db = get_school_db(tenant_slug)
-    user = db.execute("SELECT * FROM users WHERE username=? AND is_active=1", (email,)).fetchone()
+    user = db.execute("SELECT * FROM users WHERE username=%s", (email,)).fetchone()
     if not user:
         return False
     session["school_user_id"] = user["id"]
@@ -121,7 +121,7 @@ def _safe_update(cursor, table, allowed_columns, field_values, where_clause, whe
         if field not in allowed_columns:
             raise ValueError(f"Invalid column: {field}")
         if val is not None:
-            updates.append(f"{field} = ?")
+            updates.append(f"{field} = %s")
             params.append(val)
     if updates:
         params.extend(where_params)
@@ -187,7 +187,7 @@ def register_super_admin(tenant_slug):
         password = request.form["password"]
         password_hash = generate_password_hash(password)
         c.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
             (username, password_hash, "super_admin"),
         )
         db.commit()
@@ -203,7 +203,7 @@ def school_login(tenant_slug):
         password = request.form["password"]
         db = get_school_db(tenant_slug)
         c = db.cursor()
-        c.execute("SELECT id, password_hash, role FROM users WHERE username=?", (username,))
+        c.execute("SELECT id, password_hash, role FROM users WHERE username=%s", (username,))
         user = c.fetchone()
         if user and check_password_hash(user[1], password):
             session["school_user_id"] = user[0]
@@ -211,7 +211,7 @@ def school_login(tenant_slug):
             session["school_username"] = username
             session["school_tenant"] = tenant_slug
             if user[2] == "teacher":
-                c.execute("SELECT id FROM teachers WHERE user_id=?", (user[0],))
+                c.execute("SELECT id FROM teachers WHERE user_id=%s", (user[0],))
                 teacher_row = c.fetchone()
                 if teacher_row:
                     session["school_teacher_id"] = teacher_row[0]
@@ -222,7 +222,7 @@ def school_login(tenant_slug):
                        FROM students s
                        LEFT JOIN classes c ON s.class_id = c.id
                        LEFT JOIN levels l ON c.level_id = l.id
-                       WHERE s.email=?""",
+                       WHERE s.email=%s""",
                     (username,),
                 )
                 students = c.fetchall()
@@ -318,7 +318,7 @@ def set_local_admin_director(tenant_slug, admin_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     c.execute("UPDATE users SET is_director=0 WHERE role='local_admin'")
-    c.execute("UPDATE users SET is_director=1 WHERE id=? AND role='local_admin'", (admin_id,))
+    c.execute("UPDATE users SET is_director=1 WHERE id=%s AND role='local_admin'", (admin_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -334,11 +334,11 @@ def api_add_local_admin(tenant_slug):
         return jsonify({"success": False, "error": "\u0627\u0644\u0631\u062c\u0627\u0621 \u062a\u0639\u0628\u0626\u0629 \u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0642\u0648\u0644"}), 400
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (username,))
+    c.execute("SELECT id FROM users WHERE username=%s", (username,))
     if c.fetchone():
         return jsonify({"success": False, "error": "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u0633\u062a\u062e\u062f\u0645 \u0628\u0627\u0644\u0641\u0639\u0644"}), 400
     password_hash = generate_password_hash(password)
-    c.execute("INSERT INTO users (name, username, password_hash, role) VALUES (?, ?, ?, 'local_admin')",
+    c.execute("INSERT INTO users (name, username, password_hash, role) VALUES (%s, %s, %s, 'local_admin')",
               (name, username, password_hash))
     db.commit()
     return jsonify({"success": True})
@@ -354,13 +354,13 @@ def api_edit_local_admin(tenant_slug, admin_id):
         return jsonify({"success": False, "error": "\u0627\u0644\u0631\u062c\u0627\u0621 \u062a\u0639\u0628\u0626\u0629 \u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0642\u0648\u0644"}), 400
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute('SELECT id FROM users WHERE id=? AND role="local_admin"', (admin_id,))
+    c.execute('SELECT id FROM users WHERE id=%s AND role="local_admin"', (admin_id,))
     if not c.fetchone():
         return jsonify({"success": False, "error": "\u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"}), 404
-    c.execute("SELECT id FROM users WHERE username=? AND id!=?", (username, admin_id))
+    c.execute("SELECT id FROM users WHERE username=%s AND id!=%s", (username, admin_id))
     if c.fetchone():
         return jsonify({"success": False, "error": "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u0633\u062a\u062e\u062f\u0645 \u0628\u0627\u0644\u0641\u0639\u0644"}), 400
-    c.execute("UPDATE users SET name=?, username=? WHERE id=?", (name, username, admin_id))
+    c.execute("UPDATE users SET name=%s, username=%s WHERE id=%s", (name, username, admin_id))
     db.commit()
     return jsonify({"success": True})
 
@@ -370,10 +370,10 @@ def api_edit_local_admin(tenant_slug, admin_id):
 def api_delete_local_admin(tenant_slug, admin_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute('SELECT id FROM users WHERE id=? AND role="local_admin"', (admin_id,))
+    c.execute('SELECT id FROM users WHERE id=%s AND role="local_admin"', (admin_id,))
     if not c.fetchone():
         return jsonify({"success": False, "error": "\u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"}), 404
-    c.execute("DELETE FROM users WHERE id=?", (admin_id,))
+    c.execute("DELETE FROM users WHERE id=%s", (admin_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -394,7 +394,7 @@ def api_check_user_exists(tenant_slug):
     if username:
         db = get_school_db(tenant_slug)
         c = db.cursor()
-        c.execute("SELECT 1 FROM users WHERE username=?", (username,))
+        c.execute("SELECT 1 FROM users WHERE username=%s", (username,))
         exists = c.fetchone() is not None
     return jsonify({"exists": exists})
 
@@ -413,7 +413,7 @@ def create_user(tenant_slug):
     c = db.cursor()
     try:
         c.execute(
-            "INSERT INTO users (username, password_hash, role, created_by) VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (username, password_hash, role, created_by) VALUES (%s, %s, %s, %s) RETURNING id",
             (username, password_hash, role, session["school_user_id"]),
         )
         db.commit()
@@ -444,10 +444,10 @@ def update_user(tenant_slug):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     if new_role:
-        c.execute("UPDATE users SET role=? WHERE id=?", (new_role, user_id))
+        c.execute("UPDATE users SET role=%s WHERE id=%s", (new_role, user_id))
     if new_password:
         password_hash = generate_password_hash(new_password)
-        c.execute("UPDATE users SET password_hash=? WHERE id=?", (password_hash, user_id))
+        c.execute("UPDATE users SET password_hash=%s WHERE id=%s", (password_hash, user_id))
     db.commit()
     return jsonify({"success": True})
 
@@ -465,11 +465,11 @@ def delete_user(tenant_slug):
     c = db.cursor()
     c.execute('SELECT COUNT(*) FROM users WHERE role="super_admin"')
     sa_count = c.fetchone()[0]
-    c.execute("SELECT role FROM users WHERE id=?", (user_id,))
+    c.execute("SELECT role FROM users WHERE id=%s", (user_id,))
     row = c.fetchone()
     if row and row[0] == "super_admin" and sa_count <= 1:
         return jsonify({"error": "Cannot delete the last super admin"}), 400
-    c.execute("DELETE FROM users WHERE id=?", (user_id,))
+    c.execute("DELETE FROM users WHERE id=%s", (user_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -481,7 +481,7 @@ def delete_user(tenant_slug):
 @school_bp.route("/api/events/<int:class_id>", methods=["GET"])
 def get_events(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
-    cur = db.execute("SELECT * FROM events WHERE class_id = ?", (class_id,))
+    cur = db.execute("SELECT * FROM events WHERE class_id = %s", (class_id,))
     events = [dict(row) for row in cur.fetchall()]
     return jsonify(events)
 
@@ -518,27 +518,27 @@ def create_event(tenant_slug):
         event_rows = []
         for dt in events_to_create:
             cursor = db.execute(
-                "INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
                 (data["class_id"], data["title"], data.get("description"), dt.isoformat(), end,
                  data.get("color"), recurrence, recurrence_group_id, recurrence_end),
             )
-            event_rows.append(cursor.lastrowid)
+            event_rows.append(cursor.fetchone()[0])
         db.commit()
-        cur = db.execute(
-            "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=?",
+        cur_result = db.execute(
+            "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=%s",
             (event_rows[0],),
         )
         row = cur.fetchone()
         return jsonify({"success": True, "event": dict(row) if row else {}}), 201
     else:
         cursor = db.execute(
-            "INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)",
+            "INSERT INTO events (class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end) VALUES (%s, %s, %s, %s, %s, %s, %s, NULL, NULL)",
             (data["class_id"], data["title"], data.get("description"), start, end, data.get("color"), recurrence),
         )
         db.commit()
-        cur = db.execute(
-            "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=?",
-            (cursor.lastrowid,),
+        cur_result = db.execute(
+            "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=%s",
+            (cursor.fetchone()[0],),
         )
         row = cur.fetchone()
         return jsonify({"success": True, "event": dict(row) if row else {}}), 201
@@ -548,14 +548,14 @@ def create_event(tenant_slug):
 def delete_event(tenant_slug, event_id):
     db = get_school_db(tenant_slug)
     if request.args.get("all") == "1":
-        cur = db.execute("SELECT recurrence_group_id FROM events WHERE id=?", (event_id,))
+        cur = db.execute("SELECT recurrence_group_id FROM events WHERE id=%s", (event_id,))
         row = cur.fetchone()
         if row and row[0]:
-            db.execute("DELETE FROM events WHERE recurrence_group_id=?", (row[0],))
+            db.execute("DELETE FROM events WHERE recurrence_group_id=%s", (row[0],))
         else:
-            db.execute("DELETE FROM events WHERE id=?", (event_id,))
+            db.execute("DELETE FROM events WHERE id=%s", (event_id,))
     else:
-        db.execute("DELETE FROM events WHERE id=?", (event_id,))
+        db.execute("DELETE FROM events WHERE id=%s", (event_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -566,17 +566,17 @@ def update_event(tenant_slug, event_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     if request.args.get("all") == "1":
-        c.execute("SELECT recurrence_group_id FROM events WHERE id=?", (event_id,))
+        c.execute("SELECT recurrence_group_id FROM events WHERE id=%s", (event_id,))
         row = c.fetchone()
         if row and row[0]:
             group_id = row[0]
             c.execute(
-                "UPDATE events SET title=?, description=?, color=?, recurrence=?, recurrence_end=? WHERE recurrence_group_id=?",
+                "UPDATE events SET title=%s, description=%s, color=%s, recurrence=%s, recurrence_end=%s WHERE recurrence_group_id=%s",
                 (data["title"], data.get("description"), data.get("color"), data.get("recurrence"), data.get("recurrence_end"), group_id),
             )
             db.commit()
             c.execute(
-                "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE recurrence_group_id=? LIMIT 1",
+                "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE recurrence_group_id=%s LIMIT 1",
                 (group_id,),
             )
             row = c.fetchone()
@@ -584,12 +584,12 @@ def update_event(tenant_slug, event_id):
         return jsonify({"error": "No recurrence group found"}), 404
     else:
         c.execute(
-            "UPDATE events SET title=?, description=?, start=?, end=?, color=?, recurrence=?, recurrence_end=? WHERE id=?",
+            "UPDATE events SET title=%s, description=%s, start=%s, end=%s, color=%s, recurrence=%s, recurrence_end=%s WHERE id=%s",
             (data["title"], data.get("description"), data["start"], data.get("end"), data.get("color"), data.get("recurrence"), data.get("recurrence_end"), event_id),
         )
         db.commit()
         c.execute(
-            "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=?",
+            "SELECT id, class_id, title, description, start, end, color, recurrence, recurrence_group_id, recurrence_end FROM events WHERE id=%s",
             (event_id,),
         )
         row = c.fetchone()
@@ -622,12 +622,12 @@ def add_teacher(tenant_slug):
     c = db.cursor()
     try:
         c.execute(
-            "INSERT INTO users (username, password_hash, role, created_by) VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (username, password_hash, role, created_by) VALUES (%s, %s, %s, %s) RETURNING id RETURNING id",
             (username, password_hash, "teacher", session["school_user_id"]),
         )
-        user_id = c.lastrowid
+        user_id = c.fetchone()[0]
         c.execute(
-            "INSERT INTO teachers (user_id, local_admin_id, name, email) VALUES (?, ?, ?, ?)",
+            "INSERT INTO teachers (user_id, local_admin_id, name, email) VALUES (%s, %s, %s, %s)",
             (user_id, session["school_user_id"], name, username),
         )
         db.commit()
@@ -641,13 +641,13 @@ def add_teacher(tenant_slug):
 def delete_teacher(tenant_slug, teacher_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT user_id FROM teachers WHERE id=? AND local_admin_id=?", (teacher_id, session["school_user_id"]))
+    c.execute("SELECT user_id FROM teachers WHERE id=%s AND local_admin_id=%s", (teacher_id, session["school_user_id"]))
     row = c.fetchone()
     if not row:
         return jsonify({"error": "Not found"}), 404
     user_id = row[0]
-    c.execute("DELETE FROM teachers WHERE id=?", (teacher_id,))
-    c.execute("DELETE FROM users WHERE id=?", (user_id,))
+    c.execute("DELETE FROM teachers WHERE id=%s", (teacher_id,))
+    c.execute("DELETE FROM users WHERE id=%s", (user_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -664,22 +664,22 @@ def update_teacher(tenant_slug, teacher_id):
     name = data.get("name")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT user_id FROM teachers WHERE id=? AND local_admin_id=?", (teacher_id, session["school_user_id"]))
+    c.execute("SELECT user_id FROM teachers WHERE id=%s AND local_admin_id=%s", (teacher_id, session["school_user_id"]))
     row = c.fetchone()
     if not row:
         return jsonify({"error": "Not found"}), 404
     user_id = row[0]
     if new_username:
-        c.execute("SELECT id FROM users WHERE username=? AND id<>?", (new_username, user_id))
+        c.execute("SELECT id FROM users WHERE username=%s AND id<>%s", (new_username, user_id))
         if c.fetchone():
             return jsonify({"error": "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u0633\u062a\u062e\u062f\u0645 \u0628\u0627\u0644\u0641\u0639\u0644"}), 400
-        c.execute("UPDATE users SET username=? WHERE id=?", (new_username, user_id))
-        c.execute("UPDATE teachers SET email=? WHERE id=?", (new_username, teacher_id))
+        c.execute("UPDATE users SET username=%s WHERE id=%s", (new_username, user_id))
+        c.execute("UPDATE teachers SET email=%s WHERE id=%s", (new_username, teacher_id))
     if new_password:
-        c.execute("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(new_password), user_id))
+        c.execute("UPDATE users SET password_hash=%s WHERE id=%s", (generate_password_hash(new_password), user_id))
     _safe_update(c, "teachers", _TEACHER_COLUMNS,
                  [("phone", phone), ("notes", notes), ("alerts", alerts), ("name", name)],
-                 "WHERE id=?", [teacher_id])
+                 "WHERE id=%s", [teacher_id])
     db.commit()
     return jsonify({"success": True})
 
@@ -695,7 +695,7 @@ def list_curriculum_groups(tenant_slug):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     if level_id:
-        c.execute("SELECT id, name FROM curriculum_groups WHERE level_id=?", (level_id,))
+        c.execute("SELECT id, name FROM curriculum_groups WHERE level_id=%s", (level_id,))
     else:
         c.execute("SELECT id, name FROM curriculum_groups")
     return jsonify([{"id": r[0], "name": r[1]} for r in c.fetchall()])
@@ -707,7 +707,7 @@ def add_curriculum_group(tenant_slug):
     data = request.json
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO curriculum_groups (name, local_admin_id, level_id) VALUES (?, ?, ?)",
+    c.execute("INSERT INTO curriculum_groups (name, local_admin_id, level_id) VALUES (%s, %s, %s)",
               (data["name"], session["school_user_id"], data["level_id"]))
     db.commit()
     return jsonify({"success": True})
@@ -721,10 +721,10 @@ def modify_curriculum_group(tenant_slug, group_id):
     if request.method == "DELETE":
         level_id = request.args.get("level_id")
         if level_id:
-            c.execute("DELETE FROM curriculum_groups WHERE id=? AND local_admin_id=? AND level_id=?",
+            c.execute("DELETE FROM curriculum_groups WHERE id=%s AND local_admin_id=%s AND level_id=%s",
                       (group_id, session["school_user_id"], level_id))
         else:
-            c.execute("DELETE FROM curriculum_groups WHERE id=? AND local_admin_id=?",
+            c.execute("DELETE FROM curriculum_groups WHERE id=%s AND local_admin_id=%s",
                       (group_id, session["school_user_id"]))
         db.commit()
         return jsonify({"success": True})
@@ -732,7 +732,7 @@ def modify_curriculum_group(tenant_slug, group_id):
         data = request.json
         name = data.get("name")
         if name:
-            c.execute("UPDATE curriculum_groups SET name=? WHERE id=? AND local_admin_id=?",
+            c.execute("UPDATE curriculum_groups SET name=%s WHERE id=%s AND local_admin_id=%s",
                       (name, group_id, session["school_user_id"]))
             db.commit()
         return jsonify({"success": True})
@@ -743,7 +743,7 @@ def modify_curriculum_group(tenant_slug, group_id):
 def list_curriculum_items(tenant_slug, group_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, name FROM curriculum_items WHERE group_id=?", (group_id,))
+    c.execute("SELECT id, name FROM curriculum_items WHERE group_id=%s", (group_id,))
     return jsonify([{"id": r[0], "name": r[1]} for r in c.fetchall()])
 
 
@@ -753,7 +753,7 @@ def add_curriculum_item(tenant_slug):
     data = request.json
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO curriculum_items (group_id, name) VALUES (?, ?)", (data["group_id"], data["name"]))
+    c.execute("INSERT INTO curriculum_items (group_id, name) VALUES (%s, %s)", (data["group_id"], data["name"]))
     db.commit()
     return jsonify({"success": True})
 
@@ -767,11 +767,11 @@ def modify_curriculum_item(tenant_slug, item_id):
         data = request.json
         name = data.get("name")
         if name:
-            c.execute("UPDATE curriculum_items SET name=? WHERE id=?", (name, item_id))
+            c.execute("UPDATE curriculum_items SET name=%s WHERE id=%s", (name, item_id))
             db.commit()
         return jsonify({"success": True})
     else:
-        c.execute("DELETE FROM curriculum_items WHERE id=?", (item_id,))
+        c.execute("DELETE FROM curriculum_items WHERE id=%s", (item_id,))
         db.commit()
         return jsonify({"success": True})
 
@@ -782,7 +782,7 @@ def update_group_name(tenant_slug):
     data = request.json
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("UPDATE curriculum_groups SET name=? WHERE id=? AND local_admin_id=?",
+    c.execute("UPDATE curriculum_groups SET name=%s WHERE id=%s AND local_admin_id=%s",
               (data["new_name"], data["group_id"], session["school_user_id"]))
     db.commit()
     return jsonify({"success": True})
@@ -794,7 +794,7 @@ def update_subject_name(tenant_slug):
     data = request.json
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("UPDATE curriculum_items SET name=? WHERE id=?", (data["new_name"], data["subject_id"]))
+    c.execute("UPDATE curriculum_items SET name=%s WHERE id=%s", (data["new_name"], data["subject_id"]))
     db.commit()
     return jsonify({"success": True})
 
@@ -818,7 +818,7 @@ def add_level(tenant_slug):
     data = request.json
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO levels (name, local_admin_id) VALUES (?, ?)",
+    c.execute("INSERT INTO levels (name, local_admin_id) VALUES (%s, %s)",
               (data["name"], session["school_user_id"]))
     db.commit()
     return jsonify({"success": True})
@@ -829,7 +829,7 @@ def add_level(tenant_slug):
 def delete_level(tenant_slug, level_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("DELETE FROM levels WHERE id=? AND local_admin_id=?", (level_id, session["school_user_id"]))
+    c.execute("DELETE FROM levels WHERE id=%s AND local_admin_id=%s", (level_id, session["school_user_id"]))
     db.commit()
     return jsonify({"success": True})
 
@@ -844,7 +844,7 @@ def edit_level_name(tenant_slug):
         return jsonify(success=False, error="Missing data")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("UPDATE levels SET name = ? WHERE id = ? AND local_admin_id = ?",
+    c.execute("UPDATE levels SET name = %s WHERE id = %s AND local_admin_id = %s",
               (new_name, level_id, session["school_user_id"]))
     db.commit()
     return jsonify(success=True)
@@ -858,7 +858,7 @@ def edit_level_name(tenant_slug):
 def get_class_announcement(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT text, created_at, user_id, expiry FROM announcements WHERE class_id=? ORDER BY id DESC LIMIT 1", (class_id,))
+    c.execute("SELECT text, created_at, user_id, expiry FROM announcements WHERE class_id=%s ORDER BY id DESC LIMIT 1", (class_id,))
     row = c.fetchone()
     if row:
         return jsonify({"success": True, "text": row[0], "created_at": row[1], "user_id": row[2], "expiry": row[3]})
@@ -875,7 +875,7 @@ def add_class_announcement(tenant_slug, class_id):
     timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO announcements (class_id, text, created_at, user_id, expiry) VALUES (?, ?, ?, ?, ?)",
+    c.execute("INSERT INTO announcements (class_id, text, created_at, user_id, expiry) VALUES (%s, %s, %s, %s, %s)",
               (class_id, text, timestamp, user_id, data.get("expiry")))
     db.commit()
     return jsonify({"success": True})
@@ -911,7 +911,7 @@ def list_classes(tenant_slug):
         teacher_id = session.get("school_teacher_id")
         if teacher_id is None:
             return jsonify([])
-        sql += " WHERE classes.teacher_id = ? OR classes.backup_teacher_id = ?"
+        sql += " WHERE classes.teacher_id = %s OR classes.backup_teacher_id = %s"
         params = (teacher_id, teacher_id)
 
     c.execute(sql, params)
@@ -949,7 +949,7 @@ def add_class(tenant_slug):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     c.execute(
-        "INSERT INTO classes (name, local_admin_id, level_id, teacher_id, backup_teacher_id) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO classes (name, local_admin_id, level_id, teacher_id, backup_teacher_id) VALUES (%s, %s, %s, %s, %s)",
         (name, session["school_user_id"], level_id, teacher_id, backup_teacher_id),
     )
     db.commit()
@@ -961,7 +961,7 @@ def add_class(tenant_slug):
 def delete_class(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("DELETE FROM classes WHERE id=? AND local_admin_id=?", (class_id, session["school_user_id"]))
+    c.execute("DELETE FROM classes WHERE id=%s AND local_admin_id=%s", (class_id, session["school_user_id"]))
     db.commit()
     return jsonify({"success": True})
 
@@ -986,7 +986,7 @@ def class_detail(tenant_slug, class_id):
                LEFT JOIN users ut ON t.user_id = ut.id
                LEFT JOIN teachers bt ON classes.backup_teacher_id = bt.id
                LEFT JOIN users ub ON bt.user_id = ub.id
-               WHERE classes.id=?""",
+               WHERE classes.id=%s""",
             (class_id,),
         )
         row = c.fetchone()
@@ -1013,7 +1013,7 @@ def class_detail(tenant_slug, class_id):
     for field in ("dawra1_pub_start", "dawra1_pub_end", "dawra2_pub_start", "dawra2_pub_end",
                    "dawra3_pub_start", "dawra3_pub_end", "year_pub_start", "year_pub_end"):
         field_values.append((field, _none_if_empty(data.get(field))))
-    _safe_update(c, "classes", _CLASS_COLUMNS, field_values, "WHERE id = ?", [class_id])
+    _safe_update(c, "classes", _CLASS_COLUMNS, field_values, "WHERE id = %s", [class_id])
     db.commit()
     return jsonify({"success": True})
 
@@ -1027,7 +1027,7 @@ def class_detail(tenant_slug, class_id):
 def get_class_courses(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=?", (class_id,))
+    c.execute("SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=%s", (class_id,))
     return jsonify([{"id": r[0], "name": r[1]} for r in c.fetchall()])
 
 
@@ -1037,7 +1037,7 @@ def add_course_to_class(tenant_slug, class_id):
     data = request.json
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO class_courses (class_id, curriculum_item_id) VALUES (?, ?)", (class_id, data["curriculum_item_id"]))
+    c.execute("INSERT INTO class_courses (class_id, curriculum_item_id) VALUES (%s, %s)", (class_id, data["curriculum_item_id"]))
     db.commit()
     return jsonify({"success": True})
 
@@ -1047,7 +1047,7 @@ def add_course_to_class(tenant_slug, class_id):
 def remove_course_from_class(tenant_slug, class_id, curriculum_item_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("DELETE FROM class_courses WHERE class_id=? AND curriculum_item_id=?", (class_id, curriculum_item_id))
+    c.execute("DELETE FROM class_courses WHERE class_id=%s AND curriculum_item_id=%s", (class_id, curriculum_item_id))
     db.commit()
     return jsonify({"success": True})
 
@@ -1070,7 +1070,7 @@ def get_students(tenant_slug):
                FROM students s
                LEFT JOIN users u ON s.email = u.username
                LEFT JOIN classes c ON s.class_id = c.id
-               WHERE c.teacher_id = ? OR c.backup_teacher_id = ?
+               WHERE c.teacher_id = %s OR c.backup_teacher_id = %s
                ORDER BY s.id DESC""",
             (teacher_id, teacher_id),
         )
@@ -1114,16 +1114,16 @@ def search_students(tenant_slug):
 
     if role == "teacher":
         teacher_id = session.get("school_teacher_id")
-        where = " WHERE (c.teacher_id = ? OR c.backup_teacher_id = ?)"
+        where = " WHERE (c.teacher_id = %s OR c.backup_teacher_id = %s)"
         params = [teacher_id, teacher_id]
         if query:
-            where += " AND (s.name LIKE ? OR u.username LIKE ? OR s.email LIKE ? OR s.phone LIKE ?)"
+            where += " AND (s.name LIKE %s OR u.username LIKE %s OR s.email LIKE %s OR s.phone LIKE %s)"
             params += [like_query] * 4
     else:
         where = ""
         params = []
         if query:
-            where = " WHERE s.name LIKE ? OR u.username LIKE ? OR s.email LIKE ? OR s.phone LIKE ?"
+            where = " WHERE s.name LIKE %s OR u.username LIKE %s OR s.email LIKE %s OR s.phone LIKE %s"
             params = [like_query] * 4
 
     c.execute(base + where + " ORDER BY s.id DESC", params)
@@ -1159,15 +1159,15 @@ def create_student(tenant_slug):
         return jsonify({"success": False, "error": "\u0627\u0644\u0631\u062c\u0627\u0621 \u062a\u0639\u0628\u0626\u0629 \u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0642\u0648\u0644"}), 400
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (username,))
+    c.execute("SELECT id FROM users WHERE username=%s", (username,))
     user = c.fetchone()
     if user:
         user_id = user[0]
     else:
         password_hash = generate_password_hash(password)
-        c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", (username, password_hash, "student"))
+        c.execute("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id", (username, password_hash, "student"))
     c.execute(
-        "INSERT INTO students (name, class_id, email, phone, notes, alerts, date_of_birth, secondary_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO students (name, class_id, email, phone, notes, alerts, date_of_birth, secondary_email) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
         (name, class_id, email or "", phone or "", notes or "", alerts or "", date_of_birth or "", secondary_email or ""),
     )
     db.commit()
@@ -1188,18 +1188,18 @@ def update_student(tenant_slug, student_id):
     secondary_email = data.get("secondary_email")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT email FROM students WHERE id=?", (student_id,))
+    c.execute("SELECT email FROM students WHERE id=%s", (student_id,))
     row = c.fetchone()
     old_email = row[0] if row else None
 
     if new_username and new_username != old_email:
-        c.execute("SELECT id FROM users WHERE username=?", (new_username,))
+        c.execute("SELECT id FROM users WHERE username=%s", (new_username,))
         user = c.fetchone()
         if not user:
             new_password = data.get("new_password") or data.get("password")
             if not new_password:
                 return jsonify({"success": False, "error": "\u064a\u062c\u0628 \u0625\u062f\u062e\u0627\u0644 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0644\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u062c\u062f\u064a\u062f"}), 400
-            c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            c.execute("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
                       (new_username, generate_password_hash(new_password), "student"))
         email = new_username
 
@@ -1209,23 +1209,23 @@ def update_student(tenant_slug, student_id):
     ]
     if "sex" in data:
         field_values.append(("sex", data["sex"]))
-    _safe_update(c, "students", _STUDENT_COLUMNS, field_values, "WHERE id=?", [student_id])
+    _safe_update(c, "students", _STUDENT_COLUMNS, field_values, "WHERE id=%s", [student_id])
 
     if old_email and email and old_email != email:
-        c.execute("SELECT COUNT(*) FROM students WHERE email=?", (old_email,))
+        c.execute("SELECT COUNT(*) FROM students WHERE email=%s", (old_email,))
         if c.fetchone()[0] == 0:
-            c.execute("DELETE FROM users WHERE username=?", (old_email,))
-        c.execute("SELECT id FROM users WHERE username=?", (email,))
+            c.execute("DELETE FROM users WHERE username=%s", (old_email,))
+        c.execute("SELECT id FROM users WHERE username=%s", (email,))
         if not c.fetchone():
             new_password = data.get("new_password") or data.get("password")
             if not new_password:
                 db.commit()
                 return jsonify({"success": False, "error": "Password required for new user"}), 400
-            c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            c.execute("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
                       (email, generate_password_hash(new_password), "student"))
 
     if data.get("new_password"):
-        c.execute("UPDATE users SET password_hash=? WHERE username=?",
+        c.execute("UPDATE users SET password_hash=%s WHERE username=%s",
                   (generate_password_hash(data["new_password"]), email))
     db.commit()
     return jsonify({"success": True})
@@ -1240,7 +1240,7 @@ def update_student_post(tenant_slug, student_id):
     for field in ("class_id", "email", "phone", "notes", "alerts"):
         val = data.get(field)
         if val is not None:
-            c.execute(f"UPDATE students SET {field}=? WHERE id=?", (val, student_id))
+            c.execute(f"UPDATE students SET {field}=%s WHERE id=%s", (val, student_id))
     db.commit()
     return jsonify({"success": True})
 
@@ -1253,7 +1253,7 @@ def list_students(tenant_slug, class_id):
     c.execute(
         """SELECT s.id, u.username, s.name, s.email, s.phone, s.notes, s.alerts
            FROM students s LEFT JOIN users u ON s.id = u.id
-           WHERE s.class_id=?""",
+           WHERE s.class_id=%s""",
         (class_id,),
     )
     students = [
@@ -1272,7 +1272,7 @@ def add_student(tenant_slug, class_id):
     sex = data.get("sex")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO students (name, class_id, sex) VALUES (?, ?, ?)", (name, class_id, sex))
+    c.execute("INSERT INTO students (name, class_id, sex) VALUES (%s, %s, %s)", (name, class_id, sex))
     db.commit()
     return jsonify({"success": True})
 
@@ -1282,7 +1282,7 @@ def add_student(tenant_slug, class_id):
 def delete_student(tenant_slug, class_id, student_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("DELETE FROM students WHERE id=? AND class_id=?", (student_id, class_id))
+    c.execute("DELETE FROM students WHERE id=%s AND class_id=%s", (student_id, class_id))
     db.commit()
     return jsonify({"success": True})
 
@@ -1294,10 +1294,10 @@ def delete_student_api(tenant_slug):
     student_id = data.get("id")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute('SELECT * FROM users WHERE id=? AND role="student"', (student_id,))
+    c.execute('SELECT * FROM users WHERE id=%s AND role="student"', (student_id,))
     if not c.fetchone():
         return jsonify({"success": False, "error": "\u0627\u0644\u0637\u0627\u0644\u0628 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"}), 404
-    c.execute("DELETE FROM users WHERE id=?", (student_id,))
+    c.execute("DELETE FROM users WHERE id=%s", (student_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -1311,14 +1311,14 @@ def delete_student_api(tenant_slug):
 def get_student_card(tenant_slug, student_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT class_id FROM students WHERE id=?", (student_id,))
+    c.execute("SELECT class_id FROM students WHERE id=%s", (student_id,))
     row = c.fetchone()
     if not row:
         return jsonify({"error": "Student not found"}), 404
     class_id = row[0]
-    c.execute("SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=?", (class_id,))
+    c.execute("SELECT ci.id, ci.name FROM class_courses cc JOIN curriculum_items ci ON cc.curriculum_item_id=ci.id WHERE cc.class_id=%s", (class_id,))
     courses = [{"id": r[0], "name": r[1]} for r in c.fetchall()]
-    c.execute("SELECT curriculum_item_id, level, comment FROM student_grades WHERE student_id=?", (student_id,))
+    c.execute("SELECT curriculum_item_id, level, comment FROM student_grades WHERE student_id=%s", (student_id,))
     rows = c.fetchall()
     scores = {r[0]: r[1] for r in rows}
     comments = {r[0]: r[2] or "" for r in rows}
@@ -1334,7 +1334,7 @@ def student_abilities(tenant_slug, student_id, class_id):
     c = db.cursor()
     school_info = _school_info(tenant_slug)
 
-    c.execute("SELECT name, level_id FROM classes WHERE id=?", (class_id,))
+    c.execute("SELECT name, level_id FROM classes WHERE id=%s", (class_id,))
     row = c.fetchone()
     if not row or not row[0] or not row[1]:
         return render_template("student_abilities.html", school_info=school_info,
@@ -1342,18 +1342,18 @@ def student_abilities(tenant_slug, student_id, class_id):
                                tenant_slug=tenant_slug)
     class_name, level_id = row[0], row[1]
 
-    c.execute("SELECT name FROM levels WHERE id=?", (level_id,))
+    c.execute("SELECT name FROM levels WHERE id=%s", (level_id,))
     level_row = c.fetchone()
     class_level = level_row[0] if level_row else ""
 
-    c.execute("SELECT cg.id, cg.name FROM curriculum_groups cg WHERE cg.level_id=?", (level_id,))
+    c.execute("SELECT cg.id, cg.name FROM curriculum_groups cg WHERE cg.level_id=%s", (level_id,))
     groups = []
     for group_id, group_name in c.fetchall():
-        c.execute("SELECT ci.id, ci.name FROM curriculum_items ci WHERE ci.group_id=?", (group_id,))
+        c.execute("SELECT ci.id, ci.name FROM curriculum_items ci WHERE ci.group_id=%s", (group_id,))
         items = [{"id": cid, "name": n} for cid, n in c.fetchall()]
         groups.append({"group_name": group_name, "items": items})
 
-    c.execute("SELECT curriculum_item_id, level, comment, comment_updated_at, comment_user FROM student_grades WHERE student_id=?", (student_id,))
+    c.execute("SELECT curriculum_item_id, level, comment, comment_updated_at, comment_user FROM student_grades WHERE student_id=%s", (student_id,))
     rows = c.fetchall()
     scores = {r[0]: r[1] for r in rows}
     comments = {r[0]: r[2] or "" for r in rows}
@@ -1371,10 +1371,10 @@ def student_abilities(tenant_slug, student_id, class_id):
                 val = data.get(str(cid))
                 comment_in_request = f"comment_{cid}" in data
                 comment = data.get(f"comment_{cid}")
-                c.execute("SELECT id, comment FROM student_grades WHERE student_id=? AND curriculum_item_id=?", (student_id, cid))
+                c.execute("SELECT id, comment FROM student_grades WHERE student_id=%s AND curriculum_item_id=%s", (student_id, cid))
                 existing = c.fetchone()
                 if (val is None or val == "") and (not comment_in_request or not comment):
-                    c.execute("DELETE FROM student_grades WHERE student_id=? AND curriculum_item_id=?", (student_id, cid))
+                    c.execute("DELETE FROM student_grades WHERE student_id=%s AND curriculum_item_id=%s", (student_id, cid))
                 else:
                     try:
                         val_int = int(val) if val not in (None, "") else None
@@ -1382,13 +1382,13 @@ def student_abilities(tenant_slug, student_id, class_id):
                         val_int = None
                     if existing:
                         if comment_in_request:
-                            c.execute("UPDATE student_grades SET level=?, comment=?, comment_updated_at=?, comment_user=? WHERE student_id=? AND curriculum_item_id=?",
+                            c.execute("UPDATE student_grades SET level=%s, comment=%s, comment_updated_at=%s, comment_user=%s WHERE student_id=%s AND curriculum_item_id=%s",
                                       (val_int, comment, comment_updated_at, comment_user, student_id, cid))
                         else:
-                            c.execute("UPDATE student_grades SET level=? WHERE student_id=? AND curriculum_item_id=?",
+                            c.execute("UPDATE student_grades SET level=%s WHERE student_id=%s AND curriculum_item_id=%s",
                                       (val_int, student_id, cid))
                     else:
-                        c.execute("INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (?, ?, ?, ?, ?, ?)",
+                        c.execute("INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (%s, %s, %s, %s, %s, %s)",
                                   (student_id, cid, val_int, comment if comment is not None else "", comment_updated_at, comment_user))
         db.commit()
         return jsonify({"success": True})
@@ -1400,12 +1400,12 @@ def student_abilities(tenant_slug, student_id, class_id):
         {"label": "\u0645\u062a\u0648\u0633\u0637", "class": "level-intermediate", "icon": "\U0001f44d"},
         {"label": "\u0645\u062a\u0645\u064a\u0632", "class": "level-master", "icon": "\U0001f3c6"},
     ]
-    c.execute("SELECT name FROM students WHERE id=?", (student_id,))
+    c.execute("SELECT name FROM students WHERE id=%s", (student_id,))
     row = c.fetchone()
     student_name = row[0] if row else ""
 
     today_str = datetime.now().strftime("%Y-%m-%d")
-    c.execute("SELECT id, due_date, description, files FROM homework WHERE class_id=? AND due_date >= ? ORDER BY due_date ASC", (class_id, today_str))
+    c.execute("SELECT id, due_date, description, files FROM homework WHERE class_id=%s AND due_date >= %s ORDER BY due_date ASC", (class_id, today_str))
     homeworks = []
     for r in c.fetchall():
         files = r[3].split(";") if r[3] else []
@@ -1435,12 +1435,12 @@ def save_comment(tenant_slug):
     c = db.cursor()
     comment_user = session.get("school_username", "unknown")
     comment_updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("SELECT id FROM student_grades WHERE student_id=? AND curriculum_item_id=?", (student_id, course_id))
+    c.execute("SELECT id FROM student_grades WHERE student_id=%s AND curriculum_item_id=%s", (student_id, course_id))
     if c.fetchone():
-        c.execute("UPDATE student_grades SET comment=?, comment_updated_at=?, comment_user=? WHERE student_id=? AND curriculum_item_id=?",
+        c.execute("UPDATE student_grades SET comment=%s, comment_updated_at=%s, comment_user=%s WHERE student_id=%s AND curriculum_item_id=%s",
                   (comment, comment_updated_at, comment_user, student_id, course_id))
     else:
-        c.execute("INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (?, ?, ?, ?, ?, ?)",
+        c.execute("INSERT INTO student_grades (student_id, curriculum_item_id, level, comment, comment_updated_at, comment_user) VALUES (%s, %s, %s, %s, %s, %s)",
                   (student_id, course_id, 0, comment, comment_updated_at, comment_user))
     db.commit()
     return jsonify({"success": True, "comment": comment, "comment_updated_at": comment_updated_at, "comment_user": comment_user})
@@ -1454,7 +1454,7 @@ def save_comment(tenant_slug):
 def list_homework(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, due_date, description, files FROM homework WHERE class_id=? ORDER BY due_date DESC", (class_id,))
+    c.execute("SELECT id, due_date, description, files FROM homework WHERE class_id=%s ORDER BY due_date DESC", (class_id,))
     result = []
     for r in c.fetchall():
         files = r[3].split(";") if r[3] else []
@@ -1474,7 +1474,7 @@ def upload_homework(tenant_slug):
     saved_files = save_homework_files(files, class_id)
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO homework (class_id, due_date, description, files) VALUES (?, ?, ?, ?)",
+    c.execute("INSERT INTO homework (class_id, due_date, description, files) VALUES (%s, %s, %s, %s)",
               (class_id, due_date, description, ";".join(saved_files)))
     db.commit()
     return jsonify({"success": True})
@@ -1484,7 +1484,7 @@ def upload_homework(tenant_slug):
 def edit_homework(tenant_slug, homework_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT class_id, files FROM homework WHERE id=?", (homework_id,))
+    c.execute("SELECT class_id, files FROM homework WHERE id=%s", (homework_id,))
     row = c.fetchone()
     if not row:
         return jsonify({"success": False, "error": "Homework not found"}), 404
@@ -1495,7 +1495,7 @@ def edit_homework(tenant_slug, homework_id):
     new_files = save_homework_files(files, class_id) if files else []
     all_files = (old_files.split(";") if old_files else []) + new_files
     all_files_str = ";".join([f for f in all_files if f])
-    c.execute("UPDATE homework SET due_date=?, description=?, files=? WHERE id=?",
+    c.execute("UPDATE homework SET due_date=%s, description=%s, files=%s WHERE id=%s",
               (due_date, description, all_files_str, homework_id))
     db.commit()
     return jsonify({"success": True})
@@ -1505,7 +1505,7 @@ def edit_homework(tenant_slug, homework_id):
 def delete_homework(tenant_slug, homework_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT class_id, files FROM homework WHERE id=?", (homework_id,))
+    c.execute("SELECT class_id, files FROM homework WHERE id=%s", (homework_id,))
     row = c.fetchone()
     if not row:
         return jsonify({"success": False, "error": "Homework not found"}), 404
@@ -1519,7 +1519,7 @@ def delete_homework(tenant_slug, homework_id):
                     os.remove(fpath)
                 except Exception:
                     pass
-    c.execute("DELETE FROM homework WHERE id=?", (homework_id,))
+    c.execute("DELETE FROM homework WHERE id=%s", (homework_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -1544,7 +1544,7 @@ def list_exams(tenant_slug, class_id):
         """SELECT exams.id, exams.name, exams.status, exams.curriculum_group_id,
                   cg.name as subject_name, exams.is_final, exams.weight, exams.dawra, exams.is_year_final
            FROM exams LEFT JOIN curriculum_groups cg ON exams.curriculum_group_id = cg.id
-           WHERE exams.class_id = ? ORDER BY exams.id""",
+           WHERE exams.class_id = %s ORDER BY exams.id""",
         (class_id,),
     )
     exams = []
@@ -1578,11 +1578,11 @@ def add_exam(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     c.execute(
-        "INSERT INTO exams (class_id, name, status, curriculum_group_id, is_final, weight, dawra, is_year_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO exams (class_id, name, status, curriculum_group_id, is_final, weight, dawra, is_year_final) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
         (class_id, name, status, curriculum_group_id, is_final, weight, dawra_to_save, is_year_final),
     )
     db.commit()
-    exam_id = c.lastrowid
+    exam_id = c.fetchone()[0]
     return jsonify({"id": exam_id, "name": name, "status": status, "curriculum_group_id": curriculum_group_id,
                     "is_final": is_final, "weight": weight, "dawra": dawra_to_save, "is_year_final": is_year_final})
 
@@ -1596,17 +1596,17 @@ def edit_exam(tenant_slug, exam_id):
     for field in ("name", "curriculum_group_id", "status", "is_final", "weight"):
         val = data.get(field)
         if val is not None:
-            c.execute(f"UPDATE exams SET {field} = ? WHERE id = ?", (val, exam_id))
+            c.execute(f"UPDATE exams SET {field} = %s WHERE id = %s", (val, exam_id))
     is_year_final = data.get("is_year_final")
     dawra = data.get("dawra")
     if is_year_final is not None:
-        c.execute("UPDATE exams SET is_year_final = ? WHERE id = ?", (int(is_year_final), exam_id))
+        c.execute("UPDATE exams SET is_year_final = %s WHERE id = %s", (int(is_year_final), exam_id))
         if int(is_year_final):
-            c.execute("UPDATE exams SET dawra = NULL WHERE id = ?", (exam_id,))
+            c.execute("UPDATE exams SET dawra = NULL WHERE id = %s", (exam_id,))
         elif dawra is not None:
-            c.execute("UPDATE exams SET dawra = ? WHERE id = ?", (dawra, exam_id))
+            c.execute("UPDATE exams SET dawra = %s WHERE id = %s", (dawra, exam_id))
     elif dawra is not None:
-        c.execute("UPDATE exams SET dawra = ? WHERE id = ?", (dawra, exam_id))
+        c.execute("UPDATE exams SET dawra = %s WHERE id = %s", (dawra, exam_id))
     db.commit()
     return jsonify({"success": True})
 
@@ -1616,8 +1616,8 @@ def edit_exam(tenant_slug, exam_id):
 def delete_exam(tenant_slug, exam_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("DELETE FROM exams WHERE id = ?", (exam_id,))
-    c.execute("DELETE FROM grades WHERE exam_id = ?", (exam_id,))
+    c.execute("DELETE FROM exams WHERE id = %s", (exam_id,))
+    c.execute("DELETE FROM grades WHERE exam_id = %s", (exam_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -1631,13 +1631,13 @@ def delete_exam(tenant_slug, exam_id):
 def list_grades(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, name FROM students WHERE class_id = ? ORDER BY id", (class_id,))
+    c.execute("SELECT id, name FROM students WHERE class_id = %s ORDER BY id", (class_id,))
     students = [{"id": r[0], "name": r[1]} for r in c.fetchall()]
     c.execute(
         """SELECT exams.id, exams.name, exams.curriculum_group_id, cg.name as subject_name,
                   exams.is_final, exams.weight, exams.dawra, exams.is_year_final
            FROM exams LEFT JOIN curriculum_groups cg ON exams.curriculum_group_id = cg.id
-           WHERE exams.class_id = ? ORDER BY exams.id""",
+           WHERE exams.class_id = %s ORDER BY exams.id""",
         (class_id,),
     )
     exams = [
@@ -1646,7 +1646,7 @@ def list_grades(tenant_slug, class_id):
          "dawra": r[6] if r[6] is not None else 1, "is_year_final": r[7] or 0}
         for r in c.fetchall()
     ]
-    c.execute("SELECT student_id, exam_id, grade FROM grades WHERE exam_id IN (SELECT id FROM exams WHERE class_id = ?)", (class_id,))
+    c.execute("SELECT student_id, exam_id, grade FROM grades WHERE exam_id IN (SELECT id FROM exams WHERE class_id = %s)", (class_id,))
     grade_map = {}
     for sid, eid, grade in c.fetchall():
         grade_map[(sid, eid)] = grade
@@ -1671,7 +1671,7 @@ def update_grades(tenant_slug, class_id):
         if not (sid and eid):
             continue
         c.execute(
-            """INSERT INTO grades (student_id, exam_id, grade) VALUES (?, ?, ?)
+            """INSERT INTO grades (student_id, exam_id, grade) VALUES (%s, %s, %s)
                ON CONFLICT(student_id, exam_id) DO UPDATE SET grade=excluded.grade, updated_at=CURRENT_TIMESTAMP""",
             (sid, eid, grade),
         )
@@ -1688,7 +1688,7 @@ def update_grades(tenant_slug, class_id):
 def continuous_monitoring(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT name FROM classes WHERE id=?", (class_id,))
+    c.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
     row = c.fetchone()
     class_name = row[0] if row else ""
     return render_template("continuous_monitoring.html", class_id=class_id, class_name=class_name, tenant_slug=tenant_slug)
@@ -1699,7 +1699,7 @@ def continuous_monitoring(tenant_slug, class_id):
 def attendance_page(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT name FROM classes WHERE id=?", (class_id,))
+    c.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
     row = c.fetchone()
     class_name = row[0] if row else ""
     return render_template("attendance.html", class_id=class_id, class_name=class_name, tenant_slug=tenant_slug)
@@ -1717,10 +1717,10 @@ def get_attendance(tenant_slug, class_id):
     week_dates = [(week_start + _dt.timedelta(days=i)).isoformat() for i in range(7)]
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, name FROM students WHERE class_id=? ORDER BY id", (class_id,))
+    c.execute("SELECT id, name FROM students WHERE class_id=%s ORDER BY id", (class_id,))
     students = [{"id": r[0], "name": r[1]} for r in c.fetchall()]
     q_marks = ",".join(["?"] * len(week_dates))
-    c.execute(f"SELECT student_id, day, present FROM attendance WHERE class_id=? AND day IN ({q_marks})",
+    c.execute(f"SELECT student_id, day, present FROM attendance WHERE class_id=%s AND day IN ({q_marks})",
               (class_id, *week_dates))
     att = {f"{r[0]}_{r[1]}": r[2] for r in c.fetchall()}
     return jsonify({"students": students, "attendance": att})
@@ -1736,7 +1736,7 @@ def update_attendance(tenant_slug, class_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
     c.execute(
-        """INSERT INTO attendance (student_id, class_id, day, present) VALUES (?, ?, ?, ?)
+        """INSERT INTO attendance (student_id, class_id, day, present) VALUES (%s, %s, %s, %s)
            ON CONFLICT(student_id, class_id, day) DO UPDATE SET present=excluded.present""",
         (student_id, class_id, day, present),
     )
@@ -1774,7 +1774,7 @@ def add_super_badge(tenant_slug):
     badge_id = str(uuid.uuid4())
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO super_badges (id, name, icon_type, icon_value, active) VALUES (?, ?, ?, ?, ?)",
+    c.execute("INSERT INTO super_badges (id, name, icon_type, icon_value, active) VALUES (%s, %s, %s, %s, %s)",
               (badge_id, name, icon_type, icon_value, 1))
     db.commit()
     return jsonify({"id": badge_id, "name": name, "icon_type": icon_type, "icon_value": icon_value, "active": 1})
@@ -1784,7 +1784,7 @@ def add_super_badge(tenant_slug):
 def get_super_badge(tenant_slug, badge_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, name, icon_type, icon_value, active FROM super_badges WHERE id = ?", (badge_id,))
+    c.execute("SELECT id, name, icon_type, icon_value, active FROM super_badges WHERE id = %s", (badge_id,))
     r = c.fetchone()
     if r:
         return jsonify({"id": r[0], "name": r[1], "icon_type": r[2], "icon_value": r[3], "active": r[4]})
@@ -1796,10 +1796,10 @@ def update_super_badge(tenant_slug, badge_id):
     data = request.get_json()
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id FROM super_badges WHERE id = ?", (badge_id,))
+    c.execute("SELECT id FROM super_badges WHERE id = %s", (badge_id,))
     if not c.fetchone():
         return jsonify({"error": "Not found"}), 404
-    c.execute("UPDATE super_badges SET name = ?, icon_type = ?, icon_value = ? WHERE id = ?",
+    c.execute("UPDATE super_badges SET name = %s, icon_type = %s, icon_value = %s WHERE id = %s",
               (data.get("name"), data.get("icon_type"), data.get("icon_value"), badge_id))
     db.commit()
     return jsonify({"id": badge_id, "name": data.get("name"), "icon_type": data.get("icon_type"), "icon_value": data.get("icon_value")})
@@ -1811,12 +1811,12 @@ def toggle_super_badge_active(tenant_slug, badge_id):
     set_active = data.get("active")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT active FROM super_badges WHERE id = ?", (badge_id,))
+    c.execute("SELECT active FROM super_badges WHERE id = %s", (badge_id,))
     row = c.fetchone()
     if not row:
         return jsonify({"error": "Not found"}), 404
     new_active = (0 if row[0] else 1) if set_active is None else (1 if set_active else 0)
-    c.execute("UPDATE super_badges SET active = ? WHERE id = ?", (new_active, badge_id))
+    c.execute("UPDATE super_badges SET active = %s WHERE id = %s", (new_active, badge_id))
     db.commit()
     return jsonify({"id": badge_id, "active": new_active})
 
@@ -1825,10 +1825,10 @@ def toggle_super_badge_active(tenant_slug, badge_id):
 def delete_super_badge(tenant_slug, badge_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id FROM super_badges WHERE id = ?", (badge_id,))
+    c.execute("SELECT id FROM super_badges WHERE id = %s", (badge_id,))
     if not c.fetchone():
         return jsonify({"error": "Not found"}), 404
-    c.execute("DELETE FROM super_badges WHERE id = ?", (badge_id,))
+    c.execute("DELETE FROM super_badges WHERE id = %s", (badge_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -1844,7 +1844,7 @@ def get_student_super_badges(tenant_slug, student_id):
     c = db.cursor()
     c.execute("SELECT id, name, icon_type, icon_value FROM super_badges WHERE active=1 ORDER BY created_at DESC")
     all_badges = c.fetchall()
-    c.execute("SELECT super_badge_id, created_at FROM student_super_badges WHERE student_id=? AND active=1", (student_id,))
+    c.execute("SELECT super_badge_id, created_at FROM student_super_badges WHERE student_id=%s AND active=1", (student_id,))
     active_info = {r[0]: r[1] for r in c.fetchall()}
     badges = []
     for b in all_badges:
@@ -1862,14 +1862,14 @@ def get_student_super_badges(tenant_slug, student_id):
 def toggle_student_super_badge(tenant_slug, student_id, badge_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, active FROM student_super_badges WHERE student_id=? AND super_badge_id=?", (student_id, badge_id))
+    c.execute("SELECT id, active FROM student_super_badges WHERE student_id=%s AND super_badge_id=%s", (student_id, badge_id))
     row = c.fetchone()
     if row:
         new_active = 0 if row[1] else 1
-        c.execute("UPDATE student_super_badges SET active=? WHERE id=?", (new_active, row[0]))
+        c.execute("UPDATE student_super_badges SET active=%s WHERE id=%s", (new_active, row[0]))
     else:
         new_active = 1
-        c.execute("INSERT INTO student_super_badges (student_id, super_badge_id, active) VALUES (?, ?, ?)",
+        c.execute("INSERT INTO student_super_badges (student_id, super_badge_id, active) VALUES (%s, %s, %s)",
                   (student_id, badge_id, new_active))
     db.commit()
     return jsonify({"success": True, "active": bool(new_active)})
@@ -1885,15 +1885,15 @@ def batch_update_student_super_badges(tenant_slug, student_id):
     c = db.cursor()
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     for badge_id, is_active in badge_states.items():
-        c.execute("SELECT id FROM student_super_badges WHERE student_id=? AND super_badge_id=?", (student_id, badge_id))
+        c.execute("SELECT id FROM student_super_badges WHERE student_id=%s AND super_badge_id=%s", (student_id, badge_id))
         row = c.fetchone()
         if row:
             if is_active:
-                c.execute("UPDATE student_super_badges SET active=?, created_at=? WHERE id=?", (1, now_str, row[0]))
+                c.execute("UPDATE student_super_badges SET active=%s, created_at=%s WHERE id=%s", (1, now_str, row[0]))
             else:
-                c.execute("UPDATE student_super_badges SET active=? WHERE id=?", (0, row[0]))
+                c.execute("UPDATE student_super_badges SET active=%s WHERE id=%s", (0, row[0]))
         else:
-            c.execute("INSERT INTO student_super_badges (student_id, super_badge_id, active, created_at) VALUES (?, ?, ?, ?)",
+            c.execute("INSERT INTO student_super_badges (student_id, super_badge_id, active, created_at) VALUES (%s, %s, %s, %s)",
                       (student_id, badge_id, 1 if is_active else 0, now_str))
     db.commit()
     return jsonify({"success": True})
@@ -1904,17 +1904,17 @@ def batch_update_student_super_badges(tenant_slug, student_id):
 def get_super_badges_notes(tenant_slug, student_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT note, updated_at, user FROM student_super_badges_notes WHERE student_id=?", (student_id,))
+    c.execute("SELECT note, updated_at, user FROM student_super_badges_notes WHERE student_id=%s", (student_id,))
     row = c.fetchone()
     display_name = ""
     if row and row[2]:
         user_id = row[2]
-        c.execute("SELECT name FROM users WHERE id=?", (user_id,))
+        c.execute("SELECT name FROM users WHERE id=%s", (user_id,))
         user_row = c.fetchone()
         if user_row and user_row[0]:
             display_name = user_row[0]
         else:
-            c.execute("SELECT name FROM teachers WHERE id=?", (user_id,))
+            c.execute("SELECT name FROM teachers WHERE id=%s", (user_id,))
             teacher_row = c.fetchone()
             display_name = teacher_row[0] if teacher_row and teacher_row[0] else user_id
     return jsonify({"note": row[0] if row else "", "updated_at": row[1] if row else "", "user": display_name})
@@ -1929,12 +1929,12 @@ def save_super_badges_notes(tenant_slug, student_id):
     updated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT student_id FROM student_super_badges_notes WHERE student_id=?", (student_id,))
+    c.execute("SELECT student_id FROM student_super_badges_notes WHERE student_id=%s", (student_id,))
     if c.fetchone():
-        c.execute("UPDATE student_super_badges_notes SET note=?, updated_at=?, user=? WHERE student_id=?",
+        c.execute("UPDATE student_super_badges_notes SET note=%s, updated_at=%s, user=%s WHERE student_id=%s",
                   (note, updated_at, str(user_id), student_id))
     else:
-        c.execute("INSERT INTO student_super_badges_notes (student_id, note, updated_at, user) VALUES (?, ?, ?, ?)",
+        c.execute("INSERT INTO student_super_badges_notes (student_id, note, updated_at, user) VALUES (%s, %s, %s, %s)",
                   (student_id, note, updated_at, str(user_id)))
     db.commit()
     return jsonify({"success": True, "updated_at": updated_at, "user": user_id})
@@ -1964,7 +1964,7 @@ def upload_support_material(tenant_slug, level_id):
     date = datetime.now().strftime("%Y-%m-%d %H:%M")
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("INSERT INTO support_material (level_id, filename, original_filename, description, uploader, date) VALUES (?, ?, ?, ?, ?, ?)",
+    c.execute("INSERT INTO support_material (level_id, filename, original_filename, description, uploader, date) VALUES (%s, %s, %s, %s, %s, %s)",
               (level_id, filename, original_filename, description, uploader, date))
     db.commit()
     return jsonify({"success": True})
@@ -1974,7 +1974,7 @@ def upload_support_material(tenant_slug, level_id):
 def list_support_material(tenant_slug, level_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT id, filename, original_filename, description, uploader, date FROM support_material WHERE level_id=? ORDER BY id DESC", (level_id,))
+    c.execute("SELECT id, filename, original_filename, description, uploader, date FROM support_material WHERE level_id=%s ORDER BY id DESC", (level_id,))
     files = [
         {
             "id": r[0], "filename": r[2],
@@ -1996,7 +1996,7 @@ def serve_support_material(tenant_slug, filename):
 def delete_support_material(tenant_slug, support_id):
     db = get_school_db(tenant_slug)
     c = db.cursor()
-    c.execute("SELECT filename FROM support_material WHERE id=?", (support_id,))
+    c.execute("SELECT filename FROM support_material WHERE id=%s", (support_id,))
     row = c.fetchone()
     if not row:
         return jsonify({"success": False, "error": "\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0645\u0644\u0641"}), 404
@@ -2006,7 +2006,7 @@ def delete_support_material(tenant_slug, support_id):
             os.remove(fpath)
         except Exception:
             pass
-    c.execute("DELETE FROM support_material WHERE id=?", (support_id,))
+    c.execute("DELETE FROM support_material WHERE id=%s", (support_id,))
     db.commit()
     return jsonify({"success": True})
 
@@ -2024,7 +2024,7 @@ def edit_support_material(tenant_slug, support_id):
         file = None
     if not new_desc:
         return jsonify({"success": False, "error": "\u0627\u0644\u0648\u0635\u0641 \u0645\u0637\u0644\u0648\u0628"}), 400
-    c.execute("SELECT filename, level_id FROM support_material WHERE id=?", (support_id,))
+    c.execute("SELECT filename, level_id FROM support_material WHERE id=%s", (support_id,))
     row = c.fetchone()
     if not row:
         return jsonify({"success": False, "error": "\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0645\u0644\u0641"}), 404
@@ -2041,10 +2041,10 @@ def edit_support_material(tenant_slug, support_id):
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         new_filename = f"level{level_id}_{timestamp}_{original_filename}"
         file.save(os.path.join(folder, new_filename))
-        c.execute("UPDATE support_material SET description=?, filename=?, original_filename=? WHERE id=?",
+        c.execute("UPDATE support_material SET description=%s, filename=%s, original_filename=%s WHERE id=%s",
                   (new_desc, new_filename, original_filename, support_id))
     else:
-        c.execute("UPDATE support_material SET description=? WHERE id=?", (new_desc, support_id))
+        c.execute("UPDATE support_material SET description=%s WHERE id=%s", (new_desc, support_id))
     db.commit()
     return jsonify({"success": True})
 

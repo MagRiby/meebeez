@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ business_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="/static/i18n/i18n.js"></script>
+    <style>
+        :root {
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --brand-primary: #667eea;
+            --brand-secondary: #764ba2;
+            --brand-text: #ffffff;
+            --brand-bg: #f5f6fa;
+            --brand-font: inherit;
+            --brand-font-display: inherit;
+        }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { padding-bottom: calc(60px + var(--safe-bottom)); background: var(--brand-bg); font-family: var(--brand-font); }
+        .form-control, .form-select { font-size: 16px; }
+
+        /* ── Branded navbar ──────────────────────────────────────── */
+        .store-navbar {
+            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%) !important;
+        }
+        .store-navbar .navbar-brand, .store-navbar .text-light { font-family: var(--brand-font-display); }
+        #storeLogo { display: none; height: 34px; width: auto; object-fit: contain; border-radius: 5px; background: rgba(255,255,255,0.15); padding: 2px 4px; }
+
+        /* ── Branded accents ─────────────────────────────────────── */
+        .bottom-tabs {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050;
+            background: #fff; border-top: 1px solid #dee2e6;
+            display: flex; padding-bottom: var(--safe-bottom);
+        }
+        .bottom-tabs .btab {
+            flex: 1 1 0; padding: 6px 4px 4px;
+            text-align: center; font-size: 10px; color: #6c757d;
+            text-decoration: none; border: none; background: none;
+        }
+        .bottom-tabs .btab.active { color: var(--brand-primary); font-weight: 600; }
+        .bottom-tabs .btab i { display: block; font-size: 18px; margin-bottom: 2px; }
+        .nav-tabs .nav-link.active { color: var(--brand-primary) !important; border-bottom-color: var(--brand-primary) !important; }
+        .btn-primary { background-color: var(--brand-primary) !important; border-color: var(--brand-primary) !important; color: var(--brand-text) !important; }
+        .btn-primary:hover { filter: brightness(0.88); }
+
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+            .bottom-tabs { display: none; }
+            .desktop-tabs { display: flex !important; }
+        }
+        @media (max-width: 767.98px) {
+            .desktop-tabs { display: none !important; }
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        #storePosts, #storeEvents, #myBookings {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .product-card {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 12px;
+            overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            display: flex; flex-direction: column;
+        }
+        .product-card .card-body { flex: 1; display: flex; flex-direction: column; }
+        .product-card .card-body .mt-auto { margin-top: auto !important; }
+        .product-card img { width: 100%; max-height: 300px; object-fit: contain; background: #f8f9fa; display: block; }
+        .img-wrap { position: relative; cursor: zoom-in; }
+        .price-tag {
+            position: absolute; bottom: 8px; left: 8px;
+            background: rgba(0,0,0,0.6); color: #fff;
+            font-size: 13px; font-weight: 600;
+            padding: 3px 9px; border-radius: 6px;
+            backdrop-filter: blur(4px);
+        }
+        #photoLightbox {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+            cursor: zoom-out;
+        }
+        #photoLightbox img { max-width: 95vw; max-height: 95vh; object-fit: contain; border-radius: 8px; }
+        .product-card .card-body { padding: 12px 14px; }
+        .product-card .price { font-size: 20px; font-weight: 700; color: var(--brand-primary); }
+        .product-card .stock { font-size: 12px; color: #6c757d; }
+        .countdown { font-size: 12px; color: #dc3545; font-weight: 600; }
+        .section-title { font-weight: 600; font-size: 18px; margin-bottom: 12px; font-family: var(--brand-font-display); }
+        .event-card {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .event-card img { width: 100%; max-height: 200px; object-fit: contain; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; }
+        .booking-card {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .profile-card {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 12px;
+            padding: 18px; margin-bottom: 12px;
+        }
+        .profile-card .profile-row {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 9px 0; border-bottom: 1px solid #f0f0f0;
+        }
+        .profile-card .profile-row:last-child { border-bottom: none; }
+        .profile-card .profile-row i { width: 18px; text-align: center; color: var(--brand-primary); flex-shrink: 0; margin-top: 2px; }
+        .profile-card .social-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    </style>
+</head>
+<body>
+    <!-- ── Navbar ──────────────────────────────────────────────────── -->
+    <nav class="navbar navbar-dark sticky-top store-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <img id="storeLogo" src="" alt="logo">
+                <span>{{ business_name }}</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-light btn-sm" onclick="switchTab('profile')" title="My profile"
+                        style="font-size:14px;display:flex;align-items:center;gap:5px">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="d-none d-sm-inline" style="font-size:12px">{{ name }}</span>
+                </button>
+                <span id="langSwitcher" class="d-flex align-items-center"></span>
+                <a class="btn btn-outline-light btn-sm" href="/home" title="Platform home" style="font-size:14px"><i class="fas fa-th-large"></i></a>
+                <a class="btn btn-outline-light btn-sm" href="/signout" style="font-size:14px"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── Desktop top tabs ───────────────────────────────────────── -->
+    <div class="container-fluid">
+        <ul class="nav nav-tabs desktop-tabs pt-2">
+            <li class="nav-item"><button class="nav-link active" onclick="switchTab('feed')"><i class="fas fa-th-large me-1"></i><span data-i18n="store.feed">Feed</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('events')"><i class="fas fa-calendar-alt me-1"></i><span data-i18n="store.events">Events</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('mybookings')"><i class="fas fa-bookmark me-1"></i><span data-i18n="store.myBookings">My Bookings</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('about')"><i class="fas fa-info-circle me-1"></i><span data-i18n="store.about">About</span></button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('profile')"><i class="fas fa-user-circle me-1"></i><span data-i18n="store.profile">Profile</span></button></li>
+        </ul>
+    </div>
+
+    <!-- ── Tab content ────────────────────────────────────────────── -->
+    <div class="container-fluid py-3">
+
+        <!-- ═══ FEED TAB ═══ -->
+        <div class="tab-pane active" id="tab-feed">
+            <div id="storePosts"></div>
+        </div>
+
+        <!-- ═══ EVENTS TAB ═══ -->
+        <div class="tab-pane" id="tab-events">
+            <h5 class="section-title" data-i18n="event.upcoming">Upcoming Events</h5>
+            <div id="storeEvents"></div>
+        </div>
+
+        <!-- ═══ MY BOOKINGS TAB ═══ -->
+        <div class="tab-pane" id="tab-mybookings">
+            <h5 class="section-title" data-i18n="store.myBookings">My Bookings</h5>
+            <div id="myBookings"></div>
+        </div>
+
+        <!-- ═══ ABOUT TAB ═══ -->
+        <div class="tab-pane" id="tab-about">
+            <div id="storeAbout">
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+        </div>
+
+        <!-- ═══ PROFILE TAB ═══ -->
+        <div class="tab-pane" id="tab-profile">
+            <div style="max-width:480px;margin:0 auto">
+                <!-- Avatar -->
+                <div class="text-center py-4">
+                    <div id="profileAvatar" style="width:72px;height:72px;border-radius:50%;background:var(--brand-primary);color:#fff;font-size:28px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px"></div>
+                    <div id="profileNameDisplay" style="font-size:17px;font-weight:700;color:#1a1d2e"></div>
+                    <div id="profileEmailDisplay" style="font-size:13px;color:#6b7280"></div>
+                </div>
+
+                <!-- Edit form -->
+                <div class="form-card">
+                    <h6><i class="fas fa-user-edit me-2" style="color:var(--brand-primary)"></i><span data-i18n="store.editProfile">Edit Profile</span></h6>
+                    <div id="profileAlert" class="alert d-none mb-3" style="font-size:13px"></div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px">Display Name</label>
+                        <input type="text" class="form-control" id="profileName" placeholder="Your name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px">Phone</label>
+                        <input type="tel" class="form-control" id="profilePhone" placeholder="+1 234 567 890">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px">Email <span class="text-muted">(read-only)</span></label>
+                        <input type="email" class="form-control" id="profileEmail" readonly style="background:#f8f9fa">
+                    </div>
+                    <button class="btn btn-primary w-100 mb-3" onclick="saveProfile()">
+                        <i class="fas fa-save me-1"></i><span data-i18n="store.saveChanges">Save Changes</span>
+                    </button>
+                </div>
+
+                <!-- Change password -->
+                <div class="form-card">
+                    <h6><i class="fas fa-lock me-2" style="color:var(--brand-primary)"></i><span data-i18n="store.changePassword">Change Password</span></h6>
+                    <div id="pwAlert" class="alert d-none mb-3" style="font-size:13px"></div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px">Current Password</label>
+                        <input type="password" class="form-control" id="currentPw" placeholder="••••••••">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px">New Password</label>
+                        <input type="password" class="form-control" id="newPw" placeholder="Min. 6 characters">
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="savePassword()">
+                        <i class="fas fa-key me-1"></i><span data-i18n="store.updatePassword">Update Password</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Bottom tabs (mobile) ───────────────────────────────────── -->
+    <div class="bottom-tabs">
+        <button class="btab active" onclick="switchTab('feed')"><i class="fas fa-th-large"></i><span data-i18n="store.feed">Feed</span></button>
+        <button class="btab" onclick="switchTab('events')"><i class="fas fa-calendar-alt"></i><span data-i18n="store.events">Events</span></button>
+        <button class="btab" onclick="switchTab('mybookings')"><i class="fas fa-bookmark"></i><span data-i18n="dashboard.bookings">Bookings</span></button>
+        <button class="btab" onclick="switchTab('profile')"><i class="fas fa-user-circle"></i><span data-i18n="store.profile">Profile</span></button>
+        <a class="btab" href="/home"><i class="fas fa-th-large" style="color:#10b981"></i><span data-i18n="nav.home">Home</span></a>
+    </div>
+
+    <!-- ── Booking Modal ──────────────────────────────────────────── -->
+    <div class="modal fade" id="bookModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-i18n="booking.bookItem">Book Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="bookPostId">
+                    <p id="bookPostTitle" class="fw-bold"></p>
+                    <p class="small text-muted">Available: <span id="bookAvailable"></span></p>
+                    <label class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="bookQty" value="1" min="1">
+                    <label class="form-label mt-2">Notes <span class="text-muted">(optional)</span></label>
+                    <textarea class="form-control" id="bookNotes" rows="2"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitBooking()"><i class="fas fa-check me-1"></i><span data-i18n="booking.confirm">Confirm Booking</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="photoLightbox" onclick="closePhoto()">
+        <img id="lightboxImg" src="" alt="">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    const BASE = '/t/{{ tenant_slug }}/myfomo';
+
+    function trackEvent(eventType, entityId, entityName, metadata) {
+        fetch(BASE + '/api/analytics/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_type: eventType, entity_id: entityId || null, entity_name: entityName || '', metadata: metadata || {} }),
+            keepalive: true,
+        }).catch(() => {});
+    }
+
+    function openPhoto(url, postId, postTitle) {
+        document.getElementById('lightboxImg').src = url;
+        const lb = document.getElementById('photoLightbox');
+        lb.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (postId) trackEvent('item_view', postId, postTitle || '');
+    }
+    function openPhotoEl(el) {
+        openPhoto(el.dataset.img, el.dataset.postId, el.dataset.title);
+    }
+    function closePhoto() {
+        document.getElementById('photoLightbox').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePhoto(); });
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.querySelectorAll('.bottom-tabs .btab, .desktop-tabs .nav-link').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.bottom-tabs .btab, .desktop-tabs .nav-link').forEach(b => {
+            if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tab + "'")) b.classList.add('active');
+        });
+        if (tab === 'feed') loadStorePosts();
+        if (tab === 'events') loadStoreEvents();
+        if (tab === 'mybookings') loadMyBookings();
+        if (tab === 'about') loadProfile();
+    }
+
+    async function api(path, opts = {}) {
+        const res = await fetch(BASE + path, {
+            headers: { 'Content-Type': 'application/json' },
+            ...opts,
+            body: opts.body ? JSON.stringify(opts.body) : undefined
+        });
+        return res.json();
+    }
+
+    /* ── Countdown helper ──────────────────────────────────────── */
+    function getCountdown(dateStr) {
+        if (!dateStr) return '';
+        const end = new Date(dateStr);
+        const now = new Date();
+        const diff = end - now;
+        if (diff <= 0) return '<span class="countdown">Sale ended</span>';
+        const days = Math.floor(diff / 86400000);
+        const hrs = Math.floor((diff % 86400000) / 3600000);
+        if (days > 0) return `<span class="countdown"><i class="fas fa-clock me-1"></i>${days}d ${hrs}h left</span>`;
+        const mins = Math.floor((diff % 3600000) / 60000);
+        return `<span class="countdown"><i class="fas fa-clock me-1"></i>${hrs}h ${mins}m left</span>`;
+    }
+
+    /* ── Store feed ────────────────────────────────────────────── */
+    async function loadStorePosts() {
+        const posts = await api('/api/posts');
+        const el = document.getElementById('storePosts');
+        if (!posts.length) { el.innerHTML = '<p class="text-muted text-center py-4">' + i18n.t('store.noItems') + '</p>'; return; }
+        el.innerHTML = posts.map(p => `
+            <div class="product-card">
+                ${p.image_path
+                    ? `<div class="img-wrap" data-img="${p.image_path}" data-post-id="${p.id}" data-title="${esc(p.title)}" onclick="openPhotoEl(this)">
+                           <img src="${p.image_path}" alt="${esc(p.title)}">
+                           ${p.price ? `<span class="price-tag">$${Number(p.price).toFixed(2)}</span>` : ''}
+                       </div>`
+                    : `<div style="height:120px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image fa-3x text-muted"></i></div>`}
+                <div class="card-body">
+                    <h6 class="mb-1">${esc(p.title)}</h6>
+                    <p class="text-muted small mb-2">${esc(p.body || '').substring(0, 150)}</p>
+                    <div class="d-flex justify-content-end align-items-center mb-2">
+                        <span class="stock">${p.remaining_quantity > 0 ? p.remaining_quantity + ' left' : 'Out of stock'}</span>
+                    </div>
+                    ${getCountdown(p.sale_ends_at)}
+                    <div class="mt-auto pt-2">
+                    ${p.remaining_quantity > 0
+                        ? `<button class="btn btn-primary w-100" onclick="openBooking(${p.id}, '${esc(p.title)}', ${p.remaining_quantity})"><i class="fas fa-shopping-bag me-1"></i>Book Now</button>`
+                        : `<button class="btn btn-secondary w-100" disabled>Sold Out</button>`}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /* ── Events ────────────────────────────────────────────────── */
+    async function loadStoreEvents() {
+        const events = await api('/api/events');
+        const el = document.getElementById('storeEvents');
+        const upcoming = events.filter(e => e.status === 'upcoming');
+        if (!upcoming.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('event.noUpcoming') + '</p>'; return; }
+        el.innerHTML = upcoming.map(e => `
+            <div class="event-card">
+                ${e.image_path ? `<img src="${e.image_path}" alt="">` : ''}
+                <strong>${esc(e.title)}</strong>
+                <p class="text-muted small mt-1 mb-1">${esc(e.description || '').substring(0, 200)}</p>
+                <div class="small text-muted">
+                    ${e.event_date ? '<i class="fas fa-calendar me-1"></i>' + e.event_date : ''}
+                    ${e.event_time ? ' <i class="fas fa-clock me-1"></i>' + e.event_time : ''}
+                    ${e.location ? ' <i class="fas fa-map-marker-alt me-1"></i>' + esc(e.location) : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /* ── My Bookings ───────────────────────────────────────────── */
+    async function loadMyBookings() {
+        const bookings = await api('/api/bookings');
+        const el = document.getElementById('myBookings');
+        if (!bookings.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('booking.noBookings') + '</p>'; return; }
+        el.innerHTML = bookings.map(b => `
+            <div class="booking-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${esc(b.post_title || 'Post #' + b.post_id)}</strong>
+                        <div class="small text-muted">Qty: ${b.quantity}</div>
+                        ${b.notes ? `<div class="small text-muted">${esc(b.notes)}</div>` : ''}
+                    </div>
+                    <span class="badge ${b.status === 'confirmed' ? 'bg-success' : b.status === 'pending' ? 'bg-warning text-dark' : b.status === 'collected' ? 'bg-info' : 'bg-secondary'}">${b.status}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /* ── Booking flow ──────────────────────────────────────────── */
+    function openBooking(postId, title, available) {
+        document.getElementById('bookPostId').value = postId;
+        document.getElementById('bookPostTitle').textContent = title;
+        document.getElementById('bookAvailable').textContent = available;
+        document.getElementById('bookQty').value = 1;
+        document.getElementById('bookQty').max = available;
+        document.getElementById('bookNotes').value = '';
+        new bootstrap.Modal(document.getElementById('bookModal')).show();
+    }
+
+    async function submitBooking() {
+        const postId = parseInt(document.getElementById('bookPostId').value);
+        const qty = parseInt(document.getElementById('bookQty').value);
+        const notes = document.getElementById('bookNotes').value;
+        const res = await api('/api/bookings', { method: 'POST', body: { post_id: postId, quantity: qty, notes } });
+        if (res.error) { alert(res.error); return; }
+        bootstrap.Modal.getInstance(document.getElementById('bookModal')).hide();
+        loadStorePosts();
+    }
+
+    /* ── About / Profile ───────────────────────────────────────── */
+    async function loadProfile() {
+        const el = document.getElementById('storeAbout');
+        try {
+            const res = await fetch(BASE + '/api/profile');
+            const p = await res.json();
+            const hasContact = p.business_phone || p.business_email || p.business_address ||
+                               p.business_website || p.business_hours;
+            const hasSocial  = p.social_instagram || p.social_facebook || p.social_twitter ||
+                               p.social_tiktok || p.social_whatsapp;
+            if (!hasContact && !hasSocial && !p.business_tagline) {
+                el.innerHTML = '<p class="text-muted text-center py-4">No profile info available yet.</p>';
+                return;
+            }
+            const mapsUrl = addr => `https://maps.google.com/maps?q=${encodeURIComponent(addr)}`;
+            const waNum   = n => n.replace(/\D/g, '');
+            const socialBtns = [];
+            if (p.social_instagram) socialBtns.push(`<a href="https://instagram.com/${encodeURIComponent(p.social_instagram)}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fab fa-instagram me-1"></i>@${esc(p.social_instagram)}</a>`);
+            if (p.social_facebook)  socialBtns.push(`<a href="https://facebook.com/${encodeURIComponent(p.social_facebook)}"  target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fab fa-facebook me-1"></i>${esc(p.social_facebook)}</a>`);
+            if (p.social_twitter)   socialBtns.push(`<a href="https://twitter.com/${encodeURIComponent(p.social_twitter)}"    target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fab fa-twitter me-1"></i>@${esc(p.social_twitter)}</a>`);
+            if (p.social_tiktok)    socialBtns.push(`<a href="https://tiktok.com/@${encodeURIComponent(p.social_tiktok)}"     target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fab fa-tiktok me-1"></i>@${esc(p.social_tiktok)}</a>`);
+            if (p.social_whatsapp)  socialBtns.push(`<a href="https://wa.me/${waNum(p.social_whatsapp)}"                       target="_blank" class="btn btn-sm btn-outline-success"><i class="fab fa-whatsapp me-1"></i>WhatsApp</a>`);
+
+            el.innerHTML = `
+                ${p.business_tagline ? `<p class="text-muted mb-3">${esc(p.business_tagline)}</p>` : ''}
+                <div class="profile-card">
+                    ${p.business_address ? `<div class="profile-row"><i class="fas fa-map-marker-alt"></i><a href="${mapsUrl(p.business_address)}" target="_blank" class="text-decoration-none">${esc(p.business_address)}</a></div>` : ''}
+                    ${p.business_phone   ? `<div class="profile-row"><i class="fas fa-phone"></i><a href="tel:${esc(p.business_phone)}" class="text-decoration-none">${esc(p.business_phone)}</a></div>` : ''}
+                    ${p.business_email   ? `<div class="profile-row"><i class="fas fa-envelope"></i><a href="mailto:${esc(p.business_email)}" class="text-decoration-none">${esc(p.business_email)}</a></div>` : ''}
+                    ${p.business_website ? `<div class="profile-row"><i class="fas fa-globe"></i><a href="${esc(p.business_website)}" target="_blank" class="text-decoration-none">${esc(p.business_website)}</a></div>` : ''}
+                    ${p.business_hours   ? `<div class="profile-row"><i class="fas fa-clock"></i><span style="white-space:pre-line">${esc(p.business_hours)}</span></div>` : ''}
+                </div>
+                ${hasSocial ? `<div class="profile-card"><div class="social-links">${socialBtns.join('')}</div></div>` : ''}`;
+        } catch(e) {
+            el.innerHTML = '<p class="text-muted text-center py-4">Could not load profile info.</p>';
+        }
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    /* ── Branding helpers ──────────────────────────────────────── */
+    function _brandContrastColor(hex) {
+        try {
+            const r = parseInt(hex.slice(1,3), 16);
+            const g = parseInt(hex.slice(3,5), 16);
+            const b = parseInt(hex.slice(5,7), 16);
+            return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.55 ? '#1a1a1a' : '#ffffff';
+        } catch(e) { return '#ffffff'; }
+    }
+    function _brandTint(hex, alpha) {
+        try {
+            const r = parseInt(hex.slice(1,3), 16);
+            const g = parseInt(hex.slice(3,5), 16);
+            const b = parseInt(hex.slice(5,7), 16);
+            return `rgba(${r},${g},${b},${alpha})`;
+        } catch(e) { return '#f5f6fa'; }
+    }
+    function _detectFontPair(hint) {
+        const h = hint.toLowerCase();
+        if (/elegant|luxury|premium|classic|formal|refined|sophisticated/.test(h))
+            return { url: 'Cormorant+Garamond:wght@400;600&family=Jost:wght@300;400;500', display: "'Cormorant Garamond',serif", body: "'Jost',sans-serif" };
+        if (/bold|strong|urban|street|athletic|sport|dynamic|power|energetic/.test(h))
+            return { url: 'Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500', display: "'Barlow Condensed',sans-serif", body: "'Barlow',sans-serif" };
+        if (/minimal|clean|modern|tech|digital|corporate|precise|professional/.test(h))
+            return { url: 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500', display: "'DM Sans',sans-serif", body: "'DM Sans',sans-serif" };
+        if (/playful|fun|friendly|casual|warm|food|kids|creative|colorful/.test(h))
+            return { url: 'Nunito:wght@400;600;700&family=Quicksand:wght@400;500', display: "'Nunito',sans-serif", body: "'Quicksand',sans-serif" };
+        if (/natural|organic|earthy|eco|wellness|health|artisan|handmade/.test(h))
+            return { url: 'Vollkorn:wght@400;600&family=Nunito+Sans:wght@400;600', display: "'Vollkorn',serif", body: "'Nunito Sans',sans-serif" };
+        return { url: 'Outfit:wght@400;500;600&family=Nunito:wght@400;500', display: "'Outfit',sans-serif", body: "'Nunito',sans-serif" };
+    }
+    async function applyBranding() {
+        try {
+            const p = await (await fetch(BASE + '/api/profile')).json();
+            const colors = Array.isArray(p.brand_colors) ? p.brand_colors.filter(c => /^#[0-9a-fA-F]{6}$/.test(c)) : [];
+            const primary   = colors[0];
+            const secondary = colors[1] || colors[0];
+            const root = document.documentElement;
+
+            if (primary) {
+                root.style.setProperty('--brand-primary',   primary);
+                root.style.setProperty('--brand-secondary', secondary);
+                root.style.setProperty('--brand-text',      _brandContrastColor(primary));
+                root.style.setProperty('--brand-bg',        _brandTint(primary, 0.05));
+            }
+
+            // Logo
+            if (p.logo_path) {
+                const logo = document.getElementById('storeLogo');
+                if (logo) { logo.src = p.logo_path; logo.style.display = ''; }
+            }
+
+            // Font pair
+            const hint = [p.font_style, p.brand_style, p.mood].filter(Boolean).join(' ');
+            if (hint.trim()) {
+                const pair = _detectFontPair(hint);
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://fonts.googleapis.com/css2?family=' + pair.url + '&display=swap';
+                document.head.appendChild(link);
+                root.style.setProperty('--brand-font',         pair.body);
+                root.style.setProperty('--brand-font-display', pair.display);
+            }
+        } catch(e) {}
+    }
+
+    trackEvent('page_view');
+    applyBranding();
+    loadStorePosts();
+
+    // ── Profile ──────────────────────────────────────────────────────
+    const BASE_API = '/t/{{ tenant_slug }}/myfomo';
+    let _profileLoaded = false;
+
+    async function loadProfile() {
+        if (_profileLoaded) return;
+        try {
+            const res = await fetch(BASE_API + '/api/my-profile');
+            const p = await res.json();
+            document.getElementById('profileName').value  = p.name || '';
+            document.getElementById('profilePhone').value = p.phone || '';
+            document.getElementById('profileEmail').value = p.email || '';
+            document.getElementById('profileEmailDisplay').textContent = p.email || '';
+            const displayName = p.name || p.email || 'You';
+            document.getElementById('profileNameDisplay').textContent = displayName;
+            document.getElementById('profileAvatar').textContent = displayName.charAt(0).toUpperCase();
+            _profileLoaded = true;
+        } catch(e) {}
+    }
+
+    async function saveProfile() {
+        const name  = document.getElementById('profileName').value.trim();
+        const phone = document.getElementById('profilePhone').value.trim();
+        const alertEl = document.getElementById('profileAlert');
+        alertEl.className = 'alert d-none mb-3';
+        try {
+            const res = await fetch(BASE_API + '/api/my-profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alertEl.className = 'alert alert-success mb-3';
+                alertEl.textContent = 'Profile saved!';
+                document.getElementById('profileNameDisplay').textContent = data.name || name;
+                document.getElementById('profileAvatar').textContent = (data.name || name || '?').charAt(0).toUpperCase();
+            } else {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = data.error || 'Could not save profile.';
+            }
+        } catch(e) {
+            alertEl.className = 'alert alert-danger mb-3';
+            alertEl.textContent = 'Connection error.';
+        }
+    }
+
+    async function savePassword() {
+        const currentPw = document.getElementById('currentPw').value;
+        const newPw     = document.getElementById('newPw').value;
+        const alertEl   = document.getElementById('pwAlert');
+        alertEl.className = 'alert d-none mb-3';
+        if (!currentPw || !newPw) {
+            alertEl.className = 'alert alert-danger mb-3';
+            alertEl.textContent = 'Both fields are required.';
+            return;
+        }
+        try {
+            const res = await fetch(BASE_API + '/api/my-profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: document.getElementById('profileName').value.trim(),
+                    phone: document.getElementById('profilePhone').value.trim(),
+                    current_password: currentPw,
+                    new_password: newPw,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alertEl.className = 'alert alert-success mb-3';
+                alertEl.textContent = 'Password updated!';
+                document.getElementById('currentPw').value = '';
+                document.getElementById('newPw').value = '';
+            } else {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = data.error || 'Could not update password.';
+            }
+        } catch(e) {
+            alertEl.className = 'alert alert-danger mb-3';
+            alertEl.textContent = 'Connection error.';
+        }
+    }
+
+    // Load profile when switching to that tab
+    const _origSwitchTab = switchTab;
+    switchTab = function(tab) {
+        _origSwitchTab(tab);
+        if (tab === 'profile') loadProfile();
+    };
+
+    // ── Language switcher ──────────────────────────────────────────
+    i18n.init().then(() => i18n.renderSwitcher(document.getElementById('langSwitcher')));
+    </script>
+</body>
+</html>

@@ -26,6 +26,10 @@ def discover_apps():
     """Import all app modules so they self-register."""
     from apps.school import SchoolApp
     from apps.barber import BarberApp
+    from apps.shop import ShopApp
+    from apps.myfomo import MyFomoApp
 
     registry.register(SchoolApp())
     registry.register(BarberApp())
+    registry.register(ShopApp())
+    registry.register(MyFomoApp())

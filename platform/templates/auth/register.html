@@ -69,7 +69,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
         if (res.ok) {
             localStorage.setItem('token', result.token);
-            window.location.href = result.user.role === 'business_owner' ? '/dashboard' : '/portal';
+            window.location.href = result.user.role === 'platform_admin' ? '/admin' : '/home';
         } else {
             errorDiv.textContent = result.error;
             errorDiv.classList.remove('d-none');

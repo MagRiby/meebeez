@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Businesses</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="/static/i18n/i18n.js"></script>
+    <style>
+        :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+        body {
+            background: #f2f4f8;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            min-height: 100vh;
+        }
+
+        /* ── Top navbar ────────────────────────────────────────── */
+        .home-nav {
+            background: #1a1d2e;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .home-nav .brand { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+        .home-nav .brand span { color: #7c83fd; }
+        .home-nav .greeting { color: rgba(255,255,255,0.65); font-size: 13px; }
+
+        /* ── Layout ────────────────────────────────────────────── */
+        .page-body {
+            display: flex;
+            gap: 0;
+            min-height: calc(100vh - 56px);
+        }
+
+        /* ── Main content ──────────────────────────────────────── */
+        .main-content {
+            flex: 1;
+            padding: 20px 16px;
+            overflow: hidden;
+        }
+
+        /* ── Category section ──────────────────────────────────── */
+        .cat-section { margin-bottom: 28px; }
+        .cat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8eaf0;
+        }
+        .cat-icon-lg {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+        .cat-label { font-size: 17px; font-weight: 700; color: #1a1d2e; }
+
+        /* ── Business cards ────────────────────────────────────── */
+        .biz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .biz-card {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            text-decoration: none;
+        }
+        .biz-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .biz-card-banner {
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .biz-card-logo {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            object-fit: contain;
+            background: rgba(255,255,255,0.9);
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: absolute;
+            bottom: -20px;
+            left: 16px;
+        }
+        .biz-card-logo-placeholder {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.85);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            position: absolute;
+            bottom: -20px;
+            left: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .biz-card-body {
+            padding: 28px 16px 14px;
+        }
+        .biz-card-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1d2e;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .biz-card-tagline {
+            font-size: 12px;
+            color: #6b7280;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 10px;
+        }
+        .biz-card-btn {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 14px;
+            border-radius: 20px;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* ── Right category sidebar ────────────────────────────── */
+        .cat-sidebar {
+            width: 64px;
+            background: #fff;
+            border-left: 1px solid #e8eaf0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 0;
+            gap: 6px;
+            position: sticky;
+            top: 56px;
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .cat-pill {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            border: none;
+            background: transparent;
+            gap: 2px;
+            text-decoration: none;
+        }
+        .cat-pill:hover { background: #f2f4f8; transform: scale(1.08); }
+        .cat-pill.active { background: #eef0ff; }
+        .cat-pill i { font-size: 18px; color: #6b7280; }
+        .cat-pill.active i { color: #4f46e5; }
+        .cat-pill-label { font-size: 8px; color: #9ca3af; font-weight: 600; text-transform: uppercase; line-height: 1; }
+        .cat-pill.active .cat-pill-label { color: #4f46e5; }
+        .cat-divider { width: 30px; height: 1px; background: #e8eaf0; margin: 4px 0; }
+
+        /* ── Empty state ───────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; display: block; }
+        .empty-state p { font-size: 15px; }
+
+        /* ── Loading skeleton ──────────────────────────────────── */
+        .skeleton { background: linear-gradient(90deg,#e8eaf0 25%,#f2f4f8 50%,#e8eaf0 75%); background-size: 200%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
+    </style>
+</head>
+<body>
+    <nav class="home-nav">
+        <div>
+            <div class="brand">my<span>fomo</span></div>
+            <div class="greeting"><span data-i18n="home.welcomeBack">Welcome back,</span> {{ name }}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="langSwitcher"></span>
+            <a href="{{ url_for('myfomo.myfomo_logout', tenant_slug=tenant_slug) }}"
+               class="btn btn-sm btn-outline-secondary text-white border-secondary">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+
+    <div class="page-body">
+        <!-- Main feed -->
+        <div class="main-content" id="mainContent">
+            <div class="empty-state">
+                <div class="skeleton" style="height:200px;border-radius:16px;margin-bottom:16px"></div>
+                <div class="skeleton" style="height:200px;border-radius:16px"></div>
+            </div>
+        </div>
+
+        <!-- Right category sidebar -->
+        <nav class="cat-sidebar" id="catSidebar"></nav>
+    </div>
+
+    <script>
+    const BASE = '/t/{{ tenant_slug }}/myfomo';
+
+    const CATEGORIES = {
+        restaurants: { label: 'Eats',     icon: 'fas fa-utensils',       color: '#ef4444', bg: '#fef2f2' },
+        food:        { label: 'Food',      icon: 'fas fa-shopping-basket', color: '#f97316', bg: '#fff7ed' },
+        clothing:    { label: 'Fashion',   icon: 'fas fa-tshirt',          color: '#8b5cf6', bg: '#f5f3ff' },
+        care:        { label: 'Care',      icon: 'fas fa-spa',             color: '#ec4899', bg: '#fdf2f8' },
+        learning:    { label: 'Learn',     icon: 'fas fa-graduation-cap',  color: '#3b82f6', bg: '#eff6ff' },
+        general:     { label: 'General',   icon: 'fas fa-store',           color: '#6b7280', bg: '#f9fafb' },
+    };
+
+    let _allBusinesses = [];
+    let _activeCategory = null;
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    function primaryColor(colors) {
+        return (colors && colors[0] && /^#[0-9a-f]{6}$/i.test(colors[0])) ? colors[0] : '#4f46e5';
+    }
+    function secondaryColor(colors) {
+        return (colors && colors[1] && /^#[0-9a-f]{6}$/i.test(colors[1])) ? colors[1] : primaryColor(colors);
+    }
+    function contrastColor(hex) {
+        try {
+            const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+            return (0.299*r+0.587*g+0.114*b)/255 > 0.55 ? '#1a1d2e' : '#ffffff';
+        } catch(e) { return '#ffffff'; }
+    }
+
+    function renderSidebar(categories) {
+        const sb = document.getElementById('catSidebar');
+        sb.innerHTML = '';
+        categories.forEach((cat, i) => {
+            const meta = CATEGORIES[cat] || CATEGORIES.general;
+            const pill = document.createElement('a');
+            pill.href = '#cat-' + cat;
+            pill.className = 'cat-pill' + (_activeCategory === cat ? ' active' : '');
+            pill.dataset.cat = cat;
+            pill.innerHTML = `<i class="${meta.icon}"></i><span class="cat-pill-label">${meta.label}</span>`;
+            pill.addEventListener('click', e => {
+                e.preventDefault();
+                setActiveCategory(cat);
+                document.getElementById('cat-' + cat)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            sb.appendChild(pill);
+            if (i < categories.length - 1) {
+                const div = document.createElement('div');
+                div.className = 'cat-divider';
+                sb.appendChild(div);
+            }
+        });
+    }
+
+    function setActiveCategory(cat) {
+        _activeCategory = cat;
+        document.querySelectorAll('.cat-pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.cat === cat);
+        });
+    }
+
+    function renderBusinesses(businesses) {
+        if (!businesses.length) {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-store-slash"></i>
+                    <p>${i18n.t('home.noBusinesses')}<br>${i18n.t('home.discoverHint')}</p>
+                </div>`;
+            document.getElementById('catSidebar').innerHTML = '';
+            return;
+        }
+
+        // Group by category
+        const groups = {};
+        businesses.forEach(biz => {
+            const cat = biz.category || 'general';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(biz);
+        });
+
+        const catOrder = ['restaurants', 'food', 'clothing', 'care', 'learning', 'general'];
+        const presentCats = catOrder.filter(c => groups[c]);
+        // Any unknown categories appended at end
+        Object.keys(groups).forEach(c => { if (!presentCats.includes(c)) presentCats.push(c); });
+
+        if (presentCats.length) setActiveCategory(presentCats[0]);
+        renderSidebar(presentCats);
+
+        const main = document.getElementById('mainContent');
+        main.innerHTML = '';
+
+        presentCats.forEach(cat => {
+            const meta = CATEGORIES[cat] || CATEGORIES.general;
+            const section = document.createElement('div');
+            section.className = 'cat-section';
+            section.id = 'cat-' + cat;
+
+            section.innerHTML = `
+                <div class="cat-header">
+                    <div class="cat-icon-lg" style="background:${meta.bg};color:${meta.color}">
+                        <i class="${meta.icon}"></i>
+                    </div>
+                    <span class="cat-label">${meta.label === cat ? cat.charAt(0).toUpperCase()+cat.slice(1) : meta.label + ' &amp; ' + cat.charAt(0).toUpperCase()+cat.slice(1)}</span>
+                </div>
+                <div class="biz-grid">
+                    ${groups[cat].map(biz => {
+                        const p = primaryColor(biz.brand_colors);
+                        const s = secondaryColor(biz.brand_colors);
+                        const txt = contrastColor(p);
+                        const logoHtml = biz.logo_path
+                            ? `<img class="biz-card-logo" src="${biz.logo_path}" alt="">`
+                            : `<div class="biz-card-logo-placeholder"><i class="${meta.icon}" style="color:${meta.color}"></i></div>`;
+                        return `
+                            <div class="biz-card" onclick="openStore('${esc(biz.slug)}')">
+                                <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
+                                    ${logoHtml}
+                                </div>
+                                <div class="biz-card-body">
+                                    <div class="biz-card-name">${esc(biz.name)}</div>
+                                    <div class="biz-card-tagline">${esc(biz.tagline || '')}</div>
+                                    <button class="biz-card-btn" style="background:${p};color:${txt}">${i18n.t('home.openStore')}</button>
+                                </div>
+                            </div>`;
+                    }).join('')}
+                </div>`;
+            main.appendChild(section);
+        });
+
+        // Update active category on scroll
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                if (e.isIntersecting) setActiveCategory(e.target.id.replace('cat-', ''));
+            });
+        }, { threshold: 0.3 });
+        document.querySelectorAll('.cat-section').forEach(s => observer.observe(s));
+    }
+
+    function openStore(slug) {
+        window.location.href = '/t/' + slug + '/myfomo/switch';
+    }
+
+    async function loadBusinesses() {
+        try {
+            const res = await fetch(BASE + '/api/my-businesses');
+            const data = await res.json();
+            _allBusinesses = Array.isArray(data) ? data : [];
+            renderBusinesses(_allBusinesses);
+        } catch(e) {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>${i18n.t('home.loadFailed')}</p>
+                </div>`;
+        }
+    }
+
+    loadBusinesses();
+    i18n.init().then(() => i18n.renderSwitcher(document.getElementById('langSwitcher')));
+    </script>
+</body>
+</html>

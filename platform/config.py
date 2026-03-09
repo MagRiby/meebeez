@@ -18,6 +18,7 @@ class Config:
         "pool_recycle": 300,
         "pool_size": 5,
         "max_overflow": 10,
+        "connect_args": {"connect_timeout": 10},
     }
     JWT_EXPIRATION_HOURS = int(os.environ.get("JWT_EXPIRATION_HOURS", "24"))
 
@@ -34,6 +35,14 @@ class Config:
     # Tenant DB base URI (without database name)
     TENANT_DB_BASE_URI = os.environ.get(
         "TENANT_DB_BASE_URI", "postgresql://localhost"
+    )
+
+    # Stripe
+    STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_PLATFORM_FEE_PERCENT = float(
+        os.environ.get("STRIPE_PLATFORM_FEE_PERCENT", "5")
     )
 
 

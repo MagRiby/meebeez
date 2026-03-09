@@ -13,6 +13,7 @@
             <a class="navbar-brand" href="#"><i class="fas fa-cut me-2"></i>Barber Shop</a>
             <div class="navbar-nav ms-auto">
                 <span class="nav-link text-light"><i class="fas fa-user me-1"></i>{{ username }} ({{ role }})</span>
+                <a class="btn btn-outline-light btn-sm me-1" href="/home" title="Platform home"><i class="fas fa-th-large"></i></a>
                 <a class="nav-link" href="{{ url_for('barber.barber_logout', tenant_slug=tenant_slug) }}">Logout</a>
             </div>
         </div>

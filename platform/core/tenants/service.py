@@ -23,14 +23,8 @@ def _slugify(text):
     return re.sub(r"-+", "-", text).strip("-")
 
 
-def _use_sqlite():
-    """Check if we should use SQLite for tenant databases."""
-    platform_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
-    return platform_uri.startswith("sqlite")
-
-
 def provision_tenant(name, app_slug, owner_id):
-    """Provision a new tenant: create DB, run schema, create platform records."""
+    """Provision a new tenant: create schema, run DDL, create platform records."""
     from apps import registry
 
     # Validate app exists
@@ -50,27 +44,13 @@ def provision_tenant(name, app_slug, owner_id):
         slug = f"{slug}-{short_id}"
     db_name = f"tenant_{slug.replace('-', '_')}_{short_id}"
 
-    if _use_sqlite():
-        # SQLite mode: use per-tenant SQLite files
-        if hasattr(app_module, "setup_schema_sqlite"):
-            app_module.setup_schema_sqlite(slug)
-        else:
-            # Fallback: create SQLite DB with SQLAlchemy models
-            from sqlalchemy import create_engine
-            instance_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "instance", "tenants",
-            )
-            os.makedirs(instance_dir, exist_ok=True)
-            engine = create_engine(f"sqlite:///{os.path.join(instance_dir, slug + '.db')}")
-            app_module.setup_schema(engine)
-            engine.dispose()
+    # Always use PostgreSQL schema-per-tenant
+    if hasattr(app_module, "setup_schema_sqlite"):
+        # Repurposed: init_*_db functions now create PG schemas
+        app_module.setup_schema_sqlite(slug)
     else:
-        # PostgreSQL mode: create a real database
-        from core.tenants.db_manager import create_tenant_db, get_tenant_engine
-        create_tenant_db(db_name)
-        engine = get_tenant_engine(db_name)
-        app_module.setup_schema(engine)
+        from core.tenants.db_manager import create_tenant_schema, get_tenant_connection
+        create_tenant_schema(slug)
 
     # Create platform records
     tenant = Tenant(
@@ -118,98 +98,75 @@ def provision_tenant(name, app_slug, owner_id):
 
 def _seed_barber_admin(tenant_slug, email, name, password):
     """Create an admin user in the barber tenant's database."""
-    import sqlite3
+    from core.tenants.db_manager import get_tenant_connection
 
-    db_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "instance", "tenants", f"{tenant_slug}.db",
-    )
-    if not os.path.exists(db_path):
-        return
-
-    conn = sqlite3.connect(db_path, timeout=10)
-    c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (email,))
-    if not c.fetchone():
+    conn = get_tenant_connection(tenant_slug)
+    row = conn.execute(
+        "SELECT id FROM users WHERE username=%s", (email,)
+    ).fetchone()
+    if not row:
         password_hash = generate_password_hash(password)
-        c.execute(
-            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (?, ?, ?, ?, ?)",
+        conn.execute(
+            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (%s, %s, %s, %s, %s)",
             (email, password_hash, name, "admin", 1),
         )
         conn.commit()
-    conn.close()
 
 
 def _seed_shop_admin(tenant_slug, email, name, password):
     """Create an admin user in the shop tenant's database."""
-    import sqlite3
     from apps.shop.db_utils import init_shop_db
+    from core.tenants.db_manager import get_tenant_connection
 
-    db_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "instance", "tenants", f"{tenant_slug}.db",
-    )
-    # Ensure the SQLite file and shop tables exist (even in PostgreSQL mode)
-    if not os.path.exists(db_path):
-        init_shop_db(tenant_slug)
+    # Ensure the schema and shop tables exist
+    init_shop_db(tenant_slug)
 
-    conn = sqlite3.connect(db_path, timeout=10)
-    c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (email,))
-    if not c.fetchone():
+    conn = get_tenant_connection(tenant_slug)
+    row = conn.execute(
+        "SELECT id FROM users WHERE username=%s", (email,)
+    ).fetchone()
+    if not row:
         password_hash = generate_password_hash(password)
-        c.execute(
-            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (?, ?, ?, ?, ?)",
+        conn.execute(
+            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (%s, %s, %s, %s, %s)",
             (email, password_hash, name, "admin", 1),
         )
         conn.commit()
-    conn.close()
 
 
 def _seed_school_admin(tenant_slug, email, name, password):
     """Create a super_admin user in the school tenant's database."""
-    import sqlite3
+    from core.tenants.db_manager import get_tenant_connection
 
-    db_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "instance", "tenants", f"{tenant_slug}.db",
-    )
-    if not os.path.exists(db_path):
-        return
-
-    conn = sqlite3.connect(db_path, timeout=10)
-    c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (email,))
-    if not c.fetchone():
+    conn = get_tenant_connection(tenant_slug)
+    row = conn.execute(
+        "SELECT id FROM users WHERE username=%s", (email,)
+    ).fetchone()
+    if not row:
         password_hash = generate_password_hash(password)
-        c.execute(
-            "INSERT INTO users (username, password_hash, name, role) VALUES (?, ?, ?, ?)",
+        conn.execute(
+            "INSERT INTO users (username, password_hash, name, role) VALUES (%s, %s, %s, %s)",
             (email, password_hash, name, "local_admin"),
         )
         conn.commit()
-    conn.close()
 
 
 def _seed_myfomo_admin(tenant_slug, email, name, password):
     """Create an admin user in the myfomo tenant's database."""
-    import sqlite3
     from apps.myfomo.db_utils import init_myfomo_db
+    from core.tenants.db_manager import get_tenant_connection
 
-    db_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "instance", "tenants", f"{tenant_slug}.db",
-    )
-    if not os.path.exists(db_path):
-        init_myfomo_db(tenant_slug)
+    # Ensure the schema and myfomo tables exist
+    init_myfomo_db(tenant_slug)
 
-    conn = sqlite3.connect(db_path, timeout=10)
-    c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (email,))
-    if not c.fetchone():
+    conn = get_tenant_connection(tenant_slug)
+    row = conn.execute(
+        "SELECT id FROM users WHERE username=%s", (email,)
+    ).fetchone()
+    if not row:
         password_hash = generate_password_hash(password)
-        c.execute(
-            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (?, ?, ?, ?, ?)",
+        conn.execute(
+            "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (%s, %s, %s, %s, %s)",
             (email, password_hash, name, "admin", 1),
         )
         conn.commit()
-    conn.close()

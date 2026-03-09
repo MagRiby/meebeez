@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shop - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { padding-bottom: calc(60px + var(--safe-bottom)); background: #f5f6fa; }
+        .form-control, .form-select { font-size: 16px; }
+
+        /* ── Bottom tab bar (mobile) ─────────────────────────────── */
+        .bottom-tabs {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050;
+            background: #fff; border-top: 1px solid #dee2e6;
+            display: flex; padding-bottom: var(--safe-bottom);
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .bottom-tabs .btab {
+            flex: 0 0 auto; min-width: 70px; padding: 6px 10px 4px;
+            text-align: center; font-size: 11px; color: #6c757d;
+            text-decoration: none; border: none; background: none;
+            white-space: nowrap;
+        }
+        .bottom-tabs .btab.active { color: #0d6efd; font-weight: 600; }
+        .bottom-tabs .btab i { display: block; font-size: 18px; margin-bottom: 2px; }
+
+        /* ── Desktop: use top tabs, hide bottom bar ──────────────── */
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+            .bottom-tabs { display: none; }
+            .desktop-tabs { display: flex !important; }
+        }
+        @media (max-width: 767.98px) {
+            .desktop-tabs { display: none !important; }
+        }
+
+        /* ── Mobile card list for tables ─────────────────────────── */
+        .mobile-cards .mcard {
+            background: #fff; border: 1px solid #e9ecef; border-radius: 10px;
+            padding: 12px 14px; margin-bottom: 10px;
+        }
+        .mcard-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
+        .mcard-label { color: #6c757d; font-size: 12px; }
+        .mcard-actions { display: flex; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+        .mcard-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+
+        /* ── Desktop table, mobile cards ─────────────────────────── */
+        @media (max-width: 767.98px) {
+            .desktop-table { display: none !important; }
+            .mobile-cards { display: block !important; }
+        }
+        @media (min-width: 768px) {
+            .desktop-table { display: block !important; }
+            .mobile-cards { display: none !important; }
+        }
+
+        /* ── Form styling ────────────────────────────────────────── */
+        .form-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .form-card h6 { font-weight: 600; margin-bottom: 12px; }
+
+        /* ── Inline item rows (sale/PO) ──────────────────────────── */
+        .item-row { background: #f8f9fa; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+
+        /* ── Misc ────────────────────────────────────────────────── */
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+        .badge { font-size: 12px; }
+        .section-title { font-weight: 600; font-size: 18px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <!-- ── Navbar ──────────────────────────────────────────────────── -->
+    <nav class="navbar navbar-dark bg-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-store me-2"></i>Shop</a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-light d-none d-sm-inline" style="font-size:14px"><i class="fas fa-user me-1"></i>{{ username }}</span>
+                <span class="badge bg-secondary d-none d-sm-inline">{{ role }}</span>
+                <a class="btn btn-outline-light btn-sm" href="/home" title="Platform home"><i class="fas fa-th-large"></i></a>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('shop.shop_logout', tenant_slug=tenant_slug) }}"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── Desktop top tabs ───────────────────────────────────────── -->
+    <div class="container-fluid">
+        <ul class="nav nav-tabs desktop-tabs pt-2" id="mainTabs">
+            <li class="nav-item"><button class="nav-link active" onclick="switchTab('products')"><i class="fas fa-box me-1"></i>Products</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('sales')"><i class="fas fa-cash-register me-1"></i>Sales</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('po')"><i class="fas fa-truck me-1"></i>Purchase Orders</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('suppliers')"><i class="fas fa-people-carry me-1"></i>Suppliers</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('categories')"><i class="fas fa-tags me-1"></i>Categories</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('inventory')"><i class="fas fa-warehouse me-1"></i>Inventory</button></li>
+        </ul>
+    </div>
+
+    <!-- ── Tab content ────────────────────────────────────────────── -->
+    <div class="container-fluid py-3">
+
+        <!-- ════ Products ════════════════════════════════════════════ -->
+        <div class="tab-panel" id="panel-products">
+            <div class="filter-bar">
+                <input type="text" class="form-control" id="product-search" placeholder="Search..." style="max-width:220px;flex:1">
+                <select class="form-select" id="product-cat-filter" style="max-width:180px;flex:1"><option value="">All Categories</option></select>
+                {% if role == 'admin' %}
+                <button class="btn btn-primary" onclick="showProductForm()"><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline">New Product</span></button>
+                {% endif %}
+            </div>
+            {% if role == 'admin' %}
+            <div id="product-form-container" class="form-card d-none">
+                <h6 id="product-form-title">New Product</h6>
+                <input type="hidden" id="product-edit-id">
+                <div class="row g-2">
+                    <div class="col-12 col-sm-6"><label class="form-label mb-0 small">Name</label><input type="text" class="form-control" id="product-name" required></div>
+                    <div class="col-6 col-sm-3"><label class="form-label mb-0 small">SKU</label><input type="text" class="form-control" id="product-sku"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label mb-0 small">Category</label><select class="form-select" id="product-category"><option value="">--</option></select></div>
+                    <div class="col-12"><label class="form-label mb-0 small">Description</label><input type="text" class="form-control" id="product-desc"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label mb-0 small">Price</label><input type="number" step="0.01" class="form-control" id="product-price" value="0"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label mb-0 small">Cost</label><input type="number" step="0.01" class="form-control" id="product-cost" value="0"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label mb-0 small">Quantity</label><input type="number" class="form-control" id="product-qty" value="0"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label mb-0 small">Low Threshold</label><input type="number" class="form-control" id="product-threshold" value="10"></div>
+                    <div class="col-12 d-flex gap-2 mt-2">
+                        <button class="btn btn-success flex-fill" onclick="saveProduct()">Save</button>
+                        <button class="btn btn-secondary flex-fill" onclick="hideProductForm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <!-- Desktop table -->
+            <div class="table-responsive desktop-table">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Cost</th><th>Stock</th><th>Status</th>{% if role == 'admin' %}<th>Actions</th>{% endif %}</tr></thead>
+                    <tbody id="products-tbody"></tbody>
+                </table>
+            </div>
+            <!-- Mobile cards -->
+            <div class="mobile-cards" id="products-cards"></div>
+        </div>
+
+        <!-- ════ Sales ═══════════════════════════════════════════════ -->
+        <div class="tab-panel d-none" id="panel-sales">
+            <div class="filter-bar">
+                <input type="date" class="form-control" id="sale-date-filter" style="max-width:180px;flex:1">
+                <button class="btn btn-primary" onclick="showSaleForm()"><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline">New Sale</span></button>
+            </div>
+            <div id="sale-form-container" class="form-card d-none">
+                <h6>New Sale</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="form-label mb-0 small">Payment</label>
+                        <select class="form-select" id="sale-payment">
+                            <option value="cash">Cash</option><option value="card">Card</option><option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-6"><label class="form-label mb-0 small">Notes</label><input type="text" class="form-control" id="sale-notes"></div>
+                </div>
+                <label class="form-label small fw-bold">Items</label>
+                <div id="sale-items-container">
+                    <div class="item-row sale-item-row">
+                        <div class="row g-2">
+                            <div class="col-12"><select class="form-select sale-item-product"><option value="">Select product...</option></select></div>
+                            <div class="col-5"><input type="number" class="form-control sale-item-qty" placeholder="Qty" value="1" min="1"></div>
+                            <div class="col-5"><input type="number" step="0.01" class="form-control sale-item-price" placeholder="Price" value="0"></div>
+                            <div class="col-2 d-flex align-items-end"><button class="btn btn-outline-danger btn-sm w-100" onclick="removeSaleItemRow(this)"><i class="fas fa-times"></i></button></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-2 flex-wrap">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="addSaleItemRow()"><i class="fas fa-plus me-1"></i>Add Item</button>
+                    <button class="btn btn-success flex-fill" onclick="saveSale()">Complete Sale</button>
+                    <button class="btn btn-secondary" onclick="hideSaleForm()">Cancel</button>
+                </div>
+            </div>
+            <div class="table-responsive desktop-table">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>ID</th><th>Date</th><th>Items</th><th>Total</th><th>Payment</th><th>Notes</th></tr></thead>
+                    <tbody id="sales-tbody"></tbody>
+                </table>
+            </div>
+            <div class="mobile-cards" id="sales-cards"></div>
+        </div>
+
+        <!-- ════ Purchase Orders ═════════════════════════════════════ -->
+        <div class="tab-panel d-none" id="panel-po">
+            <div class="filter-bar">
+                <select class="form-select" id="po-status-filter" style="max-width:180px;flex:1">
+                    <option value="">All Statuses</option><option value="pending">Pending</option><option value="received">Received</option><option value="cancelled">Cancelled</option>
+                </select>
+                {% if role == 'admin' %}
+                <button class="btn btn-primary" onclick="showPOForm()"><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline">New PO</span></button>
+                {% endif %}
+            </div>
+            {% if role == 'admin' %}
+            <div id="po-form-container" class="form-card d-none">
+                <h6>New Purchase Order</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-sm-6"><label class="form-label mb-0 small">Supplier</label><select class="form-select" id="po-supplier"><option value="">Select supplier...</option></select></div>
+                    <div class="col-12 col-sm-6"><label class="form-label mb-0 small">Notes</label><input type="text" class="form-control" id="po-notes"></div>
+                </div>
+                <label class="form-label small fw-bold">Items</label>
+                <div id="po-items-container">
+                    <div class="item-row po-item-row">
+                        <div class="row g-2">
+                            <div class="col-12"><select class="form-select po-item-product"><option value="">Select product...</option></select></div>
+                            <div class="col-5"><input type="number" class="form-control po-item-qty" placeholder="Qty" value="1" min="1"></div>
+                            <div class="col-5"><input type="number" step="0.01" class="form-control po-item-cost" placeholder="Cost" value="0"></div>
+                            <div class="col-2 d-flex align-items-end"><button class="btn btn-outline-danger btn-sm w-100" onclick="removePOItemRow(this)"><i class="fas fa-times"></i></button></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-2 flex-wrap">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="addPOItemRow()"><i class="fas fa-plus me-1"></i>Add Item</button>
+                    <button class="btn btn-success flex-fill" onclick="savePO()">Create PO</button>
+                    <button class="btn btn-secondary" onclick="hidePOForm()">Cancel</button>
+                </div>
+            </div>
+            {% endif %}
+            <div class="table-responsive desktop-table">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>ID</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Status</th>{% if role == 'admin' %}<th>Actions</th>{% endif %}</tr></thead>
+                    <tbody id="po-tbody"></tbody>
+                </table>
+            </div>
+            <div class="mobile-cards" id="po-cards"></div>
+        </div>
+
+        <!-- ════ Suppliers ═══════════════════════════════════════════ -->
+        <div class="tab-panel d-none" id="panel-suppliers">
+            {% if role == 'admin' %}
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="showSupplierForm()"><i class="fas fa-plus me-1"></i>New Supplier</button>
+            </div>
+            <div id="supplier-form-container" class="form-card d-none">
+                <h6 id="supplier-form-title">New Supplier</h6>
+                <input type="hidden" id="supplier-edit-id">
+                <div class="row g-2">
+                    <div class="col-12 col-sm-6"><label class="form-label mb-0 small">Name</label><input type="text" class="form-control" id="supplier-name" required></div>
+                    <div class="col-12 col-sm-6"><label class="form-label mb-0 small">Contact Name</label><input type="text" class="form-control" id="supplier-contact"></div>
+                    <div class="col-12 col-sm-4"><label class="form-label mb-0 small">Email</label><input type="email" class="form-control" id="supplier-email"></div>
+                    <div class="col-6 col-sm-4"><label class="form-label mb-0 small">Phone</label><input type="text" class="form-control" id="supplier-phone"></div>
+                    <div class="col-6 col-sm-4"><label class="form-label mb-0 small">Address</label><input type="text" class="form-control" id="supplier-address"></div>
+                    <div class="col-12 d-flex gap-2 mt-2">
+                        <button class="btn btn-success flex-fill" onclick="saveSupplier()">Save</button>
+                        <button class="btn btn-secondary flex-fill" onclick="hideSupplierForm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="table-responsive desktop-table">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Address</th>{% if role == 'admin' %}<th>Actions</th>{% endif %}</tr></thead>
+                    <tbody id="suppliers-tbody"></tbody>
+                </table>
+            </div>
+            <div class="mobile-cards" id="suppliers-cards"></div>
+        </div>
+
+        <!-- ════ Categories ══════════════════════════════════════════ -->
+        <div class="tab-panel d-none" id="panel-categories">
+            {% if role == 'admin' %}
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="showCategoryForm()"><i class="fas fa-plus me-1"></i>New Category</button>
+            </div>
+            <div id="category-form-container" class="form-card d-none">
+                <h6 id="category-form-title">New Category</h6>
+                <input type="hidden" id="category-edit-id">
+                <div class="row g-2">
+                    <div class="col-12 col-sm-4"><label class="form-label mb-0 small">Name</label><input type="text" class="form-control" id="category-name" required></div>
+                    <div class="col-12 col-sm-8"><label class="form-label mb-0 small">Description</label><input type="text" class="form-control" id="category-desc"></div>
+                    <div class="col-12 d-flex gap-2 mt-2">
+                        <button class="btn btn-success flex-fill" onclick="saveCategory()">Save</button>
+                        <button class="btn btn-secondary flex-fill" onclick="hideCategoryForm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="table-responsive desktop-table">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Active</th>{% if role == 'admin' %}<th>Actions</th>{% endif %}</tr></thead>
+                    <tbody id="categories-tbody"></tbody>
+                </table>
+            </div>
+            <div class="mobile-cards" id="categories-cards"></div>
+        </div>
+
+        <!-- ════ Inventory ═══════════════════════════════════════════ -->
+        <div class="tab-panel d-none" id="panel-inventory">
+            <h5 class="section-title"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Low Stock Alerts</h5>
+            <div class="table-responsive desktop-table mb-4">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Stock</th><th>Threshold</th></tr></thead>
+                    <tbody id="lowstock-tbody"></tbody>
+                </table>
+            </div>
+            <div class="mobile-cards mb-4" id="lowstock-cards"></div>
+            {% if role == 'admin' %}
+            <h5 class="section-title">Manual Stock Adjustment</h5>
+            <div class="form-card">
+                <div class="row g-2">
+                    <div class="col-12"><label class="form-label mb-0 small">Product</label><select class="form-select" id="adjust-product"><option value="">Select product...</option></select></div>
+                    <div class="col-8"><label class="form-label mb-0 small">Adjustment (+/-)</label><input type="number" class="form-control" id="adjust-amount" placeholder="+10 or -5"></div>
+                    <div class="col-4 d-flex align-items-end"><button class="btn btn-warning w-100" onclick="adjustStock()">Adjust</button></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- ── Bottom tab bar (mobile) ────────────────────────────────── -->
+    <div class="bottom-tabs" id="bottomTabs">
+        <button class="btab active" onclick="switchTab('products')"><i class="fas fa-box"></i>Products</button>
+        <button class="btab" onclick="switchTab('sales')"><i class="fas fa-cash-register"></i>Sales</button>
+        <button class="btab" onclick="switchTab('po')"><i class="fas fa-truck"></i>Orders</button>
+        <button class="btab" onclick="switchTab('suppliers')"><i class="fas fa-people-carry"></i>Suppliers</button>
+        <button class="btab" onclick="switchTab('categories')"><i class="fas fa-tags"></i>Categories</button>
+        <button class="btab" onclick="switchTab('inventory')"><i class="fas fa-warehouse"></i>Inventory</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    const BASE = '/t/{{ tenant_slug }}/shop';
+    const ROLE = '{{ role }}';
+    const hdrs = { 'Content-Type': 'application/json' };
+
+    async function api(path, opts) {
+        return fetch(BASE + path, { headers: hdrs, ...opts });
+    }
+
+    /* ── Tab switching ─────────────────────────────────────────────── */
+    function switchTab(name) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('d-none'));
+        document.getElementById('panel-' + name).classList.remove('d-none');
+        // Update bottom tabs
+        document.querySelectorAll('.bottom-tabs .btab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.bottom-tabs .btab').forEach(b => { if (b.onclick.toString().includes("'" + name + "'")) b.classList.add('active'); });
+        // Update desktop tabs
+        document.querySelectorAll('#mainTabs .nav-link').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#mainTabs .nav-link').forEach(b => { if (b.onclick && b.onclick.toString().includes("'" + name + "'")) b.classList.add('active'); });
+    }
+
+    /* ── Helpers ────────────────────────────────────────────────────── */
+    let allProducts = [], allCategories = [], allSuppliers = [];
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function productOptions() {
+        return '<option value="">Select product...</option>' + allProducts.filter(p=>p.is_active).map(p=>`<option value="${p.id}" data-price="${p.price}" data-cost="${p.cost}">${esc(p.name)}</option>`).join('');
+    }
+    function actionBtns(editFn, delFn) {
+        return ROLE==='admin' ? `<button class="btn btn-sm btn-outline-primary" onclick='${editFn}'><i class="fas fa-edit"></i></button> <button class="btn btn-sm btn-outline-danger" onclick="${delFn}"><i class="fas fa-trash"></i></button>` : '';
+    }
+
+    /* ── Categories ────────────────────────────────────────────────── */
+    function showCategoryForm(item) {
+        const c = document.getElementById('category-form-container'); c.classList.remove('d-none');
+        document.getElementById('category-form-title').textContent = item ? 'Edit Category' : 'New Category';
+        document.getElementById('category-edit-id').value = item ? item.id : '';
+        document.getElementById('category-name').value = item ? item.name : '';
+        document.getElementById('category-desc').value = item ? item.description : '';
+    }
+    function hideCategoryForm() { document.getElementById('category-form-container').classList.add('d-none'); }
+    async function saveCategory() {
+        const id = document.getElementById('category-edit-id').value;
+        const body = { name: document.getElementById('category-name').value, description: document.getElementById('category-desc').value };
+        if (id) await api('/api/categories/' + id, { method: 'PUT', body: JSON.stringify(body) });
+        else await api('/api/categories', { method: 'POST', body: JSON.stringify(body) });
+        hideCategoryForm(); loadCategories();
+    }
+    async function deleteCategory(id) { if (!confirm('Delete this category?')) return; await api('/api/categories/' + id, { method: 'DELETE' }); loadCategories(); }
+    async function loadCategories() {
+        const res = await api('/api/categories'); allCategories = await res.json();
+        // Desktop table
+        document.getElementById('categories-tbody').innerHTML = allCategories.map(c => `<tr>
+            <td>${c.id}</td><td>${esc(c.name)}</td><td>${esc(c.description||'')}</td>
+            <td>${c.is_active ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+            ${ROLE==='admin' ? `<td>${actionBtns(`showCategoryForm(${JSON.stringify(c).replace(/'/g,"&#39;")})`, `deleteCategory(${c.id})`)}</td>` : ''}
+        </tr>`).join('');
+        // Mobile cards
+        document.getElementById('categories-cards').innerHTML = allCategories.map(c => `<div class="mcard">
+            <div class="mcard-title">${esc(c.name)}</div>
+            <div class="mcard-row"><span>${esc(c.description||'')}</span>${c.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</div>
+            ${ROLE==='admin' ? `<div class="mcard-actions">${actionBtns(`showCategoryForm(${JSON.stringify(c).replace(/'/g,"&#39;")})`, `deleteCategory(${c.id})`)}</div>` : ''}
+        </div>`).join('');
+        // Dropdowns
+        const opts = '<option value="">All Categories</option>' + allCategories.filter(c=>c.is_active).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+        document.getElementById('product-cat-filter').innerHTML = opts;
+        const fs = document.getElementById('product-category');
+        if (fs) fs.innerHTML = '<option value="">--</option>' + allCategories.filter(c=>c.is_active).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    }
+
+    /* ── Products ──────────────────────────────────────────────────── */
+    function showProductForm(item) {
+        const c = document.getElementById('product-form-container'); c.classList.remove('d-none');
+        document.getElementById('product-form-title').textContent = item ? 'Edit Product' : 'New Product';
+        document.getElementById('product-edit-id').value = item ? item.id : '';
+        document.getElementById('product-name').value = item ? item.name : '';
+        document.getElementById('product-sku').value = item ? (item.sku||'') : '';
+        document.getElementById('product-desc').value = item ? (item.description||'') : '';
+        document.getElementById('product-category').value = item ? (item.category_id||'') : '';
+        document.getElementById('product-price').value = item ? item.price : 0;
+        document.getElementById('product-cost').value = item ? item.cost : 0;
+        document.getElementById('product-qty').value = item ? item.quantity : 0;
+        document.getElementById('product-threshold').value = item ? item.low_stock_threshold : 10;
+        document.getElementById('product-form-container').scrollIntoView({ behavior: 'smooth' });
+    }
+    function hideProductForm() { document.getElementById('product-form-container').classList.add('d-none'); }
+    async function saveProduct() {
+        const id = document.getElementById('product-edit-id').value;
+        const body = {
+            name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value,
+            description: document.getElementById('product-desc').value, category_id: document.getElementById('product-category').value || null,
+            price: parseFloat(document.getElementById('product-price').value)||0, cost: parseFloat(document.getElementById('product-cost').value)||0,
+            quantity: parseInt(document.getElementById('product-qty').value)||0, low_stock_threshold: parseInt(document.getElementById('product-threshold').value)||10,
+        };
+        if (id) await api('/api/products/' + id, { method: 'PUT', body: JSON.stringify(body) });
+        else await api('/api/products', { method: 'POST', body: JSON.stringify(body) });
+        hideProductForm(); loadProducts();
+    }
+    async function deleteProduct(id) { if (!confirm('Delete this product?')) return; await api('/api/products/' + id, { method: 'DELETE' }); loadProducts(); }
+    async function loadProducts() {
+        let url = '/api/products?';
+        const search = document.getElementById('product-search').value;
+        const cat = document.getElementById('product-cat-filter').value;
+        if (search) url += 'search=' + encodeURIComponent(search) + '&';
+        if (cat) url += 'category_id=' + cat + '&';
+        const res = await api(url); allProducts = await res.json();
+        // Desktop table
+        document.getElementById('products-tbody').innerHTML = allProducts.map(p => {
+            const low = p.is_active && p.quantity <= p.low_stock_threshold;
+            return `<tr>
+                <td>${esc(p.name)}</td><td>${esc(p.sku||'')}</td><td>${esc(p.category_name||'')}</td>
+                <td>$${p.price.toFixed(2)}</td><td>$${p.cost.toFixed(2)}</td>
+                <td>${p.quantity} ${low?'<span class="badge bg-danger">Low</span>':''}</td>
+                <td>${p.is_active?'<span class="badge bg-success">Active</span>':'<span class="badge bg-secondary">Inactive</span>'}</td>
+                ${ROLE==='admin'?`<td>${actionBtns(`showProductForm(${JSON.stringify(p).replace(/'/g,"&#39;")})`,`deleteProduct(${p.id})`)}</td>`:''}
+            </tr>`;
+        }).join('');
+        // Mobile cards
+        document.getElementById('products-cards').innerHTML = allProducts.map(p => {
+            const low = p.is_active && p.quantity <= p.low_stock_threshold;
+            return `<div class="mcard">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="mcard-title">${esc(p.name)}</div>
+                    ${p.is_active?'<span class="badge bg-success">Active</span>':'<span class="badge bg-secondary">Off</span>'}
+                </div>
+                <div class="mcard-row"><span class="mcard-label">SKU</span><span>${esc(p.sku||'-')}</span></div>
+                <div class="mcard-row"><span class="mcard-label">Category</span><span>${esc(p.category_name||'-')}</span></div>
+                <div class="mcard-row"><span class="mcard-label">Price / Cost</span><span>$${p.price.toFixed(2)} / $${p.cost.toFixed(2)}</span></div>
+                <div class="mcard-row"><span class="mcard-label">Stock</span><span>${p.quantity} ${low?'<span class="badge bg-danger">Low</span>':''}</span></div>
+                ${ROLE==='admin'?`<div class="mcard-actions">${actionBtns(`showProductForm(${JSON.stringify(p).replace(/'/g,"&#39;")})`,`deleteProduct(${p.id})`)}</div>`:''}
+            </div>`;
+        }).join('');
+        // Dropdowns
+        document.querySelectorAll('.sale-item-product').forEach(s => { s.innerHTML = productOptions(); });
+        document.querySelectorAll('.po-item-product').forEach(s => { s.innerHTML = productOptions(); });
+        const adj = document.getElementById('adjust-product');
+        if (adj) adj.innerHTML = productOptions();
+    }
+    let pTimer;
+    document.getElementById('product-search').addEventListener('input', function() { clearTimeout(pTimer); pTimer = setTimeout(loadProducts, 300); });
+    document.getElementById('product-cat-filter').addEventListener('change', loadProducts);
+
+    /* ── Suppliers ─────────────────────────────────────────────────── */
+    function showSupplierForm(item) {
+        const c = document.getElementById('supplier-form-container'); c.classList.remove('d-none');
+        document.getElementById('supplier-form-title').textContent = item ? 'Edit Supplier' : 'New Supplier';
+        document.getElementById('supplier-edit-id').value = item ? item.id : '';
+        document.getElementById('supplier-name').value = item ? item.name : '';
+        document.getElementById('supplier-contact').value = item ? (item.contact_name||'') : '';
+        document.getElementById('supplier-email').value = item ? (item.email||'') : '';
+        document.getElementById('supplier-phone').value = item ? (item.phone||'') : '';
+        document.getElementById('supplier-address').value = item ? (item.address||'') : '';
+    }
+    function hideSupplierForm() { document.getElementById('supplier-form-container').classList.add('d-none'); }
+    async function saveSupplier() {
+        const id = document.getElementById('supplier-edit-id').value;
+        const body = { name: document.getElementById('supplier-name').value, contact_name: document.getElementById('supplier-contact').value, email: document.getElementById('supplier-email').value, phone: document.getElementById('supplier-phone').value, address: document.getElementById('supplier-address').value };
+        if (id) await api('/api/suppliers/' + id, { method: 'PUT', body: JSON.stringify(body) });
+        else await api('/api/suppliers', { method: 'POST', body: JSON.stringify(body) });
+        hideSupplierForm(); loadSuppliers();
+    }
+    async function deleteSupplier(id) { if (!confirm('Delete this supplier?')) return; await api('/api/suppliers/' + id, { method: 'DELETE' }); loadSuppliers(); }
+    async function loadSuppliers() {
+        const res = await api('/api/suppliers'); allSuppliers = await res.json();
+        document.getElementById('suppliers-tbody').innerHTML = allSuppliers.map(s => `<tr>
+            <td>${s.id}</td><td>${esc(s.name)}</td><td>${esc(s.contact_name||'')}</td><td>${esc(s.email||'')}</td><td>${esc(s.phone||'')}</td><td>${esc(s.address||'')}</td>
+            ${ROLE==='admin'?`<td>${actionBtns(`showSupplierForm(${JSON.stringify(s).replace(/'/g,"&#39;")})`,`deleteSupplier(${s.id})`)}</td>`:''}
+        </tr>`).join('');
+        document.getElementById('suppliers-cards').innerHTML = allSuppliers.map(s => `<div class="mcard">
+            <div class="mcard-title">${esc(s.name)}</div>
+            ${s.contact_name?`<div class="mcard-row"><span class="mcard-label">Contact</span><span>${esc(s.contact_name)}</span></div>`:''}
+            ${s.email?`<div class="mcard-row"><span class="mcard-label">Email</span><span>${esc(s.email)}</span></div>`:''}
+            ${s.phone?`<div class="mcard-row"><span class="mcard-label">Phone</span><span><a href="tel:${esc(s.phone)}">${esc(s.phone)}</a></span></div>`:''}
+            ${s.address?`<div class="mcard-row"><span class="mcard-label">Address</span><span>${esc(s.address)}</span></div>`:''}
+            ${ROLE==='admin'?`<div class="mcard-actions">${actionBtns(`showSupplierForm(${JSON.stringify(s).replace(/'/g,"&#39;")})`,`deleteSupplier(${s.id})`)}</div>`:''}
+        </div>`).join('');
+        const poSel = document.getElementById('po-supplier');
+        if (poSel) poSel.innerHTML = '<option value="">Select supplier...</option>' + allSuppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    }
+
+    /* ── Sales ─────────────────────────────────────────────────────── */
+    function showSaleForm() { document.getElementById('sale-form-container').classList.remove('d-none'); }
+    function hideSaleForm() { document.getElementById('sale-form-container').classList.add('d-none'); }
+    function saleItemRowHTML() {
+        return `<div class="item-row sale-item-row"><div class="row g-2">
+            <div class="col-12"><select class="form-select sale-item-product">${productOptions()}</select></div>
+            <div class="col-5"><input type="number" class="form-control sale-item-qty" placeholder="Qty" value="1" min="1"></div>
+            <div class="col-5"><input type="number" step="0.01" class="form-control sale-item-price" placeholder="Price" value="0"></div>
+            <div class="col-2 d-flex align-items-end"><button class="btn btn-outline-danger btn-sm w-100" onclick="removeSaleItemRow(this)"><i class="fas fa-times"></i></button></div>
+        </div></div>`;
+    }
+    function addSaleItemRow() { document.getElementById('sale-items-container').insertAdjacentHTML('beforeend', saleItemRowHTML()); }
+    function removeSaleItemRow(btn) { if (document.querySelectorAll('.sale-item-row').length > 1) btn.closest('.sale-item-row').remove(); }
+    document.getElementById('sale-items-container').addEventListener('change', function(e) {
+        if (e.target.classList.contains('sale-item-product')) {
+            const opt = e.target.selectedOptions[0], pr = e.target.closest('.sale-item-row').querySelector('.sale-item-price');
+            if (opt && opt.dataset.price) pr.value = opt.dataset.price;
+        }
+    });
+    async function saveSale() {
+        const items = [];
+        document.querySelectorAll('.sale-item-row').forEach(row => {
+            const pid = row.querySelector('.sale-item-product').value, qty = parseInt(row.querySelector('.sale-item-qty').value)||0, price = parseFloat(row.querySelector('.sale-item-price').value)||0;
+            if (pid && qty > 0) items.push({ product_id: parseInt(pid), quantity: qty, unit_price: price });
+        });
+        if (!items.length) { alert('Add at least one item'); return; }
+        await api('/api/sales', { method: 'POST', body: JSON.stringify({ payment_method: document.getElementById('sale-payment').value, notes: document.getElementById('sale-notes').value, items }) });
+        hideSaleForm(); loadSales(); loadProducts(); loadLowStock();
+    }
+    async function loadSales() {
+        let url = '/api/sales?'; const d = document.getElementById('sale-date-filter').value;
+        if (d) url += 'date=' + d + '&';
+        const res = await api(url); const data = await res.json();
+        document.getElementById('sales-tbody').innerHTML = data.map(s => `<tr>
+            <td>${s.id}</td><td>${s.date}</td><td>${s.items.map(i=>esc(i.product_name)+' x'+i.quantity).join(', ')}</td>
+            <td>$${s.total_amount.toFixed(2)}</td><td><span class="badge bg-info">${s.payment_method}</span></td><td>${esc(s.notes||'')}</td>
+        </tr>`).join('');
+        document.getElementById('sales-cards').innerHTML = data.map(s => `<div class="mcard">
+            <div class="d-flex justify-content-between"><span class="mcard-title">#${s.id}</span><span class="badge bg-info">${s.payment_method}</span></div>
+            <div class="mcard-row"><span class="mcard-label">Date</span><span>${s.date}</span></div>
+            <div class="mcard-row"><span class="mcard-label">Total</span><span class="fw-bold">$${s.total_amount.toFixed(2)}</span></div>
+            <div style="font-size:13px;color:#555;margin-top:4px">${s.items.map(i=>esc(i.product_name)+' x'+i.quantity).join(', ')}</div>
+            ${s.notes?`<div style="font-size:12px;color:#888;margin-top:2px">${esc(s.notes)}</div>`:''}
+        </div>`).join('');
+    }
+    document.getElementById('sale-date-filter').addEventListener('change', loadSales);
+
+    /* ── Purchase Orders ───────────────────────────────────────────── */
+    function showPOForm() { document.getElementById('po-form-container').classList.remove('d-none'); }
+    function hidePOForm() { document.getElementById('po-form-container').classList.add('d-none'); }
+    function poItemRowHTML() {
+        return `<div class="item-row po-item-row"><div class="row g-2">
+            <div class="col-12"><select class="form-select po-item-product">${productOptions()}</select></div>
+            <div class="col-5"><input type="number" class="form-control po-item-qty" placeholder="Qty" value="1" min="1"></div>
+            <div class="col-5"><input type="number" step="0.01" class="form-control po-item-cost" placeholder="Cost" value="0"></div>
+            <div class="col-2 d-flex align-items-end"><button class="btn btn-outline-danger btn-sm w-100" onclick="removePOItemRow(this)"><i class="fas fa-times"></i></button></div>
+        </div></div>`;
+    }
+    function addPOItemRow() { document.getElementById('po-items-container').insertAdjacentHTML('beforeend', poItemRowHTML()); }
+    function removePOItemRow(btn) { if (document.querySelectorAll('.po-item-row').length > 1) btn.closest('.po-item-row').remove(); }
+    document.getElementById('po-items-container').addEventListener('change', function(e) {
+        if (e.target.classList.contains('po-item-product')) {
+            const opt = e.target.selectedOptions[0], ci = e.target.closest('.po-item-row').querySelector('.po-item-cost');
+            if (opt && opt.dataset.cost) ci.value = opt.dataset.cost;
+        }
+    });
+    async function savePO() {
+        const supplierId = document.getElementById('po-supplier').value;
+        if (!supplierId) { alert('Select a supplier'); return; }
+        const items = [];
+        document.querySelectorAll('.po-item-row').forEach(row => {
+            const pid = row.querySelector('.po-item-product').value, qty = parseInt(row.querySelector('.po-item-qty').value)||0, cost = parseFloat(row.querySelector('.po-item-cost').value)||0;
+            if (pid && qty > 0) items.push({ product_id: parseInt(pid), quantity: qty, unit_cost: cost });
+        });
+        if (!items.length) { alert('Add at least one item'); return; }
+        await api('/api/purchase-orders', { method: 'POST', body: JSON.stringify({ supplier_id: parseInt(supplierId), notes: document.getElementById('po-notes').value, items }) });
+        hidePOForm(); loadPurchaseOrders();
+    }
+    async function updatePOStatus(id, status) {
+        await api('/api/purchase-orders/' + id, { method: 'PUT', body: JSON.stringify({ status }) });
+        loadPurchaseOrders(); if (status === 'received') { loadProducts(); loadLowStock(); }
+    }
+    async function loadPurchaseOrders() {
+        let url = '/api/purchase-orders?'; const s = document.getElementById('po-status-filter').value;
+        if (s) url += 'status=' + s + '&';
+        const res = await api(url); const data = await res.json();
+        const stBadge = st => `<span class="badge bg-${st==='received'?'success':st==='cancelled'?'danger':'warning'}">${st}</span>`;
+        document.getElementById('po-tbody').innerHTML = data.map(po => `<tr>
+            <td>${po.id}</td><td>${po.order_date}</td><td>${esc(po.supplier_name||'')}</td>
+            <td>${po.items.map(i=>esc(i.product_name||'?')+' x'+i.quantity).join(', ')}</td>
+            <td>$${po.total_amount.toFixed(2)}</td>
+            <td>${ROLE==='admin'&&po.status==='pending'?`<select class="form-select form-select-sm" style="width:auto" onchange="updatePOStatus(${po.id},this.value)"><option value="pending" selected>Pending</option><option value="received">Received</option><option value="cancelled">Cancelled</option></select>`:stBadge(po.status)}</td>
+            ${ROLE==='admin'?'<td></td>':''}
+        </tr>`).join('');
+        document.getElementById('po-cards').innerHTML = data.map(po => `<div class="mcard">
+            <div class="d-flex justify-content-between"><span class="mcard-title">PO #${po.id}</span>${ROLE==='admin'&&po.status==='pending'?`<select class="form-select form-select-sm" style="width:auto;font-size:13px" onchange="updatePOStatus(${po.id},this.value)"><option value="pending" selected>Pending</option><option value="received">Received</option><option value="cancelled">Cancelled</option></select>`:stBadge(po.status)}</div>
+            <div class="mcard-row"><span class="mcard-label">Date</span><span>${po.order_date}</span></div>
+            <div class="mcard-row"><span class="mcard-label">Supplier</span><span>${esc(po.supplier_name||'')}</span></div>
+            <div class="mcard-row"><span class="mcard-label">Total</span><span class="fw-bold">$${po.total_amount.toFixed(2)}</span></div>
+            <div style="font-size:13px;color:#555;margin-top:4px">${po.items.map(i=>esc(i.product_name||'?')+' x'+i.quantity).join(', ')}</div>
+        </div>`).join('');
+    }
+    document.getElementById('po-status-filter').addEventListener('change', loadPurchaseOrders);
+
+    /* ── Inventory ─────────────────────────────────────────────────── */
+    async function loadLowStock() {
+        const res = await api('/api/inventory/low-stock'); const data = await res.json();
+        const empty = '<tr><td colspan="5" class="text-center text-muted">No low-stock items</td></tr>';
+        document.getElementById('lowstock-tbody').innerHTML = data.length ? data.map(p => `<tr class="table-warning">
+            <td>${esc(p.name)}</td><td>${esc(p.sku||'')}</td><td>${esc(p.category_name||'')}</td><td><strong>${p.quantity}</strong></td><td>${p.low_stock_threshold}</td>
+        </tr>`).join('') : empty;
+        document.getElementById('lowstock-cards').innerHTML = data.length ? data.map(p => `<div class="mcard" style="border-left:4px solid #ffc107">
+            <div class="mcard-title">${esc(p.name)}</div>
+            <div class="mcard-row"><span class="mcard-label">SKU</span><span>${esc(p.sku||'-')}</span></div>
+            <div class="mcard-row"><span class="mcard-label">Stock</span><span class="text-danger fw-bold">${p.quantity}</span></div>
+            <div class="mcard-row"><span class="mcard-label">Threshold</span><span>${p.low_stock_threshold}</span></div>
+        </div>`).join('') : '<p class="text-muted text-center">No low-stock items</p>';
+    }
+    async function adjustStock() {
+        const productId = document.getElementById('adjust-product').value;
+        const adjustment = parseInt(document.getElementById('adjust-amount').value);
+        if (!productId) { alert('Select a product'); return; }
+        if (!adjustment && adjustment !== 0) { alert('Enter an adjustment amount'); return; }
+        const res = await api('/api/inventory/adjust', { method: 'PUT', body: JSON.stringify({ product_id: parseInt(productId), adjustment }) });
+        const result = await res.json();
+        if (res.ok) { alert('Stock adjusted. New quantity: ' + result.new_quantity); document.getElementById('adjust-amount').value = ''; loadProducts(); loadLowStock(); }
+        else { alert(result.error || 'Error adjusting stock'); }
+    }
+
+    /* ── Init ──────────────────────────────────────────────────────── */
+    loadCategories(); loadProducts(); loadSuppliers(); loadSales(); loadPurchaseOrders(); loadLowStock();
+    </script>
+</body>
+</html>

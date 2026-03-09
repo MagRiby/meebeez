@@ -55,8 +55,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         if (res.ok) {
             localStorage.setItem('token', result.token);
             if (result.user.role === 'platform_admin') window.location.href = '/admin';
-            else if (result.user.role === 'business_owner') window.location.href = '/dashboard';
-            else window.location.href = '/portal';
+            else window.location.href = '/home';
         } else {
             errorDiv.textContent = result.error;
             errorDiv.classList.remove('d-none');

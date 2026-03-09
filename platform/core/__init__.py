@@ -29,11 +29,13 @@ def create_app(config_name=None):
     from core.marketplace import marketplace_bp
     from core.portal import portal_bp
     from core.admin import admin_bp
+    from core.stripe import stripe_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(marketplace_bp)
     app.register_blueprint(portal_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(stripe_bp)
 
     # Exempt JWT-authenticated API blueprints from CSRF
     # (they use Authorization header / token cookie, not session-based forms)
@@ -41,6 +43,7 @@ def create_app(config_name=None):
     csrf.exempt(marketplace_bp)
     csrf.exempt(portal_bp)
     csrf.exempt(admin_bp)
+    csrf.exempt(stripe_bp)
 
     # Discover and register app modules
     from apps import discover_apps, registry
@@ -54,6 +57,10 @@ def create_app(config_name=None):
     # Seed app definitions
     with app.app_context():
         _seed_app_definitions(registry)
+
+    # Close psycopg tenant connections after every request
+    from core.tenants.db_manager import init_db_teardown
+    init_db_teardown(app)
 
     # Landing page — combined login / register
     @app.route("/")
