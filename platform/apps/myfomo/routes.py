@@ -107,35 +107,50 @@ def login_required(*roles):
 
 @myfomo_bp.route("/")
 def index(tenant_slug):
+    # Preserve query string (e.g. ?item=123) through redirects
+    qs = request.query_string.decode()
+    def _redir(endpoint):
+        url = url_for(endpoint, tenant_slug=tenant_slug)
+        if qs:
+            url += "?" + qs
+        return redirect(url)
+
     if "myfomo_user_id" in session and session.get("myfomo_tenant") == tenant_slug:
         role = session.get("myfomo_role")
         if role == "admin":
-            return redirect(url_for("myfomo.dashboard", tenant_slug=tenant_slug))
-        return redirect(url_for("myfomo.store", tenant_slug=tenant_slug))
+            return _redir("myfomo.dashboard")
+        return _redir("myfomo.store")
     if _sso_auto_login(tenant_slug):
         role = session.get("myfomo_role")
         if role == "admin":
-            return redirect(url_for("myfomo.dashboard", tenant_slug=tenant_slug))
-        return redirect(url_for("myfomo.store", tenant_slug=tenant_slug))
-    return redirect(url_for("myfomo.explore", tenant_slug=tenant_slug))
+            return _redir("myfomo.dashboard")
+        return _redir("myfomo.store")
+    return _redir("myfomo.explore")
 
 
 @myfomo_bp.route("/explore")
 def explore(tenant_slug):
     """Public store view — no login required. Shows published posts with a Follow button."""
+    qs = request.query_string.decode()
+    def _redir(endpoint):
+        url = url_for(endpoint, tenant_slug=tenant_slug)
+        if qs:
+            url += "?" + qs
+        return redirect(url)
+
     # If already logged in, redirect — but first verify the session belongs to
     # the currently logged-in platform user (guards against stale sessions when
     # a different platform account logs in on the same browser).
     if "myfomo_user_id" in session and session.get("myfomo_tenant") == tenant_slug:
         role = session.get("myfomo_role")
         if role == "admin":
-            return redirect(url_for("myfomo.dashboard", tenant_slug=tenant_slug))
+            return _redir("myfomo.dashboard")
         # Follower: cross-check against current platform JWT
         if not _platform_user_matches_session():
             _clear_myfomo_session()
             # Fall through to show the public explore page
         else:
-            return redirect(url_for("myfomo.store", tenant_slug=tenant_slug))
+            return _redir("myfomo.store")
 
     from core.models import Tenant
     tenant_obj = Tenant.query.filter_by(slug=tenant_slug).first()
@@ -200,8 +215,9 @@ def follow(tenant_slug):
             "INSERT INTO users (username, password_hash, name, role, is_active) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             (email, password_hash, name, "follower", 1),
         )
+        new_id = cur_result.fetchone()["id"]
         db.commit()
-        user = db.execute("SELECT * FROM users WHERE id=%s", (cur_result.fetchone()[0],)).fetchone()
+        user = db.execute("SELECT * FROM users WHERE id=%s", (new_id,)).fetchone()
 
     # Set the myfomo session (same keys the login route uses)
     session["myfomo_user_id"] = user["id"]
@@ -510,8 +526,8 @@ def create_post(tenant_slug):
          data.get("sale_ends_at"), data.get("status", "draft"),
          1 if data.get("ai_generated") else 0),
     )
-    db.commit()
-    return jsonify({"message": "Post created", "id": cur_result.fetchone()[0]}), 201
+    new_id = cur_result.fetchone()["id"]
+    return jsonify({"message": "Post created", "id": new_id}), 201
 
 
 @myfomo_bp.route("/api/posts/<int:post_id>", methods=["PUT"])
@@ -525,8 +541,8 @@ def update_post(tenant_slug, post_id):
 
     db.execute(
         """UPDATE posts SET title=%s, body=%s, image_path=%s, original_image_path=%s,
-           post_type=?, price=?,
-           original_quantity=?, remaining_quantity=?, sale_ends_at=?, status=?, ai_generated=?
+           post_type=%s, price=%s,
+           original_quantity=%s, remaining_quantity=%s, sale_ends_at=%s, status=%s, ai_generated=%s
            WHERE id=%s""",
         (data.get("title", existing["title"]),
          data.get("body", existing["body"]),
@@ -549,9 +565,9 @@ def update_post(tenant_slug, post_id):
 @login_required("admin")
 def delete_post(tenant_slug, post_id):
     db = get_myfomo_db(tenant_slug)
-    db.execute("DELETE FROM bookings WHERE post_id=%s", (post_id,))
-    db.execute("DELETE FROM posts WHERE id=%s", (post_id,))
-    db.commit()
+    with db.transaction():
+        db.execute("DELETE FROM bookings WHERE post_id=%s", (post_id,))
+        db.execute("DELETE FROM posts WHERE id=%s", (post_id,))
     return jsonify({"message": "Post deleted"})
 
 
@@ -582,8 +598,8 @@ def create_event(tenant_slug):
          data.get("location", ""), data.get("status", "upcoming"),
          1 if data.get("ai_generated") else 0),
     )
-    db.commit()
-    return jsonify({"message": "Event created", "id": cur_result.fetchone()[0]}), 201
+    new_id = cur_result.fetchone()["id"]
+    return jsonify({"message": "Event created", "id": new_id}), 201
 
 
 @myfomo_bp.route("/api/events/<int:event_id>", methods=["PUT"])
@@ -970,13 +986,14 @@ def get_analytics(tenant_slug):
     top_items = db.execute(
         """SELECT entity_id, entity_name, COUNT(*) as views
            FROM analytics_events WHERE event_type='item_view' AND entity_id IS NOT NULL
-           GROUP BY entity_id ORDER BY views DESC LIMIT 5"""
+           GROUP BY entity_id, entity_name ORDER BY views DESC LIMIT 5"""
     ).fetchall()
 
     ai_per_post = db.execute(
-        """SELECT entity_id, entity_name, COUNT(*) as gens, SUM(json_extract(metadata,'$.cost')) as cost
+        """SELECT entity_id, entity_name, COUNT(*) as gens,
+           COALESCE(SUM((metadata::json->>'cost')::float), 0) as cost
            FROM analytics_events WHERE event_type='ai_generation' AND entity_id IS NOT NULL
-           GROUP BY entity_id ORDER BY gens DESC"""
+           GROUP BY entity_id, entity_name ORDER BY gens DESC"""
     ).fetchall()
 
     recent = db.execute(
@@ -993,7 +1010,7 @@ def get_analytics(tenant_slug):
         "estimated_ai_cost": round(ai_cost, 4),
         "top_items": [{"id": r["entity_id"], "name": r["entity_name"], "views": r["views"]} for r in top_items],
         "ai_per_post": [{"title": r["entity_name"], "gens": r["gens"], "cost": round(r["cost"] or 0, 4)} for r in ai_per_post],
-        "recent_events": [{"type": r["event_type"], "name": r["entity_name"] or "—", "at": r["created_at"]} for r in recent],
+        "recent_events": [{"type": r["event_type"], "name": r["entity_name"] or "—", "at": str(r["created_at"] or "")} for r in recent],
     })
 
 

@@ -191,14 +191,25 @@
         .cat-divider { width: 30px; height: 1px; background: var(--border); margin: 4px 0; }
 
         /* ── Search results ───────────────────────────────────── */
+        .sr-items-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 768px) {
+            .sr-items-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1100px) {
+            .sr-items-grid { grid-template-columns: repeat(3, 1fr); }
+        }
         .sr-card {
             background: #fff; border: 1px solid var(--border); border-radius: 12px;
-            margin-bottom: 10px; overflow: hidden;
+            overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;
-            transition: box-shadow 0.15s;
+            transition: box-shadow 0.15s, transform 0.15s;
         }
-        .sr-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .sr-card-img { width: 100%; max-height: 200px; object-fit: contain; background: #f8f9fa; display: block; }
+        .sr-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); }
+        .sr-card-img { width: 100%; height: 180px; object-fit: cover; background: #f8f9fa; display: block; }
         .sr-card-body { padding: 12px 14px; }
         .sr-biz-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
         .sr-biz-icon {
@@ -344,6 +355,10 @@
 
     function openBusiness(slug, appType) {
         window.location.href = '/t/' + slug + '/' + appType + '/';
+    }
+
+    function openItem(slug, appType, itemId) {
+        window.location.href = '/t/' + slug + '/' + appType + '/?item=' + itemId;
     }
 
     // ─── CLIENT VIEW ─────────────────────────────────────────
@@ -535,6 +550,10 @@
     function clearSearch() {
         document.getElementById('searchInput').value = '';
         document.getElementById('clearBtn').style.display = 'none';
+        const url = new URL(window.location);
+        url.searchParams.delete('q');
+        url.searchParams.delete('type');
+        history.replaceState(null, '', url);
         showHomeView();
     }
 
@@ -555,6 +574,12 @@
     }
 
     async function runSearch(q) {
+        // Persist search in URL so back button restores it
+        const url = new URL(window.location);
+        url.searchParams.set('q', q);
+        url.searchParams.set('type', _searchType);
+        history.replaceState(null, '', url);
+
         document.getElementById('homeView').style.display = 'none';
         document.getElementById('catSidebar').style.display = 'none';
         document.getElementById('pageBody').classList.add('search-active');
@@ -599,29 +624,31 @@
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;margin:${businesses.length ? '20px' : '4px'} 0 8px">
                 <i class="fas fa-tag me-1"></i>Items
             </div>
+            <div class="sr-items-grid">
             ${items.map(item => {
                 const typeIcon = {service:'fas fa-cut', class:'fas fa-graduation-cap', product:'fas fa-tag'}[item.item_type] || 'fas fa-tag';
                 const typeLabel = {service:'Service', class:'Class', product:'Product'}[item.item_type] || 'Item';
-                const stockLabel = item.remaining_quantity === null ? '' : item.remaining_quantity > 0 ? item.remaining_quantity + ' left' : 'Out of stock';
+                const stockLabel = (item.original_quantity > 0) ? (item.remaining_quantity > 0 ? item.remaining_quantity + ' left' : 'Out of stock') : '';
                 return `
-                <div class="sr-card" onclick="openBusiness('${esc(item.business_slug)}','${esc(item.business_app_type)}')">
-                    ${item.image_path ? `<img class="sr-card-img" src="${esc(item.image_path)}" alt="">` : ''}
+                <div class="sr-card" onclick="openItem('${esc(item.business_slug)}','${esc(item.business_app_type)}',${item.item_id})">
+                    ${item.image_path ? `<img class="sr-card-img" src="${esc(item.image_path)}" alt="">` : `<div class="sr-card-img" style="display:flex;align-items:center;justify-content:center;color:#9ca3af"><i class="${typeIcon}" style="font-size:36px"></i></div>`}
                     <div class="sr-card-body">
                         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px">
-                            <strong>${esc(item.title)}</strong>
-                            ${item.price ? `<span style="font-weight:700;color:#059669">$${Number(item.price).toFixed(2)}</span>` : ''}
+                            <strong style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title)}</strong>
+                            ${item.price ? `<span style="font-weight:700;color:#059669;margin-left:8px;white-space:nowrap">$${Number(item.price).toFixed(2)}</span>` : ''}
                         </div>
-                        ${item.body ? `<p style="font-size:12px;color:#6b7280;margin-bottom:6px">${esc(item.body)}</p>` : ''}
+                        ${item.body ? `<p style="font-size:12px;color:#6b7280;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(item.body)}</p>` : ''}
                         <div style="display:flex;justify-content:space-between;align-items:center">
-                            <span style="font-size:11px;background:#f3f4f6;border-radius:10px;padding:2px 8px;color:#495057">
+                            <span style="font-size:11px;background:#f3f4f6;border-radius:10px;padding:2px 8px;color:#495057;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">
                                 <i class="fas fa-store me-1"></i>${esc(item.business_name)}
                             </span>
-                            <span style="font-size:11px;color:#9ca3af">
+                            <span style="font-size:11px;color:#9ca3af;white-space:nowrap">
                                 <i class="${typeIcon} me-1"></i>${typeLabel}${stockLabel ? ' · ' + stockLabel : ''}
                             </span>
                         </div>
                     </div>
-                </div>`;}).join('')}` : '';
+                </div>`;}).join('')}
+            </div>` : '';
 
         sv.innerHTML = bizHtml + itemsHtml;
     }
@@ -660,7 +687,17 @@
         window.location.href = '/signout';
     }
 
-    loadHomeData();
+    loadHomeData().then(() => {
+        // Restore search from URL if present (e.g. after back navigation)
+        const params = new URLSearchParams(window.location.search);
+        const savedQ = params.get('q');
+        const savedType = params.get('type');
+        if (savedQ && savedQ.length >= 2) {
+            document.getElementById('searchInput').value = savedQ;
+            if (savedType) setSearchType(savedType);
+            else runSearch(savedQ);
+        }
+    });
     </script>
 </body>
 </html>

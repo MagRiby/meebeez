@@ -127,7 +127,10 @@
     <!-- ── Navbar ──────────────────────────────────────────────────── -->
     <nav class="navbar navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><i class="fas fa-bullhorn me-2"></i>{{ business_name }}</a>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-light btn-sm" style="font-size:14px;padding:4px 8px" title="Go back" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+                <a class="navbar-brand mb-0" href="#"><i class="fas fa-bullhorn me-2"></i>{{ business_name }}</a>
+            </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="text-light d-none d-sm-inline" style="font-size:14px"><i class="fas fa-user me-1"></i>{{ username }}</span>
                 <span class="badge bg-secondary d-none d-sm-inline">{{ role }}</span>
@@ -318,9 +321,15 @@
                     <option value="product">Product</option>
                     <option value="announcement">Announcement</option>
                 </select>
-                <div class="row g-2 mb-2">
-                    <div class="col-6"><input type="number" class="form-control" id="postPrice" placeholder="Price" step="0.01" min="0"></div>
-                    <div class="col-6"><input type="number" class="form-control" id="postQty" placeholder="Quantity" min="0"></div>
+                <div class="mb-2">
+                    <input type="number" class="form-control" id="postPrice" placeholder="Price" step="0.01" min="0">
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="postLimitedStock" onchange="document.getElementById('postQtyWrap').style.display=this.checked?'':'none'">
+                    <label class="form-check-label small" for="postLimitedStock">Limited stock</label>
+                </div>
+                <div id="postQtyWrap" style="display:none" class="mb-2">
+                    <input type="number" class="form-control" id="postQty" placeholder="Quantity available" min="1">
                 </div>
                 <label class="form-label small text-muted">Sale ends at</label>
                 <input type="datetime-local" class="form-control mb-3" id="postSaleEnds">
@@ -428,7 +437,7 @@
         <button class="btab" onclick="switchTab('newpost')"><i class="fas fa-plus-circle"></i><span data-i18n="dashboard.newPost">New Post</span></button>
         <button class="btab" onclick="switchTab('bookings')"><i class="fas fa-bookmark"></i><span data-i18n="dashboard.bookings">Bookings</span></button>
         <button class="btab" onclick="switchTab('settings')"><i class="fas fa-cog"></i><span data-i18n="dashboard.settings">Settings</span></button>
-        <a class="btab" href="/home"><i class="fas fa-th-large"></i><span data-i18n="nav.home">Home</span></a>
+        <button class="btab" onclick="switchTab('analytics')"><i class="fas fa-chart-bar"></i><span data-i18n="dashboard.analytics">Analytics</span></button>
     </div>
 
     <!-- ── Edit Post Modal ────────────────────────────────────────── -->
@@ -476,9 +485,15 @@
                         <option value="product">Product</option>
                         <option value="announcement">Announcement</option>
                     </select>
-                    <div class="row g-2 mb-2">
-                        <div class="col-6"><input type="number" class="form-control" id="editPostPrice" placeholder="Price" step="0.01" min="0"></div>
-                        <div class="col-6"><input type="number" class="form-control" id="editPostQty" placeholder="Remaining Qty" min="0"></div>
+                    <div class="mb-2">
+                        <input type="number" class="form-control" id="editPostPrice" placeholder="Price" step="0.01" min="0">
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="editPostLimitedStock" onchange="document.getElementById('editPostQtyWrap').style.display=this.checked?'':'none'">
+                        <label class="form-check-label small" for="editPostLimitedStock">Limited stock</label>
+                    </div>
+                    <div id="editPostQtyWrap" style="display:none" class="mb-2">
+                        <input type="number" class="form-control" id="editPostQty" placeholder="Remaining quantity" min="0">
                     </div>
                     <select class="form-select mb-2" id="editPostStatus">
                         <option value="draft">Draft</option>
@@ -679,7 +694,7 @@
                 </div>
                 <p class="text-muted small mt-1 mb-1">${esc(p.body || '').substring(0, 120)}</p>
                 <div class="d-flex justify-content-between align-items-center small">
-                    <span>${p.price ? '$' + Number(p.price).toFixed(2) : ''} ${p.remaining_quantity != null ? '| Stock: ' + p.remaining_quantity : ''}</span>
+                    <span>${p.price ? '$' + Number(p.price).toFixed(2) : ''}${p.original_quantity > 0 ? ' | Stock: ' + p.remaining_quantity : ''}</span>
                     <div class="d-flex gap-1">
                         <button class="btn btn-sm btn-outline-primary" onclick="editPost(${p.id})"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="deletePost(${p.id})"><i class="fas fa-trash"></i></button>
@@ -706,7 +721,7 @@
             original_image_path: originalImageUrl,
             post_type: document.getElementById('postType').value,
             price: parseFloat(document.getElementById('postPrice').value) || 0,
-            original_quantity: parseInt(document.getElementById('postQty').value) || 0,
+            original_quantity: document.getElementById('postLimitedStock').checked ? (parseInt(document.getElementById('postQty').value) || 1) : 0,
             sale_ends_at: document.getElementById('postSaleEnds').value || null,
             status
         }});
@@ -720,6 +735,8 @@
         }
         // Reset form
         ['postTitle','postBody','postPrice','postQty','postSaleEnds'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('postLimitedStock').checked = false;
+        document.getElementById('postQtyWrap').style.display = 'none';
         document.getElementById('postImage').value = '';
         document.getElementById('postImageCamera').value = '';
         document.getElementById('postImagePreview').innerHTML = '';
@@ -752,7 +769,10 @@
         document.getElementById('editPostBody').value = p.body || '';
         document.getElementById('editPostType').value = p.post_type;
         document.getElementById('editPostPrice').value = p.price || '';
-        document.getElementById('editPostQty').value = p.remaining_quantity || '';
+        const hasStock = p.original_quantity > 0;
+        document.getElementById('editPostLimitedStock').checked = hasStock;
+        document.getElementById('editPostQtyWrap').style.display = hasStock ? '' : 'none';
+        document.getElementById('editPostQty').value = hasStock ? (p.remaining_quantity || '') : '';
         document.getElementById('editPostStatus').value = p.status;
 
         // Load AI suggestions from localStorage if available
@@ -847,7 +867,8 @@
             body: document.getElementById('editPostBody').value,
             post_type: document.getElementById('editPostType').value,
             price: parseFloat(document.getElementById('editPostPrice').value) || 0,
-            remaining_quantity: parseInt(document.getElementById('editPostQty').value) || 0,
+            remaining_quantity: document.getElementById('editPostLimitedStock').checked ? (parseInt(document.getElementById('editPostQty').value) || 0) : 0,
+            original_quantity: document.getElementById('editPostLimitedStock').checked ? (parseInt(document.getElementById('editPostQty').value) || 0) : 0,
             status: document.getElementById('editPostStatus').value
         };
         if (imgPath) body.image_path = imgPath;

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ business_name }} — Book Appointment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --accent: #6366f1; --accent-hover: #4f46e5; }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { background: #f5f6fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .form-control, .form-select { font-size: 16px; }
+
+        .book-nav {
+            background: linear-gradient(135deg, #1a1d2e 0%, #2d1f4e 100%);
+            padding: 14px 20px; display: flex; align-items: center; gap: 12px;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .book-nav .biz-name { color: #fff; font-size: 17px; font-weight: 700; flex: 1; }
+        .book-nav .back-btn {
+            background: rgba(255,255,255,0.15); border: none; color: #fff;
+            width: 34px; height: 34px; border-radius: 8px; font-size: 14px; cursor: pointer;
+        }
+
+        .step-indicator {
+            display: flex; justify-content: center; gap: 8px; padding: 16px 20px 8px;
+        }
+        .step-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #d1d5db; transition: background 0.2s;
+        }
+        .step-dot.active { background: var(--accent); }
+        .step-dot.done { background: #10b981; }
+
+        .step-title {
+            text-align: center; font-size: 18px; font-weight: 700; color: #1a1d2e;
+            padding: 4px 20px 12px;
+        }
+
+        .step-pane { display: none; padding: 0 16px 100px; }
+        .step-pane.active { display: block; }
+
+        /* Service cards */
+        .svc-card {
+            background: #fff; border: 2px solid #e5e7eb; border-radius: 12px;
+            padding: 16px; margin-bottom: 10px; cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .svc-card:hover { border-color: #a5b4fc; }
+        .svc-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+        .svc-card .svc-name { font-weight: 700; font-size: 15px; color: #1a1d2e; }
+        .svc-card .svc-desc { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .svc-card .svc-meta {
+            display: flex; gap: 12px; margin-top: 8px; font-size: 13px; color: #6366f1; font-weight: 600;
+        }
+
+        /* Staff cards */
+        .staff-card {
+            background: #fff; border: 2px solid #e5e7eb; border-radius: 12px;
+            padding: 16px; margin-bottom: 10px; cursor: pointer;
+            display: flex; align-items: center; gap: 14px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .staff-card:hover { border-color: #a5b4fc; }
+        .staff-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+        .staff-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: #fff; font-size: 18px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        /* Calendar */
+        .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .cal-header button { background: none; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+        .cal-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center;
+        }
+        .cal-grid .day-label { font-size: 11px; font-weight: 700; color: #9ca3af; padding: 4px 0; }
+        .cal-day {
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .cal-day:hover { background: #f3f4f6; }
+        .cal-day.today { border: 2px solid var(--accent); }
+        .cal-day.selected { background: var(--accent); color: #fff; }
+        .cal-day.disabled { color: #d1d5db; pointer-events: none; }
+        .cal-day.empty { pointer-events: none; }
+
+        /* Time slots */
+        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        @media (min-width: 500px) { .slots-grid { grid-template-columns: repeat(4, 1fr); } }
+        .slot-btn {
+            background: #fff; border: 2px solid #e5e7eb; border-radius: 10px;
+            padding: 10px 0; text-align: center; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .slot-btn:hover { border-color: #a5b4fc; }
+        .slot-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        /* Bottom action bar */
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #fff; border-top: 1px solid #e5e7eb;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+            display: flex; gap: 10px; z-index: 100;
+        }
+        .bottom-bar .btn { flex: 1; font-weight: 600; padding: 12px; border-radius: 12px; font-size: 15px; }
+
+        /* Confirmation */
+        .confirm-card {
+            background: #fff; border-radius: 16px; padding: 24px; margin-top: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .confirm-row {
+            display: flex; justify-content: space-between; padding: 10px 0;
+            border-bottom: 1px solid #f3f4f6; font-size: 15px;
+        }
+        .confirm-row:last-child { border-bottom: none; }
+        .confirm-row .label { color: #6b7280; }
+        .confirm-row .value { font-weight: 600; color: #1a1d2e; }
+
+        .success-view {
+            text-align: center; padding: 60px 20px;
+        }
+        .success-view .check-circle {
+            width: 80px; height: 80px; border-radius: 50%; background: #10b981;
+            color: #fff; font-size: 36px; display: inline-flex; align-items: center;
+            justify-content: center; margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="book-nav">
+        <button class="back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+        <div class="biz-name">{{ business_name }}</div>
+    </nav>
+
+    <div class="step-indicator" id="stepDots">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+    </div>
+
+    <!-- Step 1: Pick a service -->
+    <div class="step-pane active" id="step-1">
+        <div class="step-title">Choose a Service</div>
+        <div id="servicesList">
+            <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        </div>
+    </div>
+
+    <!-- Step 2: Pick staff -->
+    <div class="step-pane" id="step-2">
+        <div class="step-title">Choose a Stylist</div>
+        <div id="staffList"></div>
+    </div>
+
+    <!-- Step 3: Pick date & time -->
+    <div class="step-pane" id="step-3">
+        <div class="step-title">Pick a Date & Time</div>
+        <div id="calendar" class="mb-3"></div>
+        <div id="slotsSection" style="display:none">
+            <div style="font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+                <i class="fas fa-clock me-1"></i>Available Times
+            </div>
+            <div id="timeSlots" class="slots-grid"></div>
+        </div>
+        <div id="noSlots" style="display:none" class="text-center text-muted py-3">
+            <i class="fas fa-calendar-times fa-2x mb-2 d-block"></i>
+            No available slots on this day
+        </div>
+    </div>
+
+    <!-- Step 4: Confirm -->
+    <div class="step-pane" id="step-4">
+        <div class="step-title">Confirm Booking</div>
+        <div class="confirm-card" id="confirmCard"></div>
+        <div class="mt-3">
+            <textarea class="form-control" id="bookingNotes" rows="2" placeholder="Any notes for your stylist? (optional)"></textarea>
+        </div>
+    </div>
+
+    <!-- Success -->
+    <div class="step-pane" id="step-success">
+        <div class="success-view">
+            <div class="check-circle"><i class="fas fa-check"></i></div>
+            <h4 style="font-weight:700;color:#1a1d2e">Booking Confirmed!</h4>
+            <p class="text-muted">Your appointment has been scheduled.</p>
+            <div class="confirm-card mt-3" id="successDetails"></div>
+            <button class="btn btn-outline-primary mt-4" onclick="history.back()">
+                <i class="fas fa-arrow-left me-1"></i>Back
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar" id="bottomBar">
+        <button class="btn btn-outline-secondary" id="btnBack" onclick="prevStep()" style="display:none">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </button>
+        <button class="btn btn-primary" id="btnNext" onclick="nextStep()" disabled>
+            Next <i class="fas fa-arrow-right ms-1"></i>
+        </button>
+    </div>
+
+<script>
+    const BASE = '/t/{{ tenant_slug }}/barber';
+    const token = localStorage.getItem('token');
+
+    let currentStep = 1;
+    let services = [], staff = [];
+    let selected = { service: null, staff: null, date: null, time: null };
+    let calYear, calMonth;
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    // ── Step navigation ──────────────────────────────────────────
+    function goToStep(n) {
+        currentStep = n;
+        document.querySelectorAll('.step-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('step-' + n).classList.add('active');
+
+        // Update dots
+        document.querySelectorAll('#stepDots .step-dot').forEach((dot, i) => {
+            dot.className = 'step-dot' + (i + 1 === n ? ' active' : i + 1 < n ? ' done' : '');
+        });
+
+        // Bottom bar
+        document.getElementById('btnBack').style.display = n > 1 ? '' : 'none';
+        const nextBtn = document.getElementById('btnNext');
+        if (n === 4) {
+            nextBtn.innerHTML = '<i class="fas fa-check me-1"></i>Confirm Booking';
+            nextBtn.disabled = false;
+        } else {
+            nextBtn.innerHTML = 'Next <i class="fas fa-arrow-right ms-1"></i>';
+            updateNextBtn();
+        }
+
+        if (n === 4) renderConfirm();
+
+        // Hide bottom bar on success
+        document.getElementById('bottomBar').style.display = n <= 4 ? '' : 'none';
+    }
+
+    function nextStep() {
+        if (currentStep === 4) { submitBooking(); return; }
+        if (currentStep < 4) goToStep(currentStep + 1);
+        if (currentStep === 3) { initCalendar(); }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) goToStep(currentStep - 1);
+    }
+
+    function updateNextBtn() {
+        const btn = document.getElementById('btnNext');
+        if (currentStep === 1) btn.disabled = !selected.service;
+        else if (currentStep === 2) btn.disabled = !selected.staff;
+        else if (currentStep === 3) btn.disabled = !selected.date || !selected.time;
+    }
+
+    // ── Step 1: Services ─────────────────────────────────────────
+    async function loadServices() {
+        const res = await fetch(BASE + '/api/public/services');
+        services = await res.json();
+        const el = document.getElementById('servicesList');
+        if (!services.length) {
+            el.innerHTML = '<p class="text-muted text-center py-4">No services available yet.</p>';
+            return;
+        }
+        el.innerHTML = services.map(s => `
+            <div class="svc-card" data-id="${s.id}" onclick="selectService(${s.id})">
+                <div class="svc-name">${esc(s.name)}</div>
+                ${s.description ? `<div class="svc-desc">${esc(s.description)}</div>` : ''}
+                <div class="svc-meta">
+                    <span><i class="fas fa-clock me-1"></i>${s.duration_minutes} min</span>
+                    ${s.price ? `<span><i class="fas fa-dollar-sign me-1"></i>${Number(s.price).toFixed(2)}</span>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectService(id) {
+        selected.service = services.find(s => s.id === id);
+        document.querySelectorAll('.svc-card').forEach(c => c.classList.toggle('selected', c.dataset.id == id));
+        updateNextBtn();
+    }
+
+    // ── Step 2: Staff ────────────────────────────────────────────
+    async function loadStaff() {
+        const res = await fetch(BASE + '/api/public/staff');
+        staff = await res.json();
+        const el = document.getElementById('staffList');
+        if (!staff.length) {
+            el.innerHTML = '<p class="text-muted text-center py-4">No stylists available yet.</p>';
+            return;
+        }
+        el.innerHTML = staff.map(s => `
+            <div class="staff-card" data-id="${s.id}" onclick="selectStaff(${s.id})">
+                <div class="staff-avatar">${esc(s.name.charAt(0).toUpperCase())}</div>
+                <div>
+                    <div style="font-weight:700;font-size:15px">${esc(s.name)}</div>
+                    ${s.specialization ? `<div style="font-size:13px;color:#6b7280">${esc(s.specialization)}</div>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectStaff(id) {
+        selected.staff = staff.find(s => s.id === id);
+        document.querySelectorAll('.staff-card').forEach(c => c.classList.toggle('selected', c.dataset.id == id));
+        selected.date = null; selected.time = null;
+        updateNextBtn();
+    }
+
+    // ── Step 3: Calendar ─────────────────────────────────────────
+    function initCalendar() {
+        const now = new Date();
+        calYear = now.getFullYear();
+        calMonth = now.getMonth();
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const firstDay = new Date(calYear, calMonth, 1).getDay();
+        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const monthName = new Date(calYear, calMonth).toLocaleDateString('en', { month: 'long', year: 'numeric' });
+        const shift = (firstDay + 6) % 7; // Monday-first
+
+        let html = `
+            <div class="cal-header">
+                <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                <strong>${monthName}</strong>
+                <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="cal-grid">
+                ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="day-label">${d}</div>`).join('')}
+                ${'<div class="cal-day empty"></div>'.repeat(shift)}
+        `;
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dt = new Date(calYear, calMonth, d);
+            const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isPast = dt < today;
+            const isToday = dt.getTime() === today.getTime();
+            const isSel = selected.date === dateStr;
+            const cls = ['cal-day',
+                isPast ? 'disabled' : '',
+                isToday ? 'today' : '',
+                isSel ? 'selected' : '',
+            ].filter(Boolean).join(' ');
+            html += `<div class="${cls}" onclick="selectDate('${dateStr}')">${d}</div>`;
+        }
+        html += '</div>';
+        document.getElementById('calendar').innerHTML = html;
+    }
+
+    function changeMonth(delta) {
+        calMonth += delta;
+        if (calMonth > 11) { calMonth = 0; calYear++; }
+        if (calMonth < 0) { calMonth = 11; calYear--; }
+        renderCalendar();
+    }
+
+    async function selectDate(dateStr) {
+        selected.date = dateStr;
+        selected.time = null;
+        renderCalendar();
+        updateNextBtn();
+
+        const slotsEl = document.getElementById('timeSlots');
+        const slotsSection = document.getElementById('slotsSection');
+        const noSlots = document.getElementById('noSlots');
+        slotsSection.style.display = 'none';
+        noSlots.style.display = 'none';
+        slotsEl.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+        slotsSection.style.display = '';
+
+        const dur = selected.service ? selected.service.duration_minutes : 30;
+        const res = await fetch(`${BASE}/api/public/availability?staff_id=${selected.staff.id}&date=${dateStr}&duration=${dur}`);
+        const slots = await res.json();
+
+        if (!slots.length) {
+            slotsSection.style.display = 'none';
+            noSlots.style.display = '';
+            return;
+        }
+
+        slotsEl.innerHTML = slots.map(t => `
+            <div class="slot-btn" onclick="selectTime('${t}')">${t}</div>
+        `).join('');
+    }
+
+    function selectTime(t) {
+        selected.time = t;
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.toggle('selected', b.textContent === t));
+        updateNextBtn();
+    }
+
+    // ── Step 4: Confirm ──────────────────────────────────────────
+    function renderConfirm() {
+        const dt = new Date(selected.date + 'T00:00:00');
+        const dateStr = dt.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        document.getElementById('confirmCard').innerHTML = `
+            <div class="confirm-row"><span class="label">Service</span><span class="value">${esc(selected.service.name)}</span></div>
+            <div class="confirm-row"><span class="label">Stylist</span><span class="value">${esc(selected.staff.name)}</span></div>
+            <div class="confirm-row"><span class="label">Date</span><span class="value">${dateStr}</span></div>
+            <div class="confirm-row"><span class="label">Time</span><span class="value">${selected.time}</span></div>
+            <div class="confirm-row"><span class="label">Duration</span><span class="value">${selected.service.duration_minutes} min</span></div>
+            ${selected.service.price ? `<div class="confirm-row"><span class="label">Price</span><span class="value" style="color:#059669">$${Number(selected.service.price).toFixed(2)}</span></div>` : ''}
+        `;
+    }
+
+    async function submitBooking() {
+        if (!token) {
+            alert('Please log in to book an appointment.');
+            window.location.href = '/login?next=' + encodeURIComponent(window.location.href);
+            return;
+        }
+
+        const btn = document.getElementById('btnNext');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Booking...';
+
+        try {
+            const res = await fetch(BASE + '/api/public/book', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                },
+                body: JSON.stringify({
+                    staff_id: selected.staff.id,
+                    service_id: selected.service.id,
+                    date: selected.date,
+                    time: selected.time,
+                    notes: document.getElementById('bookingNotes').value,
+                }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                document.getElementById('successDetails').innerHTML =
+                    document.getElementById('confirmCard').innerHTML;
+                goToStep('success');
+            } else {
+                alert(data.error || 'Booking failed. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Confirm Booking';
+            }
+        } catch(e) {
+            alert('Connection error. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Confirm Booking';
+        }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────
+    loadServices();
+    loadStaff();
+</script>
+</body>
+</html>

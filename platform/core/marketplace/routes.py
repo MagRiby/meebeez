@@ -80,6 +80,8 @@ def list_tenants():
         ]
         tenants = Tenant.query.filter(Tenant.id.in_(membership_ids)).all()
 
+    # Exclude tenants whose app type has been deactivated
+    active_app_slugs = {a.slug for a in AppDefinition.query.filter_by(is_active=True).all()}
     return jsonify(
         [
             {
@@ -90,6 +92,7 @@ def list_tenants():
                 "status": t.status,
             }
             for t in tenants
+            if t.app_type_slug in active_app_slugs
         ]
     )
 

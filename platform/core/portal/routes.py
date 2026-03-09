@@ -3,7 +3,7 @@ import json
 from flask import request, jsonify, render_template
 
 from core.portal import portal_bp
-from core.models import Tenant, TenantMembership
+from core.models import Tenant, TenantMembership, AppDefinition
 from core.auth.routes import auth_required
 from core.tenants.db_manager import get_tenant_connection
 
@@ -16,7 +16,12 @@ def portal_api():
     memberships = TenantMembership.query.filter_by(user_id=user.id).all()
 
     tenant_ids = [m.tenant_id for m in memberships]
-    tenants = Tenant.query.filter(Tenant.id.in_(tenant_ids)).all()
+    # Exclude tenants whose app type has been deactivated
+    active_app_slugs = {a.slug for a in AppDefinition.query.filter_by(is_active=True).all()}
+    tenants = [
+        t for t in Tenant.query.filter(Tenant.id.in_(tenant_ids)).all()
+        if t.app_type_slug in active_app_slugs
+    ]
 
     membership_map = {m.tenant_id: m.role_in_tenant for m in memberships}
 
@@ -45,9 +50,11 @@ def search():
         return jsonify({})
 
     def _search_businesses():
+        active_app_slugs = {a.slug for a in AppDefinition.query.filter_by(is_active=True).all()}
         tenants = Tenant.query.filter(
             Tenant.name.ilike(f"%{q}%"),
             Tenant.status == "active",
+            Tenant.app_type_slug.in_(active_app_slugs),
         ).limit(20).all()
         return [{"name": t.name, "slug": t.slug, "app_type": t.app_type_slug} for t in tenants]
 
@@ -66,14 +73,16 @@ def search():
         # myfomo — published posts
         for tenant in Tenant.query.filter_by(app_type_slug="myfomo", status="active").all():
             for row in _query(tenant.slug,
-                "SELECT id, title, body, image_path, price, remaining_quantity "
-                "FROM posts WHERE status='published' AND (title LIKE %s OR body LIKE %s) LIMIT 10",
+                "SELECT id, title, body, image_path, price, original_quantity, remaining_quantity "
+                "FROM posts WHERE status='published' AND (title ILIKE %s OR body ILIKE %s) LIMIT 10",
                 (like_q, like_q)):
                 results.append({
+                    "item_id": row["id"],
                     "title": row["title"],
                     "body": (row["body"] or "")[:120],
                     "image_path": row["image_path"] or "",
                     "price": row["price"],
+                    "original_quantity": row["original_quantity"],
                     "remaining_quantity": row["remaining_quantity"],
                     "item_type": "product",
                     "business_name": tenant.name,
@@ -85,9 +94,10 @@ def search():
         for tenant in Tenant.query.filter_by(app_type_slug="barber", status="active").all():
             for row in _query(tenant.slug,
                 "SELECT id, name, description, price FROM services "
-                "WHERE is_active=1 AND (name LIKE %s OR description LIKE %s) LIMIT 10",
+                "WHERE is_active=1 AND (name ILIKE %s OR description ILIKE %s) LIMIT 10",
                 (like_q, like_q)):
                 results.append({
+                    "item_id": row["id"],
                     "title": row["name"],
                     "body": (row["description"] or "")[:120],
                     "image_path": "",
@@ -103,9 +113,10 @@ def search():
         for tenant in Tenant.query.filter_by(app_type_slug="shop", status="active").all():
             for row in _query(tenant.slug,
                 "SELECT id, name, description, price, quantity FROM products "
-                "WHERE is_active=1 AND (name LIKE %s OR description LIKE %s) LIMIT 10",
+                "WHERE is_active=1 AND (name ILIKE %s OR description ILIKE %s) LIMIT 10",
                 (like_q, like_q)):
                 results.append({
+                    "item_id": row["id"],
                     "title": row["name"],
                     "body": (row["description"] or "")[:120],
                     "image_path": "",
@@ -120,9 +131,10 @@ def search():
         # school — classes
         for tenant in Tenant.query.filter_by(app_type_slug="school", status="active").all():
             for row in _query(tenant.slug,
-                "SELECT id, name FROM classes WHERE name LIKE %s LIMIT 10",
+                "SELECT id, name FROM classes WHERE name ILIKE %s LIMIT 10",
                 (like_q,)):
                 results.append({
+                    "item_id": row["id"],
                     "title": row["name"],
                     "body": "",
                     "image_path": "",
@@ -181,7 +193,11 @@ def home_data():
         return {}
 
     if user.role in ("business_owner", "platform_admin"):
-        tenants = Tenant.query.filter_by(owner_id=user.id).order_by(Tenant.created_at).all()
+        active_app_slugs = {a.slug for a in AppDefinition.query.filter_by(is_active=True).all()}
+        tenants = [
+            t for t in Tenant.query.filter_by(owner_id=user.id).order_by(Tenant.created_at).all()
+            if t.app_type_slug in active_app_slugs
+        ]
         result = []
         for t in tenants:
             info = {

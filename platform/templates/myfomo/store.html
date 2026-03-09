@@ -115,10 +115,13 @@
     <!-- ── Navbar ──────────────────────────────────────────────────── -->
     <nav class="navbar navbar-dark sticky-top store-navbar">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <img id="storeLogo" src="" alt="logo">
-                <span>{{ business_name }}</span>
-            </a>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-light btn-sm" style="font-size:14px;padding:4px 8px" title="Go back" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+                <a class="navbar-brand d-flex align-items-center gap-2 mb-0" href="#">
+                    <img id="storeLogo" src="" alt="logo">
+                    <span>{{ business_name }}</span>
+                </a>
+            </div>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-outline-light btn-sm" onclick="switchTab('profile')" title="My profile"
                         style="font-size:14px;display:flex;align-items:center;gap:5px">
@@ -308,6 +311,14 @@
             ...opts,
             body: opts.body ? JSON.stringify(opts.body) : undefined
         });
+        if (res.redirected || !res.ok) {
+            console.error('API error:', path, res.status, res.url);
+            if (res.redirected && res.url.includes('/login')) {
+                window.location.href = '/home';
+                return [];
+            }
+            return [];
+        }
         return res.json();
     }
 
@@ -331,7 +342,7 @@
         const el = document.getElementById('storePosts');
         if (!posts.length) { el.innerHTML = '<p class="text-muted text-center py-4">' + i18n.t('store.noItems') + '</p>'; return; }
         el.innerHTML = posts.map(p => `
-            <div class="product-card">
+            <div class="product-card" id="post-${p.id}">
                 ${p.image_path
                     ? `<div class="img-wrap" data-img="${p.image_path}" data-post-id="${p.id}" data-title="${esc(p.title)}" onclick="openPhotoEl(this)">
                            <img src="${p.image_path}" alt="${esc(p.title)}">
@@ -341,15 +352,15 @@
                 <div class="card-body">
                     <h6 class="mb-1">${esc(p.title)}</h6>
                     <p class="text-muted small mb-2">${esc(p.body || '').substring(0, 150)}</p>
-                    <div class="d-flex justify-content-end align-items-center mb-2">
+                    ${p.original_quantity > 0 ? `<div class="d-flex justify-content-end align-items-center mb-2">
                         <span class="stock">${p.remaining_quantity > 0 ? p.remaining_quantity + ' left' : 'Out of stock'}</span>
-                    </div>
+                    </div>` : ''}
                     ${getCountdown(p.sale_ends_at)}
-                    <div class="mt-auto pt-2">
+                    ${p.original_quantity > 0 ? `<div class="mt-auto pt-2">
                     ${p.remaining_quantity > 0
                         ? `<button class="btn btn-primary w-100" onclick="openBooking(${p.id}, '${esc(p.title)}', ${p.remaining_quantity})"><i class="fas fa-shopping-bag me-1"></i>Book Now</button>`
                         : `<button class="btn btn-secondary w-100" disabled>Sold Out</button>`}
-                    </div>
+                    </div>` : ''}
                 </div>
             </div>
         `).join('');
@@ -523,7 +534,17 @@
 
     trackEvent('page_view');
     applyBranding();
-    loadStorePosts();
+    loadStorePosts().then(() => {
+        const params = new URLSearchParams(window.location.search);
+        const itemId = params.get('item');
+        if (itemId) {
+            const card = document.getElementById('post-' + itemId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.style.boxShadow = '0 0 0 4px #e53e3e';
+            }
+        }
+    });
 
     // ── Profile ──────────────────────────────────────────────────────
     const BASE_API = '/t/{{ tenant_slug }}/myfomo';

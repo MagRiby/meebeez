@@ -1,6 +1,7 @@
 """Barber app blueprint — full CRUD endpoints."""
 
 import os
+import secrets
 from functools import wraps
 
 import jwt as pyjwt
@@ -67,10 +68,15 @@ def login_required(*roles):
 @barber_bp.route("/")
 def index(tenant_slug):
     if "barber_user_id" in session and session.get("barber_tenant") == tenant_slug:
-        return redirect(url_for("barber.dashboard", tenant_slug=tenant_slug))
+        if session.get("barber_role") == "admin":
+            return redirect(url_for("barber.dashboard", tenant_slug=tenant_slug))
+        return redirect(url_for("barber.booking_page", tenant_slug=tenant_slug))
     if _sso_auto_login(tenant_slug):
-        return redirect(url_for("barber.dashboard", tenant_slug=tenant_slug))
-    return redirect("/home")
+        if session.get("barber_role") == "admin":
+            return redirect(url_for("barber.dashboard", tenant_slug=tenant_slug))
+        return redirect(url_for("barber.booking_page", tenant_slug=tenant_slug))
+    # Platform user not in barber DB — show public booking page
+    return redirect(url_for("barber.booking_page", tenant_slug=tenant_slug))
 
 
 @barber_bp.route("/login", methods=["GET", "POST"])
@@ -311,17 +317,17 @@ def list_appointments(tenant_slug):
 
     date_filter = request.args.get("date")
     if date_filter:
-        query += " AND a.date = ?"
+        query += " AND a.date = %s"
         params.append(date_filter)
 
     staff_filter = request.args.get("staff_id")
     if staff_filter:
-        query += " AND a.staff_id = ?"
+        query += " AND a.staff_id = %s"
         params.append(staff_filter)
 
     status_filter = request.args.get("status")
     if status_filter:
-        query += " AND a.status = ?"
+        query += " AND a.status = %s"
         params.append(status_filter)
 
     query += " ORDER BY a.date, a.time"
@@ -418,3 +424,163 @@ def delete_working_hours(tenant_slug, wh_id):
     db.execute("DELETE FROM working_hours WHERE id=%s", (wh_id,))
     db.commit()
     return jsonify({"message": "Working hours deleted"})
+
+
+# ── Public booking page ────────────────────────────────────────────
+
+@barber_bp.route("/book")
+def booking_page(tenant_slug):
+    """Public booking page — any platform user can view and book."""
+    from core.models import Tenant
+    tenant_obj = Tenant.query.filter_by(slug=tenant_slug).first()
+    business_name = tenant_obj.name if tenant_obj else tenant_slug
+    return render_template(
+        "barber/book.html",
+        tenant_slug=tenant_slug,
+        business_name=business_name,
+    )
+
+
+@barber_bp.route("/api/public/services", methods=["GET"])
+def public_services(tenant_slug):
+    """Return active services — no login required."""
+    db = get_barber_db(tenant_slug)
+    rows = db.execute(
+        "SELECT id, name, description, duration_minutes, price FROM services WHERE is_active=1 ORDER BY name"
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@barber_bp.route("/api/public/staff", methods=["GET"])
+def public_staff(tenant_slug):
+    """Return active staff — no login required."""
+    db = get_barber_db(tenant_slug)
+    rows = db.execute(
+        "SELECT id, name, specialization FROM staff WHERE is_active=1 ORDER BY name"
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@barber_bp.route("/api/public/availability", methods=["GET"])
+def public_availability(tenant_slug):
+    """Return available time slots for a given staff member and date."""
+    staff_id = request.args.get("staff_id", type=int)
+    date = request.args.get("date", "")
+    duration = request.args.get("duration", 30, type=int)
+    if not staff_id or not date:
+        return jsonify([])
+
+    db = get_barber_db(tenant_slug)
+
+    # Get working hours for day of week (0=Mon, 6=Sun)
+    from datetime import datetime
+    try:
+        dt = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return jsonify([])
+    dow = dt.weekday()  # 0=Mon
+
+    hours = db.execute(
+        "SELECT start_time, end_time FROM working_hours WHERE staff_id=%s AND day_of_week=%s AND is_active=1",
+        (staff_id, dow),
+    ).fetchall()
+    if not hours:
+        return jsonify([])
+
+    # Get existing appointments for that day
+    booked = db.execute(
+        "SELECT time, duration FROM appointments WHERE staff_id=%s AND date=%s AND status != 'cancelled'",
+        (staff_id, date),
+    ).fetchall()
+    booked_ranges = []
+    for b in booked:
+        t = b["time"]
+        if isinstance(t, str):
+            parts = t.split(":")
+            start_min = int(parts[0]) * 60 + int(parts[1])
+        else:
+            start_min = t.hour * 60 + t.minute
+        booked_ranges.append((start_min, start_min + (b["duration"] or 30)))
+
+    # Generate slots
+    slots = []
+    for wh in hours:
+        st, et = wh["start_time"], wh["end_time"]
+        if isinstance(st, str):
+            sh, sm = map(int, st.split(":"))
+            eh, em = map(int, et.split(":"))
+        else:
+            sh, sm = st.hour, st.minute
+            eh, em = et.hour, et.minute
+        cursor = sh * 60 + sm
+        end = eh * 60 + em
+        while cursor + duration <= end:
+            conflict = any(cursor < be and cursor + duration > bs for bs, be in booked_ranges)
+            if not conflict:
+                h, m = divmod(cursor, 60)
+                slots.append(f"{h:02d}:{m:02d}")
+            cursor += 30  # 30-min slot intervals
+
+    return jsonify(slots)
+
+
+@barber_bp.route("/api/public/book", methods=["POST"])
+def public_book(tenant_slug):
+    """Book an appointment — requires platform JWT."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return jsonify({"error": "Please log in to book an appointment"}), 401
+    token = auth[7:]
+
+    try:
+        payload = pyjwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+    except pyjwt.ExpiredSignatureError:
+        return jsonify({"error": "Session expired, please log in again"}), 401
+    except pyjwt.InvalidTokenError:
+        return jsonify({"error": "Invalid token"}), 401
+
+    email = payload.get("email", "")
+    user_id = payload.get("user_id")
+    if not email:
+        return jsonify({"error": "Invalid token"}), 401
+
+    name = email.split("@")[0]
+    try:
+        from core.models import User as PlatformUser
+        from core.extensions import db as platform_db
+        pu = platform_db.session.get(PlatformUser, user_id)
+        if pu:
+            name = pu.name
+    except Exception:
+        pass
+
+    data = request.get_json() or {}
+    for field in ("staff_id", "service_id", "date", "time"):
+        if not data.get(field):
+            return jsonify({"error": f"{field} is required"}), 400
+
+    db = get_barber_db(tenant_slug)
+
+    # Get or create client record
+    client = db.execute("SELECT id FROM clients WHERE email=%s", (email,)).fetchone()
+    if not client:
+        db.execute(
+            "INSERT INTO clients (name, email, phone, notes) VALUES (%s, %s, %s, %s)",
+            (name, email, "", "Platform user"),
+        )
+        db.commit()
+        client = db.execute("SELECT id FROM clients WHERE email=%s", (email,)).fetchone()
+
+    # Get service duration
+    svc = db.execute("SELECT duration_minutes FROM services WHERE id=%s", (data["service_id"],)).fetchone()
+    duration = svc["duration_minutes"] if svc else 30
+
+    db.execute(
+        """INSERT INTO appointments (client_id, staff_id, service_id, date, time, duration, status, notes)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+        (client["id"], data["staff_id"], data["service_id"],
+         data["date"], data["time"], duration,
+         "scheduled", data.get("notes", "")),
+    )
+    db.commit()
+    return jsonify({"ok": True, "message": "Appointment booked!"})

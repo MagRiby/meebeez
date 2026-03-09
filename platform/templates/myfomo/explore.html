@@ -70,7 +70,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-dark sticky-top" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="container-fluid">
-            <button class="btn btn-link text-white p-0 me-2" onclick="history.back()">
+            <button class="btn btn-link text-white p-0 me-2" title="Go back" onclick="history.back()">
                 <i class="fas fa-arrow-left fa-lg"></i>
             </button>
             <span class="navbar-brand mb-0 me-auto">{{ business_name }}</span>
@@ -154,7 +154,7 @@
                 return;
             }
             el.innerHTML = posts.map(p => `
-                <div class="product-card">
+                <div class="product-card" id="post-${p.id}">
                     ${p.image_path
                         ? `<div class="img-wrap" onclick="openPhoto('${esc(p.image_path)}', ${p.id}, '${esc(p.title)}')">
                                <img src="${esc(p.image_path)}" alt="${esc(p.title)}">
@@ -166,13 +166,15 @@
                         <p class="text-muted small mb-2">${esc((p.body || '').substring(0, 150))}</p>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             ${p.price ? `<span class="price">$${Number(p.price).toFixed(2)}</span>` : '<span></span>'}
-                            <span class="stock">${p.remaining_quantity > 0 ? p.remaining_quantity + ' left' : 'Out of stock'}</span>
+                            ${p.original_quantity > 0 ? `<span class="stock">${p.remaining_quantity > 0 ? p.remaining_quantity + ' left' : 'Out of stock'}</span>` : ''}
                         </div>
                         ${getCountdown(p.sale_ends_at)}
                         <div style="margin-top:auto;padding-top:8px">
-                        ${p.remaining_quantity > 0
-                            ? `<div class="follow-cta"><i class="fas fa-lock me-1"></i>Follow this store to book this item</div>`
-                            : `<button class="btn btn-secondary w-100" disabled>Sold Out</button>`}
+                        ${p.original_quantity > 0
+                            ? (p.remaining_quantity > 0
+                                ? `<div class="follow-cta"><i class="fas fa-lock me-1"></i>Follow this store to book this item</div>`
+                                : `<button class="btn btn-secondary w-100" disabled>Sold Out</button>`)
+                            : ''}
                         </div>
                     </div>
                 </div>
@@ -251,7 +253,17 @@
     function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
     trackEvent('page_view');
-    loadPosts();
+    loadPosts().then(() => {
+        const params = new URLSearchParams(window.location.search);
+        const itemId = params.get('item');
+        if (itemId) {
+            const card = document.getElementById('post-' + itemId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.style.boxShadow = '0 0 0 4px #e53e3e';
+            }
+        }
+    });
     loadProfileStrip();
     i18n.init().then(() => i18n.renderSwitcher(document.getElementById('langSwitcher')));
     </script>

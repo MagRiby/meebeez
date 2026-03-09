@@ -24,6 +24,18 @@ def create_app(config_name=None):
     cache.init_app(app)
     csrf.init_app(app)
 
+    # Ensure SQLAlchemy always uses the public schema.
+    # Neon's connection pooler reuses server connections whose search_path
+    # may have been changed to a tenant schema by psycopg3.
+    with app.app_context():
+        from sqlalchemy import event as sa_event
+
+        @sa_event.listens_for(db.engine, "checkout")
+        def _set_search_path(dbapi_conn, connection_record, connection_proxy):
+            cur = dbapi_conn.cursor()
+            cur.execute("SET search_path TO public")
+            cur.close()
+
     # Register blueprints
     from core.auth import auth_bp
     from core.marketplace import marketplace_bp

@@ -121,6 +121,7 @@ def close_all_connections(exception=None):
             if conn is not None:
                 try:
                     if not conn.closed:
+                        conn.rollback()
                         conn.close()
                 except Exception:
                     pass

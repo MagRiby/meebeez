@@ -70,7 +70,7 @@ def index(tenant_slug):
         return redirect(url_for("shop.dashboard", tenant_slug=tenant_slug))
     if _sso_auto_login(tenant_slug):
         return redirect(url_for("shop.dashboard", tenant_slug=tenant_slug))
-    return redirect("/home")
+    return redirect(url_for("shop.shop_login", tenant_slug=tenant_slug))
 
 
 @shop_bp.route("/login", methods=["GET", "POST"])
@@ -362,7 +362,7 @@ def create_purchase_order(tenant_slug):
         (data["supplier_id"], data.get("order_date", date.today().isoformat()),
          "pending", total, data.get("notes", "")),
     )
-    po_id = cur_result.fetchone()[0]
+    po_id = cur_result.fetchone()["id"]
 
     for item in items:
         db.execute(
@@ -474,7 +474,7 @@ def create_sale(tenant_slug):
          data.get("payment_method", "cash"), data.get("notes", ""),
          session.get("shop_user_id")),
     )
-    sale_id = cur_result.fetchone()[0]
+    sale_id = cur_result.fetchone()["id"]
 
     for item in items:
         db.execute(
