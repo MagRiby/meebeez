@@ -118,8 +118,8 @@
         /* ── Business cards ───────────────────────────────────── */
         .biz-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
         }
         .biz-card {
             background: #fff; border-radius: 16px; overflow: hidden;
@@ -129,7 +129,7 @@
         }
         .biz-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
         .biz-card-banner {
-            height: 72px;
+            height: 80px;
             display: flex; align-items: center; justify-content: center;
             position: relative;
         }
@@ -163,6 +163,47 @@
             display: inline-block; font-size: 12px; font-weight: 600;
             padding: 5px 14px; border-radius: 20px;
             background: var(--accent); color: #fff; border: none; cursor: pointer;
+        }
+
+        /* ── Featured carousel in biz cards ────────────────────── */
+        .biz-featured-wrap {
+            margin: 10px -16px 8px;
+            padding: 10px 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.08) 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .biz-featured-wrap h6 {
+            font-size: 11px; font-weight: 700; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 0 12px; margin-bottom: 6px;
+        }
+        .biz-featured-wrap h6 i { color: #fbbf24; }
+        .biz-featured-track {
+            display: flex; gap: 10px; width: max-content;
+            animation: bizFeatScroll var(--scroll-duration, 15s) linear infinite;
+            padding: 0 12px;
+        }
+        .biz-featured-track:hover,
+        .biz-featured-track.paused { animation-play-state: paused; }
+        @keyframes bizFeatScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .biz-feat-item {
+            flex: 0 0 140px; border-radius: 10px; overflow: hidden;
+            background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.1); cursor: pointer;
+        }
+        .biz-feat-item img {
+            width: 140px; height: 100px; object-fit: cover; display: block;
+        }
+        .biz-feat-item .bf-body { padding: 5px 8px; }
+        .biz-feat-item .bf-title {
+            font-size: 11px; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .biz-feat-item .bf-price {
+            font-size: 12px; font-weight: 700; color: var(--accent);
         }
 
         /* ── Right category sidebar ───────────────────────────── */
@@ -361,6 +402,28 @@
         window.location.href = '/t/' + slug + '/' + appType + '/?item=' + itemId;
     }
 
+    // ─── Featured carousel helper ────────────────────────────
+    function _bizFeaturedHtml(posts, slug, appType) {
+        if (!posts || !posts.length) return '';
+        const itemHtml = posts.map(p => `
+            <div class="biz-feat-item" onclick="event.stopPropagation(); openItem('${esc(slug)}','${esc(appType)}',${p.id})">
+                ${p.image_path
+                    ? `<img src="${esc(p.image_path)}" alt="${esc(p.title)}">`
+                    : `<div style="width:140px;height:100px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image text-muted"></i></div>`}
+                <div class="bf-body">
+                    <div class="bf-title">${esc(p.title)}</div>
+                    ${p.price ? `<div class="bf-price">$${Number(p.price).toFixed(2)}</div>` : ''}
+                </div>
+            </div>`).join('');
+        const duration = Math.max(posts.length * 3, 8);
+        return `<div class="biz-featured-wrap" onclick="event.stopPropagation()">
+            <h6><i class="fas fa-star me-1"></i>Featured</h6>
+            <div class="biz-featured-track" style="--scroll-duration:${duration}s">
+                ${itemHtml}${itemHtml}
+            </div>
+        </div>`;
+    }
+
     // ─── CLIENT VIEW ─────────────────────────────────────────
     function renderClientHome(businesses) {
         const homeView = document.getElementById('homeView');
@@ -410,6 +473,7 @@
                         const logoHtml = biz.logo_path
                             ? `<img class="biz-card-logo" src="${esc(biz.logo_path)}" alt="">`
                             : `<div class="biz-card-logo-placeholder"><i class="${catMeta.icon}" style="color:${catMeta.color}"></i></div>`;
+                        const featHtml = _bizFeaturedHtml(biz.featured_posts, biz.slug, biz.app_type);
                         return `
                             <div class="biz-card" onclick="openBusiness('${esc(biz.slug)}','${esc(biz.app_type)}')">
                                 <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
@@ -418,6 +482,7 @@
                                 <div class="biz-card-body">
                                     <div class="biz-card-name">${esc(biz.name)}</div>
                                     <div class="biz-card-tagline">${esc(biz.tagline || '')}</div>
+                                    ${featHtml}
                                     <button class="biz-card-btn" style="background:${p};color:${txt}">Open</button>
                                 </div>
                             </div>`;
@@ -522,6 +587,7 @@
                 : `<div class="biz-card-logo-placeholder"><i class="${appMeta.icon}" style="color:${appMeta.color}"></i></div>`;
             const statusNote = t.status !== 'active'
                 ? `<span style="font-size:10px;color:#f97316;font-weight:600;margin-right:4px">${t.status}</span>` : '';
+            const featHtml = _bizFeaturedHtml(t.featured_posts, t.slug, t.app_type);
             const card = document.createElement('div');
             card.className = 'biz-card';
             card.innerHTML = `
@@ -531,6 +597,7 @@
                 <div class="biz-card-body">
                     <div class="biz-card-name">${esc(t.name)}</div>
                     <div class="biz-card-meta">${statusNote}${esc(t.app_type)}</div>
+                    ${featHtml}
                     <button class="biz-card-btn" style="background:${p};color:${txt}">Manage</button>
                 </div>`;
             card.addEventListener('click', () => { window.location.href = '/t/' + t.slug + '/' + t.app_type + '/'; });

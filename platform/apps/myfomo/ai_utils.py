@@ -4,6 +4,7 @@ import uuid
 import base64
 import urllib.request
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_API = "https://api.openai.com/v1"
@@ -84,15 +85,17 @@ def _parse_json_response(text):
     return json.loads(text)
 
 
-def analyze_image(image_bytes):
+def analyze_image(image_bytes, language="en"):
     """Analyze an uploaded image with GPT-4o-mini vision to detect products."""
     try:
         b64 = base64.b64encode(image_bytes).decode("utf-8")
+        lang_name = _LANG_NAMES.get(language, "English")
         messages = [{
             "role": "user",
             "content": [
                 {"type": "text", "text": (
                     "Analyze this product image for a retail store. "
+                    f"Write the name and description in {lang_name}. "
                     "Return ONLY valid JSON with this exact structure, no extra text:\n"
                     '{"items": [{"name": "...", "description": "...", "suggested_price": 0.00}], '
                     '"suggested_tags": ["tag1", "tag2", "tag3"]}'
@@ -112,19 +115,31 @@ def analyze_image(image_bytes):
         }
 
 
-def generate_ad_copy(product_info, tone="promotional"):
+_LANG_NAMES = {"en": "English", "fr": "French", "ar": "Arabic"}
+
+_TONE_INSTRUCTIONS = {
+    "direct": "Use a direct, straightforward tone. Be clear and concise, no fluff.",
+    "engaging": "Use an engaging, friendly tone. Make it conversational and appealing.",
+    "over_the_top": "Use an extremely enthusiastic, over-the-top exciting tone. Use superlatives, exclamation marks, create maximum hype and urgency!",
+}
+
+
+def generate_ad_copy(product_info, tone="engaging", language="en"):
     """Generate advertising copy for a product using OpenAI."""
     try:
         name = product_info.get("name", "Amazing Product")
         description = product_info.get("description", "")
         price = product_info.get("price", "")
+        lang_name = _LANG_NAMES.get(language, "English")
+        tone_instruction = _TONE_INSTRUCTIONS.get(tone, _TONE_INSTRUCTIONS["engaging"])
         messages = [
-            {"role": "system", "content": "You are an expert social media marketer. Return ONLY valid JSON."},
+            {"role": "system", "content": f"You are an expert social media marketer. {tone_instruction} Write ALL text in {lang_name}. Return ONLY valid JSON."},
             {"role": "user", "content": (
-                f"Generate {tone} advertising copy for this product:\n"
+                f"Generate advertising copy for this product:\n"
                 f"Name: {name}\n"
                 f"Description: {description}\n"
                 f"Price: {price}\n\n"
+                f"IMPORTANT: Write everything in {lang_name}.\n"
                 "Return ONLY valid JSON with this exact structure, no extra text:\n"
                 '{"headline": "catchy headline", "body": "compelling ad body text (2-3 sentences)", '
                 '"hashtags": ["#Tag1", "#Tag2", "#Tag3"]}'
@@ -167,6 +182,44 @@ def generate_event_description(event_info):
         }
 
 
+def generate_ad_text_overlay(product_info, tone="engaging", language="en"):
+    """Generate short, punchy text snippets for canvas overlay layers."""
+    try:
+        name = product_info.get("name", "Amazing Product")
+        description = product_info.get("description", "")
+        price = product_info.get("price", "")
+        post_type = product_info.get("post_type", "product")
+        price_line = f"Price: {price}\n" if price else ""
+        lang_name = _LANG_NAMES.get(language, "English")
+        tone_instruction = _TONE_INSTRUCTIONS.get(tone, _TONE_INSTRUCTIONS["engaging"])
+        messages = [
+            {"role": "system", "content": (
+                f"You are an expert ad designer. {tone_instruction} Generate very short, punchy text for "
+                "overlaying on a product advertisement image. Keep text SHORT so it "
+                f"fits on the image without being cut off. Write ALL text in {lang_name}. Return ONLY valid JSON."
+            )},
+            {"role": "user", "content": (
+                f"Generate overlay text for this {post_type} ad:\n"
+                f"Name: {name}\n"
+                f"Description: {description}\n"
+                f"{price_line}\n"
+                f"IMPORTANT: Write everything in {lang_name}.\n"
+                "Return ONLY valid JSON with this exact structure:\n"
+                '{"headline": "2-5 word catchy headline", '
+                '"tagline": "short tagline or subtext (max 8 words)", '
+                '"cta": "call to action (2-3 words like Shop Now, Get Yours)"}'
+            )},
+        ]
+        text = _chat(messages, max_tokens=256)
+        return _parse_json_response(text)
+    except Exception:
+        return {
+            "headline": name if name else "New Arrival",
+            "tagline": "Don't miss out",
+            "cta": "Shop Now",
+        }
+
+
 def analyze_logo(image_bytes):
     """Analyze a logo to extract brand colors, style, typography, and mood."""
     try:
@@ -199,14 +252,45 @@ def analyze_logo(image_bytes):
         }
 
 
+_AD_STYLE_VARIATIONS = [
+    "Use a clean, modern aesthetic with bold contrast and sharp lines.",
+    "Use a warm, lifestyle-focused composition with soft natural lighting.",
+    "Use a vibrant, eye-catching pop-art inspired look with dynamic color.",
+]
+
+
+def _single_image_edit(image_bytes, filename, mime_type, prompt):
+    """Make one images/edits call and return a single image dict or None."""
+    try:
+        result = _openai_multipart_request(
+            "images/edits",
+            fields={
+                "model": "gpt-image-1",
+                "prompt": prompt,
+                "n": "1",
+                "size": "1024x1024",
+            },
+            files={
+                "image": (filename, image_bytes, mime_type),
+            },
+        )
+        item = (result.get("data") or [{}])[0]
+        if "b64_json" in item:
+            return {"image_base64": item["b64_json"], "mime_type": "image/png"}
+        if "url" in item:
+            return {"image_url": item["url"]}
+    except Exception:
+        pass
+    return None
+
+
 def generate_ad_image(image_bytes, product_name="", style="promotional",
                       background_text="", overlay_text="",
                       brand_colors=None, brand_style="", brand_mood=""):
-    """Generate an AI ad image using the OpenAI Images Edit API (gpt-image-1).
+    """Generate 3 diverse AI ad images using parallel calls with varied prompts.
 
-    Sends the user's actual photo to /images/edits, which transforms it into
-    a styled ad version while preserving the real product appearance.
-    Returns {"image_base64": "...", "mime_type": "..."} or {"error": "..."}.
+    Sends the user's actual photo to /images/edits three times, each with a
+    different style variation, to produce visually distinct ad suggestions.
     """
     try:
         # Detect file type from magic bytes
@@ -235,7 +319,7 @@ def generate_ad_image(image_bytes, product_name="", style="promotional",
                 f"{f'Use these brand colors as inspiration: {color_str}. ' if color_str else ''}"
             )
 
-        prompt = (
+        base_prompt = (
             f"Transform this product photo into a professional, polished {style} "
             f"advertising image for social media (Instagram/Facebook). "
             f"{f'Product: {product_name}. ' if product_name else ''}"
@@ -246,32 +330,17 @@ def generate_ad_image(image_bytes, product_name="", style="promotional",
             f"{text_part}"
         )
 
-        result = _openai_multipart_request(
-            "images/edits",
-            fields={
-                "model": "gpt-image-1",
-                "prompt": prompt,
-                "n": "3",
-                "size": "1024x1024",
-            },
-            files={
-                "image": (filename, image_bytes, mime_type),
-            },
-        )
-
-        data = result.get("data", [])
-        if not data:
-            return {"error": "No image was returned by the API."}
-
-        images = []
-        for item in data:
-            if "b64_json" in item:
-                images.append({"image_base64": item["b64_json"], "mime_type": "image/png"})
-            elif "url" in item:
-                images.append({"image_url": item["url"]})
+        # Make 3 parallel calls, each with a different style variation
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            futures = [
+                pool.submit(_single_image_edit, image_bytes, filename, mime_type,
+                            base_prompt + " " + variation)
+                for variation in _AD_STYLE_VARIATIONS
+            ]
+            images = [f.result() for f in futures if f.result() is not None]
 
         if not images:
-            return {"error": "No image was returned by the API."}
+            return {"error": "No images could be generated by the API."}
 
         return {"images": images}
     except urllib.error.HTTPError as e:

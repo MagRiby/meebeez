@@ -16,7 +16,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from apps.myfomo.db_utils import get_myfomo_db, get_follows_db
-from apps.myfomo.ai_utils import analyze_image, analyze_logo, generate_ad_copy, generate_event_description, generate_ad_image
+from apps.myfomo.ai_utils import analyze_image, analyze_logo, generate_ad_copy, generate_event_description, generate_ad_image, generate_ad_text_overlay
 
 myfomo_bp = Blueprint(
     "myfomo",
@@ -471,6 +471,11 @@ def my_businesses(tenant_slug):
             tdb = get_myfomo_db(slug)
             s = tdb.execute("SELECT * FROM store_settings WHERE id=1").fetchone()
             colors = json.loads(s["brand_colors"] or "[]") if s else []
+            # Fetch featured published posts for this store
+            featured_rows = tdb.execute(
+                "SELECT id, title, image_path, price FROM posts WHERE featured=1 AND status='published' ORDER BY id DESC LIMIT 10"
+            ).fetchall()
+            featured_posts = [dict(r) for r in featured_rows]
             result.append({
                 "slug": slug,
                 "name": biz_name,
@@ -478,6 +483,7 @@ def my_businesses(tenant_slug):
                 "logo_path": s["logo_path"] if s else "",
                 "category": (s["category"] if s and s["category"] else "general"),
                 "brand_colors": colors,
+                "featured_posts": featured_posts,
             })
         except Exception:
             pass
@@ -517,16 +523,18 @@ def create_post(tenant_slug):
     original_qty = int(data.get("original_quantity", 0))
     cur_result = db.execute(
         """INSERT INTO posts (title, body, image_path, original_image_path, post_type, price,
-           original_quantity, remaining_quantity, sale_ends_at, status, ai_generated)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+           original_quantity, remaining_quantity, sale_ends_at, status, ai_generated, featured)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
         (title, data.get("body", ""), data.get("image_path", ""),
          data.get("original_image_path", ""),
          data.get("post_type", "product"), data.get("price", 0.0),
          original_qty, original_qty,
          data.get("sale_ends_at"), data.get("status", "draft"),
-         1 if data.get("ai_generated") else 0),
+         1 if data.get("ai_generated") else 0,
+         1 if data.get("featured") else 0),
     )
     new_id = cur_result.fetchone()["id"]
+    db.commit()
     return jsonify({"message": "Post created", "id": new_id}), 201
 
 
@@ -542,7 +550,7 @@ def update_post(tenant_slug, post_id):
     db.execute(
         """UPDATE posts SET title=%s, body=%s, image_path=%s, original_image_path=%s,
            post_type=%s, price=%s,
-           original_quantity=%s, remaining_quantity=%s, sale_ends_at=%s, status=%s, ai_generated=%s
+           original_quantity=%s, remaining_quantity=%s, sale_ends_at=%s, status=%s, ai_generated=%s, featured=%s
            WHERE id=%s""",
         (data.get("title", existing["title"]),
          data.get("body", existing["body"]),
@@ -555,6 +563,7 @@ def update_post(tenant_slug, post_id):
          data.get("sale_ends_at", existing["sale_ends_at"]),
          data.get("status", existing["status"]),
          1 if data.get("ai_generated", existing["ai_generated"]) else 0,
+         1 if data.get("featured", existing.get("featured", 0)) else 0,
          post_id),
     )
     db.commit()
@@ -599,6 +608,7 @@ def create_event(tenant_slug):
          1 if data.get("ai_generated") else 0),
     )
     new_id = cur_result.fetchone()["id"]
+    db.commit()
     return jsonify({"message": "Event created", "id": new_id}), 201
 
 
@@ -734,7 +744,8 @@ def ai_analyze_image(tenant_slug):
         return jsonify({"error": "No image file provided"}), 400
     file = request.files["image"]
     image_bytes = file.read()
-    result = analyze_image(image_bytes)
+    language = request.form.get("language", request.args.get("language", "en"))
+    result = analyze_image(image_bytes, language=language)
     return jsonify(result)
 
 
@@ -742,7 +753,11 @@ def ai_analyze_image(tenant_slug):
 @login_required("admin")
 def ai_generate_copy(tenant_slug):
     data = request.get_json() or {}
-    result = generate_ad_copy(data, tone=data.get("tone", "promotional"))
+    result = generate_ad_copy(
+        data,
+        tone=data.get("tone", "engaging"),
+        language=data.get("language", "en"),
+    )
     return jsonify(result)
 
 
@@ -751,6 +766,18 @@ def ai_generate_copy(tenant_slug):
 def ai_generate_event(tenant_slug):
     data = request.get_json() or {}
     result = generate_event_description(data)
+    return jsonify(result)
+
+
+@myfomo_bp.route("/api/ai/generate-text-overlay", methods=["POST"])
+@login_required("admin")
+def ai_generate_text_overlay(tenant_slug):
+    data = request.get_json() or {}
+    result = generate_ad_text_overlay(
+        data,
+        tone=data.get("tone", "engaging"),
+        language=data.get("language", "en"),
+    )
     return jsonify(result)
 
 

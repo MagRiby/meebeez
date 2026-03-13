@@ -69,8 +69,8 @@
         /* ── Business cards ────────────────────────────────────── */
         .biz-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
         }
         .biz-card {
             background: #fff;
@@ -83,7 +83,7 @@
         }
         .biz-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
         .biz-card-banner {
-            height: 72px;
+            height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -140,6 +140,67 @@
             color: #fff;
             border: none;
             cursor: pointer;
+        }
+
+        /* ── Featured carousel in biz cards ────────────────────── */
+        .biz-featured-wrap {
+            margin: 10px -16px 8px;
+            padding: 10px 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.08) 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .biz-featured-wrap h6 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 12px;
+            margin-bottom: 6px;
+        }
+        .biz-featured-wrap h6 i { color: #fbbf24; }
+        .biz-featured-track {
+            display: flex;
+            gap: 10px;
+            width: max-content;
+            animation: bizFeaturedScroll var(--scroll-duration, 15s) linear infinite;
+            padding: 0 12px;
+        }
+        .biz-featured-track:hover,
+        .biz-featured-track.paused { animation-play-state: paused; }
+        @keyframes bizFeaturedScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .biz-featured-item {
+            flex: 0 0 140px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        .biz-featured-item img {
+            width: 140px;
+            height: 100px;
+            object-fit: cover;
+            display: block;
+        }
+        .biz-featured-item .bf-body {
+            padding: 5px 8px;
+        }
+        .biz-featured-item .bf-title {
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .biz-featured-item .bf-price {
+            font-size: 12px;
+            font-weight: 700;
+            color: #4f46e5;
         }
 
         /* ── Right category sidebar ────────────────────────────── */
@@ -334,6 +395,8 @@
                         const logoHtml = biz.logo_path
                             ? `<img class="biz-card-logo" src="${biz.logo_path}" alt="">`
                             : `<div class="biz-card-logo-placeholder"><i class="${meta.icon}" style="color:${meta.color}"></i></div>`;
+                        const fp = biz.featured_posts || [];
+                        const featuredHtml = fp.length ? _bizFeaturedHtml(fp, biz.slug) : '';
                         return `
                             <div class="biz-card" onclick="openStore('${esc(biz.slug)}')">
                                 <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
@@ -342,6 +405,7 @@
                                 <div class="biz-card-body">
                                     <div class="biz-card-name">${esc(biz.name)}</div>
                                     <div class="biz-card-tagline">${esc(biz.tagline || '')}</div>
+                                    ${featuredHtml}
                                     <button class="biz-card-btn" style="background:${p};color:${txt}">${i18n.t('home.openStore')}</button>
                                 </div>
                             </div>`;
@@ -361,6 +425,29 @@
 
     function openStore(slug) {
         window.location.href = '/t/' + slug + '/myfomo/switch';
+    }
+
+    function _bizFeaturedItemHtml(p, slug) {
+        return `<div class="biz-featured-item" onclick="event.stopPropagation(); openStore('${esc(slug)}')">
+            ${p.image_path
+                ? `<img src="${p.image_path}" alt="${esc(p.title)}">`
+                : `<div style="width:140px;height:100px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image text-muted"></i></div>`}
+            <div class="bf-body">
+                <div class="bf-title">${esc(p.title)}</div>
+                ${p.price ? `<div class="bf-price">$${Number(p.price).toFixed(2)}</div>` : ''}
+            </div>
+        </div>`;
+    }
+
+    function _bizFeaturedHtml(posts, slug) {
+        const items = posts.map(p => _bizFeaturedItemHtml(p, slug)).join('');
+        const duration = Math.max(posts.length * 3, 8);
+        return `<div class="biz-featured-wrap" onclick="event.stopPropagation()">
+            <h6><i class="fas fa-star me-1"></i>${i18n.t('featured.featuredItems')}</h6>
+            <div class="biz-featured-track" style="--scroll-duration:${duration}s">
+                ${items}${items}
+            </div>
+        </div>`;
     }
 
     async function loadBusinesses() {

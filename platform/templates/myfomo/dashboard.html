@@ -54,8 +54,98 @@
         .form-card h6 { font-weight: 600; margin-bottom: 12px; }
         .badge { font-size: 12px; }
         .section-title { font-weight: 600; font-size: 18px; margin-bottom: 12px; }
+
+        /* ── Featured carousel ─────────────────────────────────── */
+        .featured-carousel {
+            position: relative;
+            margin-bottom: 18px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #302b63 100%);
+            padding: 14px 0 14px;
+        }
+        .featured-carousel h6 {
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 0 16px;
+            margin-bottom: 10px;
+        }
+        .featured-carousel h6 i { color: #fbbf24; }
+        .featured-track-wrap {
+            overflow: hidden;
+            padding: 0 0 6px;
+        }
+        .featured-track {
+            display: flex;
+            gap: 12px;
+            width: max-content;
+            animation: featuredScroll var(--scroll-duration, 20s) linear infinite;
+            padding: 0 16px;
+        }
+        .featured-track:hover,
+        .featured-track.paused { animation-play-state: paused; }
+        @keyframes featuredScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .featured-track::-webkit-scrollbar { display: none; }
+        .featured-slide {
+            flex: 0 0 200px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+            cursor: pointer;
+        }
+        .featured-slide img {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+        .featured-slide .fs-body {
+            padding: 8px 10px;
+        }
+        .featured-slide .fs-title {
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .featured-slide .fs-price {
+            font-size: 14px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .featured-check { cursor: pointer; }
+        .featured-check input { cursor: pointer; }
+
         .ai-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; }
         .ai-btn:hover { opacity: 0.9; color: #fff; }
+
+        .ai-gen-bar {
+            display: flex; align-items: center; gap: 0;
+            border-radius: 10px; overflow: hidden;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            padding: 3px;
+        }
+        .ai-gen-btn {
+            flex: 1; border: none; color: #fff; font-weight: 600; font-size: 14px;
+            padding: 10px 16px; border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            transition: box-shadow 0.2s;
+        }
+        .ai-gen-btn:hover, .ai-gen-btn:active { color: #fff; box-shadow: 0 0 16px rgba(102,126,234,0.5); }
+        .ai-gen-opts-btn {
+            border: none; color: #aab4f0; font-size: 16px;
+            padding: 10px 14px; background: transparent;
+            border-left: 1px solid rgba(255,255,255,0.12);
+            transition: color 0.2s;
+        }
+        .ai-gen-opts-btn:hover { color: #fff; }
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
         .stat-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 14px 12px; text-align: center; }
         .stat-card--cost { border-color: #ffc107; background: #fffdf0; }
@@ -64,8 +154,17 @@
         .stat-lbl { font-size: 11px; color: #6c757d; margin-top: 2px; }
 
         /* ── Ad image suggestions ─────────────────────────────────── */
-        .ad-suggestion-item { border-radius: 8px; padding: 3px; transition: outline 0.1s; }
-        .ad-suggestion-item.selected { outline: 3px solid #0d6efd; }
+        .ad-suggestion-item { border-radius: 8px; padding: 3px; transition: outline 0.1s, transform 0.1s; }
+        .ad-suggestion-item.selected { outline: 3px solid #0d6efd; transform: scale(1.02); }
+        #imgSelectItems { scroll-snap-type: x mandatory; }
+        #imgSelectItems .ad-suggestion-item { scroll-snap-align: start; }
+
+        /* ── Chosen image preview ─────────────────────────────────── */
+        #chosenImagePreview img { border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+        /* ── Add text button glow ─────────────────────────────────── */
+        #addTextBtn:hover { box-shadow: 0 0 24px rgba(102,126,234,0.5); transform: translateY(-1px); }
+        #addTextBtn { transition: box-shadow 0.2s, transform 0.2s; }
 
         /* ── Horizontal scroll for ad option groups (mobile) ─────── */
         .opt-scroll {
@@ -158,13 +257,15 @@
 
         <!-- ═══ FEED TAB ═══ -->
         <div class="tab-pane active" id="tab-feed">
+            <div id="featuredCarousel"></div>
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="section-title mb-0" data-i18n="dashboard.posts">Posts</h5>
                 <select class="form-select form-select-sm" style="width:auto" id="feedFilter" onchange="loadPosts()">
-                    <option value="">All</option>
-                    <option value="published">Published</option>
-                    <option value="draft">Draft</option>
-                    <option value="archived">Archived</option>
+                    <option value="" data-i18n="dashboard.all">All</option>
+                    <option value="published" data-i18n="dashboard.published">Published</option>
+                    <option value="draft" data-i18n="dashboard.draft">Draft</option>
+                    <option value="archived" data-i18n="dashboard.archived">Archived</option>
+                    <option value="featured" data-i18n="featured.featured">Featured</option>
                 </select>
             </div>
             <div id="postsList"></div>
@@ -173,7 +274,9 @@
         <!-- ═══ NEW POST TAB ═══ -->
         <div class="tab-pane" id="tab-newpost">
             <h5 class="section-title" data-i18n="post.createPost">Create Post</h5>
-            <div class="form-card">
+
+            <!-- ── 1. Photo Capture ───────────────────────────────── -->
+            <div class="form-card" id="photoSection">
                 <h6><i class="fas fa-camera me-1"></i> <span data-i18n="post.photo">Photo</span></h6>
                 <input type="file" class="d-none" id="postImage" accept="image/*">
                 <input type="file" class="d-none" id="postImageCamera" accept="image/*" capture="environment">
@@ -183,29 +286,34 @@
                     <button class="btn btn-outline-info btn-sm" id="loadLogoBtn" onclick="loadLogoAsImage()" style="display:none" title="Use store logo as image"><i class="fas fa-trademark"></i></button>
                 </div>
                 <div id="postImagePreview" class="mb-2"></div>
-                <div class="opt-scroll align-items-center">
-                    <button class="btn ai-btn btn-sm" onclick="aiGenerateAdImage()"><i class="fas fa-palette me-1"></i><span data-i18n="post.generateAdImage">Generate Ad Image</span></button>
-                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#adOptions" aria-expanded="false" aria-controls="adOptions">
-                        <i class="fas fa-sliders-h me-1"></i>Options
+                <!-- AI analysis result (hidden initially) -->
+                <div id="aiImageResult" class="mt-2"></div>
+            </div>
+
+            <!-- ── 2. Image Selection (hidden until photo taken) ──── -->
+            <div class="form-card" id="imageSelectionSection" style="display:none">
+                <h6><i class="fas fa-images me-1"></i> <span data-i18n="post.chooseImage">Choose Your Image</span></h6>
+                <div id="imageSelectionGrid" class="mb-3"></div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn ai-gen-btn flex-fill" onclick="aiGenerateAdImage()">
+                        <i class="fas fa-wand-magic-sparkles me-1"></i><span data-i18n="post.generateMoreSuggestions">Generate More Suggestions</span>
                     </button>
-                    <button class="btn btn-outline-warning btn-sm" onclick="restoreOriginalImage()" title="Revert to original photo">
-                        <i class="fas fa-undo me-1"></i>Original
+                    <button class="btn ai-gen-opts-btn" type="button" data-bs-toggle="collapse" data-bs-target="#adOptions" aria-expanded="false" aria-controls="adOptions" style="background:linear-gradient(135deg,#0f0c29,#302b63);border-radius:8px;padding:10px 14px">
+                        <i class="fas fa-sliders-h"></i>
                     </button>
                 </div>
                 <div class="collapse mt-2" id="adOptions">
                     <div class="ad-opts-strip">
-                        <!-- Background card -->
                         <div class="ad-opt-card">
                             <div class="small fw-semibold text-muted mb-1"><i class="fas fa-fill-drip me-1"></i>Background</div>
                             <div class="opt-scroll mb-1">
-                                <button type="button" class="btn btn-sm btn-primary adBgOpt"   data-val="basic">AI Choice</button>
+                                <button type="button" class="btn btn-sm btn-primary adBgOpt" data-val="basic">AI Choice</button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary adBgOpt" data-val="brand">Brand Colors</button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary adBgOpt" data-val="audience">Target Audience</button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary adBgOpt" data-val="custom">Custom</button>
                             </div>
                             <input type="text" class="form-control form-control-sm d-none" id="adBgCustom" placeholder="Describe the background">
                         </div>
-                        <!-- Detail card -->
                         <div class="ad-opt-card">
                             <div class="small fw-semibold text-muted mb-1"><i class="fas fa-sliders-h me-1"></i>Detail Level</div>
                             <div class="d-flex justify-content-between small text-muted mb-1">
@@ -216,7 +324,6 @@
                             <input type="range" class="form-range" id="adBgDetail" min="1" max="5" value="3"
                                 oninput="document.getElementById('adDetailLabel').textContent = ['','Minimal','Simple','Moderate','Detailed','Intricate'][this.value]">
                         </div>
-                        <!-- Frame card -->
                         <div class="ad-opt-card">
                             <div class="small fw-semibold text-muted mb-1"><i class="fas fa-border-style me-1"></i>Frame</div>
                             <div class="form-check form-switch mb-0">
@@ -226,21 +333,65 @@
                         </div>
                     </div>
                 </div>
-                <div id="aiImageResult" class="mt-2"></div>
-                <div id="aiAdImageResult" class="mt-2"></div>
+            </div>
 
-                <!-- ── Text Editor (canvas-based) ─────────────────────── -->
-                <div class="mt-2">
-                    <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#textEditorSection">
-                        <i class="fas fa-font me-1"></i>Add Text to Image
-                    </button>
+            <!-- ── 3. Chosen Image Preview (hidden until image picked) ── -->
+            <div class="form-card" id="chosenImageSection" style="display:none">
+                <div id="chosenImagePreview" class="text-center mb-2"></div>
+            </div>
+
+            <!-- ── 4. Ad Copy (hidden until image picked) ─────────── -->
+            <div class="form-card" id="adCopySection" style="display:none">
+                <h6><i class="fas fa-pen-fancy me-1"></i> <span data-i18n="post.adCopy">Ad Copy</span></h6>
+                <label class="form-label small text-muted mb-1" data-i18n="post.title">Title</label>
+                <input type="text" class="form-control mb-2" id="postTitle" data-i18n-placeholder="post.title" placeholder="Title">
+                <label class="form-label small text-muted mb-1" data-i18n="post.descriptionLabel">Description</label>
+                <textarea class="form-control mb-2" id="postBody" rows="3" data-i18n-placeholder="post.description" placeholder="Description / ad copy"></textarea>
+                <div class="small fw-semibold text-muted mb-1"><i class="fas fa-magic me-1"></i><span data-i18n="post.regenerateAdCopy">Regenerate Ad Copy</span></div>
+                <div class="d-flex gap-2 mb-2 flex-wrap">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="aiGenerateCopy('direct')"><i class="fas fa-bullseye me-1"></i><span data-i18n="post.toneDirect">Direct</span></button>
+                    <button class="btn btn-sm ai-btn" onclick="aiGenerateCopy('engaging')"><i class="fas fa-comments me-1"></i><span data-i18n="post.toneEngaging">Engaging</span></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="aiGenerateCopy('over_the_top')"><i class="fas fa-fire me-1"></i><span data-i18n="post.toneOverTheTop">Over the Top</span></button>
                 </div>
-                <div class="collapse mt-2" id="textEditorSection">
+                <div id="aiCopyResult" class="mb-2"></div>
+            </div>
+
+            <!-- ── 5. Details (hidden until image picked) ─────────── -->
+            <div class="form-card" id="detailsSection" style="display:none">
+                <h6><i class="fas fa-info-circle me-1"></i> <span data-i18n="post.details">Details</span></h6>
+                <select class="form-select mb-2" id="postType">
+                    <option value="product" data-i18n="post.product">Product</option>
+                    <option value="announcement" data-i18n="post.announcement">Announcement</option>
+                </select>
+                <div class="mb-2">
+                    <input type="number" class="form-control" id="postPrice" data-i18n-placeholder="post.price" placeholder="Price" step="0.01" min="0">
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="postLimitedStock" onchange="document.getElementById('postQtyWrap').style.display=this.checked?'':'none'">
+                    <label class="form-check-label small" for="postLimitedStock" data-i18n="post.limitedStock">Limited stock</label>
+                </div>
+                <div id="postQtyWrap" style="display:none" class="mb-2">
+                    <input type="number" class="form-control" id="postQty" data-i18n-placeholder="post.quantity" placeholder="Quantity available" min="1">
+                </div>
+                <label class="form-label small text-muted" data-i18n="post.saleEndsAt">Sale ends at</label>
+                <input type="datetime-local" class="form-control mb-2" id="postSaleEnds">
+            </div>
+
+            <!-- ── 6. Add Text (prominent, hidden until image picked) ── -->
+            <div id="addTextSection" style="display:none">
+                <button class="btn btn-lg w-100 mb-3" id="addTextBtn" onclick="openTextEditor()"
+                    style="background:linear-gradient(135deg,#1a1a2e,#302b63);color:#fff;font-weight:700;font-size:18px;padding:16px;border-radius:12px;border:2px solid #667eea;letter-spacing:0.5px">
+                    <i class="fas fa-font me-2"></i><span data-i18n="post.addTextToImage">Add Text to Image</span>
+                </button>
+                <div class="form-card" id="textEditorToggleWrap" style="display:none">
                     <div id="textEditorWrap">
                         <canvas id="textEditorCanvas"></canvas>
-                        <!-- Row 1: Add + Font + Size -->
+                        <!-- Row 1: Add + AI options -->
                         <div class="te-toolbar">
                             <button class="btn btn-sm btn-light" onclick="teAddText()" title="Add text"><i class="fas fa-plus"></i> Text</button>
+                            <div class="te-sep"></div>
+                            <button class="btn btn-sm ai-btn" onclick="teAIBrandFont(this)" title="Use brand font from logo"><i class="fas fa-trademark me-1"></i><span data-i18n="post.ai.brandFont">Brand Font</span></button>
+                            <button class="btn btn-sm ai-btn" onclick="teAIText(this)" title="Let AI suggest text"><i class="fas fa-magic me-1"></i><span data-i18n="post.ai.aiSuggest">AI Suggest</span></button>
                             <div class="te-sep"></div>
                             <select class="form-select form-select-sm" id="teFont" onchange="teUpdateStyle()" style="width:auto;flex-shrink:0">
                                 <optgroup label="Display">
@@ -311,38 +462,17 @@
                     <p class="text-muted small mt-1 mb-0"><i class="fas fa-info-circle me-1"></i>Tap "Add Text", then drag to position. Pinch/resize handles to scale.</p>
                 </div>
             </div>
-            <div class="form-card">
-                <h6><i class="fas fa-pen me-1"></i> <span data-i18n="post.details">Details</span></h6>
-                <input type="text" class="form-control mb-2" id="postTitle" data-i18n-placeholder="post.title" placeholder="Title">
-                <textarea class="form-control mb-2" id="postBody" rows="3" data-i18n-placeholder="post.description" placeholder="Description / ad copy"></textarea>
-                <button class="btn ai-btn btn-sm mb-2" onclick="aiGenerateCopy()"><i class="fas fa-magic me-1"></i><span data-i18n="post.generateAdCopy">Generate Ad Copy</span></button>
-                <div id="aiCopyResult" class="mb-2"></div>
-                <select class="form-select mb-2" id="postType">
-                    <option value="product">Product</option>
-                    <option value="announcement">Announcement</option>
-                </select>
-                <div class="mb-2">
-                    <input type="number" class="form-control" id="postPrice" placeholder="Price" step="0.01" min="0">
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="postLimitedStock" onchange="document.getElementById('postQtyWrap').style.display=this.checked?'':'none'">
-                    <label class="form-check-label small" for="postLimitedStock">Limited stock</label>
-                </div>
-                <div id="postQtyWrap" style="display:none" class="mb-2">
-                    <input type="number" class="form-control" id="postQty" placeholder="Quantity available" min="1">
-                </div>
-                <label class="form-label small text-muted">Sale ends at</label>
-                <input type="datetime-local" class="form-control mb-3" id="postSaleEnds">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary flex-fill" onclick="createPost('published')"><i class="fas fa-paper-plane me-1"></i><span data-i18n="post.publish">Publish</span></button>
-                    <button class="btn btn-outline-secondary flex-fill" onclick="createPost('draft')"><i class="fas fa-save me-1"></i><span data-i18n="post.saveDraft">Save Draft</span></button>
-                </div>
+
+            <!-- ── 7. Publish / Save (hidden until image picked) ──── -->
+            <div class="d-flex gap-2 mt-3" id="publishSection" style="display:none">
+                <button class="btn btn-primary btn-lg flex-fill" onclick="createPost('published')" style="font-weight:700"><i class="fas fa-paper-plane me-1"></i><span data-i18n="post.publish">Publish</span></button>
+                <button class="btn btn-outline-secondary btn-lg flex-fill" onclick="createPost('draft')"><i class="fas fa-save me-1"></i><span data-i18n="post.saveDraft">Save Draft</span></button>
             </div>
         </div>
 
         <!-- ═══ EVENTS TAB ═══ -->
         <div class="tab-pane" id="tab-events">
-            <h5 class="section-title">Events</h5>
+            <h5 class="section-title" data-i18n="event.events">Events</h5>
             <div class="form-card">
                 <h6><i class="fas fa-plus me-1"></i> New Event</h6>
                 <input type="text" class="form-control mb-2" id="eventTitle" placeholder="Event title">
@@ -368,13 +498,13 @@
 
         <!-- ═══ BOOKINGS TAB ═══ -->
         <div class="tab-pane" id="tab-bookings">
-            <h5 class="section-title">Bookings</h5>
+            <h5 class="section-title" data-i18n="booking.bookings">Bookings</h5>
             <div id="bookingsList"></div>
         </div>
 
         <!-- ═══ ANALYTICS TAB ═══ -->
         <div class="tab-pane" id="tab-analytics">
-            <h5 class="section-title">Analytics</h5>
+            <h5 class="section-title" data-i18n="analytics.analytics">Analytics</h5>
             <div id="analyticsContent">
                 <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
             </div>
@@ -453,57 +583,56 @@
                     <input type="hidden" id="editPostImagePath">
                     <input type="hidden" id="editPostOriginalImagePath">
                     <div id="editOriginalPreview" class="mb-3" style="display:none">
-                        <label class="form-label small fw-semibold mb-1"><i class="fas fa-image me-1"></i>Original Photo</label>
+                        <label class="form-label small fw-semibold mb-1"><i class="fas fa-image me-1"></i><span data-i18n="common.originalPhoto">Original Photo</span></label>
                         <div class="d-flex align-items-end gap-2">
                             <img id="editOriginalImg" src="" class="rounded" style="max-height:80px;object-fit:contain;background:#f8f9fa;cursor:zoom-in"
                                  onclick="openAdPreview(this.src,'feed')">
                             <button class="btn btn-sm btn-outline-warning" onclick="useEditImage(document.getElementById('editPostOriginalImagePath').value)">
-                                <i class="fas fa-undo me-1"></i>Restore
+                                <i class="fas fa-undo me-1"></i><span data-i18n="common.restore">Restore</span>
                             </button>
                         </div>
                     </div>
                     <div id="editPostSuggestions" class="mb-3" style="display:none">
-                        <label class="form-label small fw-semibold mb-2"><i class="fas fa-palette me-1"></i>AI Image Suggestions — pick a different one</label>
+                        <label class="form-label small fw-semibold mb-2"><i class="fas fa-palette me-1"></i><span data-i18n="post.ai.generateMore">AI Image Suggestions</span></label>
                         <div id="editSuggGrid"></div>
                         <div class="mt-2">
                             <button class="btn btn-sm btn-link p-0 text-decoration-none" type="button"
                                     data-bs-toggle="collapse" data-bs-target="#editRegenCollapse" aria-expanded="false">
-                                <i class="fas fa-redo me-1"></i>Generate more suggestions
+                                <i class="fas fa-redo me-1"></i><span data-i18n="post.ai.generateMore">Generate more suggestions</span>
                             </button>
                             <div class="collapse" id="editRegenCollapse">
                                 <div class="mt-2 p-2 rounded" style="background:#f0f0ff;border:1px dashed #b0b0e0">
-                                    <p class="small text-muted mb-2">Generates 3 new suggestions from the post's current image and adds them to the list above.</p>
-                                    <button class="btn ai-btn btn-sm" onclick="editRegenerateImages()"><i class="fas fa-palette me-1"></i>Generate</button>
+                                    <button class="btn ai-btn btn-sm" onclick="editRegenerateImages()"><i class="fas fa-palette me-1"></i><span data-i18n="post.ai.generate">Generate</span></button>
                                     <div id="editRegenResult" class="mt-2"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <input type="text" class="form-control mb-2" id="editPostTitle" placeholder="Title">
-                    <textarea class="form-control mb-2" id="editPostBody" rows="3" placeholder="Body"></textarea>
+                    <input type="text" class="form-control mb-2" id="editPostTitle" data-i18n-placeholder="post.title" placeholder="Title">
+                    <textarea class="form-control mb-2" id="editPostBody" rows="3" data-i18n-placeholder="post.description" placeholder="Body"></textarea>
                     <select class="form-select mb-2" id="editPostType">
-                        <option value="product">Product</option>
-                        <option value="announcement">Announcement</option>
+                        <option value="product" data-i18n="post.product">Product</option>
+                        <option value="announcement" data-i18n="post.announcement">Announcement</option>
                     </select>
                     <div class="mb-2">
-                        <input type="number" class="form-control" id="editPostPrice" placeholder="Price" step="0.01" min="0">
+                        <input type="number" class="form-control" id="editPostPrice" data-i18n-placeholder="post.price" placeholder="Price" step="0.01" min="0">
                     </div>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" id="editPostLimitedStock" onchange="document.getElementById('editPostQtyWrap').style.display=this.checked?'':'none'">
-                        <label class="form-check-label small" for="editPostLimitedStock">Limited stock</label>
+                        <label class="form-check-label small" for="editPostLimitedStock" data-i18n="post.limitedStock">Limited stock</label>
                     </div>
                     <div id="editPostQtyWrap" style="display:none" class="mb-2">
-                        <input type="number" class="form-control" id="editPostQty" placeholder="Remaining quantity" min="0">
+                        <input type="number" class="form-control" id="editPostQty" data-i18n-placeholder="post.quantity" placeholder="Remaining quantity" min="0">
                     </div>
                     <select class="form-select mb-2" id="editPostStatus">
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="archived">Archived</option>
+                        <option value="draft" data-i18n="dashboard.draft">Draft</option>
+                        <option value="published" data-i18n="dashboard.published">Published</option>
+                        <option value="archived" data-i18n="dashboard.archived">Archived</option>
                     </select>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-primary" onclick="savePost()">Save</button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="post.cancel">Cancel</button>
+                    <button class="btn btn-primary" onclick="savePost()" data-i18n="post.save">Save</button>
                 </div>
             </div>
         </div>
@@ -605,11 +734,15 @@
             if (cropTarget === 'post') {
                 uploadedImageUrl = '';
                 originalImageUrl = '';
-                // Auto-analyze as soon as photo is ready
+                _postOriginalBlobUrl = url;
+                // Auto-analyze AND auto-generate suggestions
                 document.getElementById('aiImageResult').innerHTML =
-                    '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Analyzing photo…</div>';
+                    `<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> ${i18n.t('post.analyzingPhoto')}</div>`;
                 cropModal.hide();
                 aiAnalyzeImage();
+                // Show image selection section with original + spinner for AI suggestions
+                showImageSelectionSection(url);
+                aiGenerateAdImage();
             } else {
                 cropModal.hide();
             }
@@ -674,39 +807,101 @@
         return '';
     }
 
+    const MAX_FEATURED = 10;
+
     /* ── Posts ──────────────────────────────────────────────────── */
     async function loadPosts() {
         const filter = document.getElementById('feedFilter').value;
-        const qs = filter ? `?status=${filter}` : '';
-        const posts = await api(`/api/posts${qs}`);
+        // "featured" is a client-side filter, fetch all posts
+        const qs = (filter && filter !== 'featured') ? `?status=${filter}` : '';
+        let posts = await api(`/api/posts${qs}`);
+        if (filter === 'featured') posts = posts.filter(p => p.featured);
         const el = document.getElementById('postsList');
-        if (!posts.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('dashboard.noPosts') + '</p>'; return; }
+        if (!posts.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('dashboard.noPosts') + '</p>'; renderFeaturedCarousel([]); return; }
+        const _statusKey = { published: 'dashboard.published', draft: 'dashboard.draft', archived: 'dashboard.archived' };
+        const _typeKey = { product: 'post.product', announcement: 'post.announcement' };
         el.innerHTML = posts.map(p => `
             <div class="post-card">
                 ${p.image_path ? `<img src="${p.image_path}" alt="" style="cursor:zoom-in" onclick="openAdPreview('${p.image_path}','feed')">` : ''}
-                ${p.original_image_path && p.original_image_path !== p.image_path ? `<div class="d-flex align-items-center gap-1 mb-1"><img src="${p.original_image_path}" style="height:28px;width:28px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6" title="Original photo"><span class="text-muted" style="font-size:10px">Original saved</span></div>` : ''}
+                ${p.original_image_path && p.original_image_path !== p.image_path ? `<div class="d-flex align-items-center gap-1 mb-1"><img src="${p.original_image_path}" style="height:28px;width:28px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6" title="${i18n.t('common.originalPhoto')}"><span class="text-muted" style="font-size:10px">${i18n.t('common.originalSaved')}</span></div>` : ''}
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <strong>${esc(p.title)}</strong>
-                        <span class="badge ${p.status === 'published' ? 'bg-success' : p.status === 'draft' ? 'bg-warning text-dark' : 'bg-secondary'} ms-1">${p.status}</span>
+                        <span class="badge ${p.status === 'published' ? 'bg-success' : p.status === 'draft' ? 'bg-warning text-dark' : 'bg-secondary'} ms-1">${i18n.t(_statusKey[p.status] || p.status)}</span>
                     </div>
-                    <span class="badge bg-info">${p.post_type}</span>
+                    <span class="badge bg-info">${i18n.t(_typeKey[p.post_type] || p.post_type)}</span>
                 </div>
                 <p class="text-muted small mt-1 mb-1">${esc(p.body || '').substring(0, 120)}</p>
                 <div class="d-flex justify-content-between align-items-center small">
-                    <span>${p.price ? '$' + Number(p.price).toFixed(2) : ''}${p.original_quantity > 0 ? ' | Stock: ' + p.remaining_quantity : ''}</span>
-                    <div class="d-flex gap-1">
+                    <span>${p.price ? '$' + Number(p.price).toFixed(2) : ''}${p.original_quantity > 0 ? ' | ' + i18n.t('post.quantity') + ': ' + p.remaining_quantity : ''}</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="featured-check d-flex align-items-center gap-1" title="${i18n.t('featured.featured')}">
+                            <input type="checkbox" ${p.featured ? 'checked' : ''} onchange="toggleFeatured(${p.id}, this.checked)">
+                            <i class="fas fa-star" style="color:${p.featured ? '#fbbf24' : '#d1d5db'};font-size:14px"></i>
+                        </label>
                         <button class="btn btn-sm btn-outline-primary" onclick="editPost(${p.id})"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="deletePost(${p.id})"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>
         `).join('');
+
+        // Render featured carousel from published featured posts
+        const featured = posts.filter(p => p.featured && p.status === 'published');
+        renderFeaturedCarousel(featured);
+    }
+
+    function _featuredSlideHtml(p) {
+        return `<div class="featured-slide" onclick="openAdPreview('${p.image_path || ''}','feed')">
+            ${p.image_path
+                ? `<img src="${p.image_path}" alt="${esc(p.title)}">`
+                : `<div style="width:200px;height:150px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image fa-2x text-muted"></i></div>`}
+            <div class="fs-body">
+                <div class="fs-title">${esc(p.title)}</div>
+                ${p.price ? `<div class="fs-price">$${Number(p.price).toFixed(2)}</div>` : ''}
+            </div>
+        </div>`;
+    }
+
+    function renderFeaturedCarousel(featured) {
+        const el = document.getElementById('featuredCarousel');
+        if (!featured.length) { el.innerHTML = ''; return; }
+        // Duplicate items for seamless infinite loop
+        const slides = featured.map(p => _featuredSlideHtml(p)).join('');
+        const duration = Math.max(featured.length * 3, 8);
+        el.innerHTML = `
+            <div class="featured-carousel">
+                <h6><i class="fas fa-star me-1"></i> ${i18n.t('featured.featuredItems')}</h6>
+                <div class="featured-track-wrap">
+                    <div class="featured-track" style="--scroll-duration:${duration}s">
+                        ${slides}${slides}
+                    </div>
+                </div>
+            </div>`;
+        // Pause on touch for mobile
+        const track = el.querySelector('.featured-track');
+        track.addEventListener('touchstart', () => track.classList.add('paused'), { passive: true });
+        track.addEventListener('touchend', () => setTimeout(() => track.classList.remove('paused'), 2000));
+    }
+
+    async function toggleFeatured(postId, checked) {
+        if (checked) {
+            // Check current featured count
+            const allPosts = await api('/api/posts');
+            const featuredCount = allPosts.filter(p => p.featured).length;
+            if (featuredCount >= MAX_FEATURED) {
+                alert(i18n.t('featured.maxReached'));
+                loadPosts(); // re-render to uncheck the box
+                return;
+            }
+        }
+        await api(`/api/posts/${postId}`, { method: 'PUT', body: { featured: checked ? 1 : 0 } });
+        loadPosts();
     }
 
     async function createPost(status) {
         const title = document.getElementById('postTitle').value.trim();
-        if (!title) { alert('Title is required'); return; }
+        if (!title) { alert(i18n.t('post.titleRequired')); return; }
 
         // Upload original image (cropped or raw) if not already uploaded
         if ((croppedBlobs.post || document.getElementById('postImage').files.length || document.getElementById('postImageCamera').files.length) && !originalImageUrl) {
@@ -726,12 +921,8 @@
             status
         }});
         // Save AI suggestions to localStorage so they're available in edit modal
-        if (result && result.id) {
-            const suggUrls = [...document.querySelectorAll('#aiAdImageResult .ad-suggestion-item')]
-                .map(el => el.dataset.url).filter(Boolean);
-            if (suggUrls.length) {
-                localStorage.setItem('post_sugg_' + result.id, JSON.stringify(suggUrls));
-            }
+        if (result && result.id && _allSuggestionUrls.length) {
+            localStorage.setItem('post_sugg_' + result.id, JSON.stringify(_allSuggestionUrls));
         }
         // Reset form
         ['postTitle','postBody','postPrice','postQty','postSaleEnds'].forEach(id => document.getElementById(id).value = '');
@@ -741,10 +932,16 @@
         document.getElementById('postImageCamera').value = '';
         document.getElementById('postImagePreview').innerHTML = '';
         document.getElementById('aiImageResult').innerHTML = '';
-        document.getElementById('aiAdImageResult').innerHTML = '';
         document.getElementById('aiCopyResult').innerHTML = '';
+        document.getElementById('imageSelectionGrid').innerHTML = '';
+        document.getElementById('chosenImagePreview').innerHTML = '';
+        document.getElementById('textEditorToggleWrap').style.display = 'none';
+        _hidePostSections();
+        if (_teCanvas) { _teCanvas.dispose(); _teCanvas = null; _teTextCount = 0; }
         uploadedImageUrl = '';
         originalImageUrl = '';
+        _postOriginalBlobUrl = '';
+        _allSuggestionUrls = [];
         croppedBlobs.post = null;
         switchTab('feed');
     }
@@ -794,7 +991,7 @@
             ${urls.map(url => `
                 <div class="ad-suggestion-item text-center" data-url="${url}">
                     <img src="${url}" class="img-fluid rounded mb-1" style="width:100%;max-height:100px;object-fit:contain;background:#f8f9fa;cursor:zoom-in" onclick="openAdPreview('${url}','edit')">
-                    <button class="btn btn-sm btn-outline-primary w-100 use-btn" onclick="useEditImage('${url}')"><i class="fas fa-check me-1"></i>Use</button>
+                    <button class="btn btn-sm btn-outline-primary w-100 use-btn" onclick="useEditImage('${url}')"><i class="fas fa-check me-1"></i>${i18n.t('post.ai.use')}</button>
                 </div>
             `).join('')}
         </div>`;
@@ -803,7 +1000,7 @@
                 if (item.dataset.url === activeImg) {
                     item.classList.add('selected');
                     const btn = item.querySelector('.use-btn');
-                    if (btn) { btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected'; btn.className = 'btn btn-sm btn-primary w-100 use-btn'; }
+                    if (btn) { btn.innerHTML = `<i class="fas fa-check-circle me-1"></i>${i18n.t('post.ai.selected')}`; btn.className = 'btn btn-sm btn-primary w-100 use-btn'; }
                 }
             });
         }
@@ -817,10 +1014,10 @@
             const btn = item.querySelector('.use-btn');
             if (!btn) return;
             if (sel) {
-                btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected';
+                btn.innerHTML = `<i class="fas fa-check-circle me-1"></i>${i18n.t('post.ai.selected')}`;
                 btn.className = 'btn btn-sm btn-primary w-100 use-btn';
             } else {
-                btn.innerHTML = '<i class="fas fa-check me-1"></i>Use';
+                btn.innerHTML = `<i class="fas fa-check me-1"></i>${i18n.t('post.ai.use')}`;
                 btn.className = 'btn btn-sm btn-outline-primary w-100 use-btn';
             }
         });
@@ -830,8 +1027,8 @@
         const postId = document.getElementById('editPostId').value;
         const imgPath = document.getElementById('editPostImagePath').value;
         const el = document.getElementById('editRegenResult');
-        if (!imgPath) { el.innerHTML = '<div class="alert alert-warning small py-2">No image to regenerate from.</div>'; return; }
-        el.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Generating 3 new suggestions…</div>';
+        if (!imgPath) { el.innerHTML = `<div class="alert alert-warning small py-2">${i18n.t('post.ai.noImage')}</div>`; return; }
+        el.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> ${i18n.t('post.ai.generating')}</div>`;
         try {
             const imgRes = await fetch(imgPath);
             const imgBlob = await imgRes.blob();
@@ -853,9 +1050,9 @@
             // Re-render grid with all suggestions, keep current selection
             const currentImg = document.getElementById('editPostImagePath').value;
             renderEditSuggGrid(allUrls, currentImg);
-            el.innerHTML = `<div class="alert alert-success small py-2">${newUrls.length} new suggestions added.</div>`;
+            el.innerHTML = `<div class="alert alert-success small py-2">${newUrls.length} ${i18n.t('post.ai.newSuggestions')}</div>`;
         } catch(err) {
-            el.innerHTML = '<div class="alert alert-warning small py-2">Failed to generate. Try again.</div>';
+            el.innerHTML = `<div class="alert alert-warning small py-2">${i18n.t('post.failedGenImages')}</div>`;
         }
     }
 
@@ -888,12 +1085,13 @@
         const events = await api('/api/events');
         const el = document.getElementById('eventsList');
         if (!events.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('event.noEvents') + '</p>'; return; }
+        const _evtStatusKey = { upcoming: 'event.upcoming', cancelled: 'booking.cancelled', past: 'dashboard.archived' };
         el.innerHTML = events.map(e => `
             <div class="post-card">
                 ${e.image_path ? `<img src="${e.image_path}" alt="">` : ''}
                 <div class="d-flex justify-content-between">
                     <strong>${esc(e.title)}</strong>
-                    <span class="badge ${e.status === 'upcoming' ? 'bg-primary' : e.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'}">${e.status}</span>
+                    <span class="badge ${e.status === 'upcoming' ? 'bg-primary' : e.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'}">${i18n.t(_evtStatusKey[e.status] || e.status)}</span>
                 </div>
                 <p class="text-muted small mt-1 mb-1">${esc(e.description || '').substring(0, 120)}</p>
                 <div class="small text-muted">
@@ -910,7 +1108,7 @@
 
     async function createEvent() {
         const title = document.getElementById('eventTitle').value.trim();
-        if (!title) { alert('Title is required'); return; }
+        if (!title) { alert(i18n.t('post.titleRequired')); return; }
 
         let imgUrl = '';
         if (croppedBlobs.event || document.getElementById('eventImage').files.length || document.getElementById('eventImageCamera').files.length) {
@@ -945,16 +1143,17 @@
         const bookings = await api('/api/bookings');
         const el = document.getElementById('bookingsList');
         if (!bookings.length) { el.innerHTML = '<p class="text-muted text-center">' + i18n.t('booking.noBookings') + '</p>'; return; }
+        const _bkStatusKey = { pending: 'booking.pending', confirmed: 'booking.confirmed', cancelled: 'booking.cancelled', collected: 'booking.collected' };
         el.innerHTML = bookings.map(b => `
             <div class="post-card">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <strong>${esc(b.post_title || 'Post #' + b.post_id)}</strong>
-                        <div class="small text-muted">By: ${esc(b.user_name || b.user_username || 'User #' + b.user_id)} | Qty: ${b.quantity}</div>
-                        ${b.notes ? `<div class="small text-muted">Notes: ${esc(b.notes)}</div>` : ''}
+                        <strong>${esc(b.post_title || i18n.t('booking.post') + b.post_id)}</strong>
+                        <div class="small text-muted">${i18n.t('booking.by')} ${esc(b.user_name || b.user_username || 'User #' + b.user_id)} | ${i18n.t('booking.qty')}: ${b.quantity}</div>
+                        ${b.notes ? `<div class="small text-muted">${i18n.t('booking.notes')}: ${esc(b.notes)}</div>` : ''}
                     </div>
                     <select class="form-select form-select-sm" style="width:auto" onchange="updateBooking(${b.id}, this.value)">
-                        ${['pending','confirmed','cancelled','collected'].map(s => `<option value="${s}" ${b.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        ${['pending','confirmed','cancelled','collected'].map(s => `<option value="${s}" ${b.status === s ? 'selected' : ''}>${i18n.t(_bkStatusKey[s] || s)}</option>`).join('')}
                     </select>
                 </div>
             </div>
@@ -972,21 +1171,22 @@
         el.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
         try {
             const d = await api('/api/analytics');
+            const _anBkKey = { pending: 'booking.pending', confirmed: 'booking.confirmed', cancelled: 'booking.cancelled', collected: 'booking.collected' };
             const bookingBadges = (d.booking_statuses || []).map(s =>
-                `<span class="badge bg-secondary me-1">${s.status}: ${s.count}</span>`
+                `<span class="badge bg-secondary me-1">${i18n.t(_anBkKey[s.status] || s.status)}: ${s.count}</span>`
             ).join('');
             const topItems = (d.top_items || []).map(i =>
                 `<div class="d-flex justify-content-between small py-1 border-bottom">
                     <span>${esc(i.name)}</span>
-                    <span class="fw-semibold">${i.views} views</span>
+                    <span class="fw-semibold">${i.views} ${i18n.t('analytics.views')}</span>
                 </div>`
-            ).join('') || '<p class="text-muted small">No item views yet</p>';
+            ).join('') || `<p class="text-muted small">${i18n.t('analytics.noItemViews')}</p>`;
             const aiPosts = (d.ai_per_post || []).map(p =>
                 `<div class="d-flex justify-content-between small py-1 border-bottom">
                     <span>${esc(p.title)}</span>
-                    <span>${p.gens} gen · <strong>$${p.cost.toFixed(4)}</strong></span>
+                    <span>${p.gens} ${i18n.t('analytics.gen')} · <strong>$${p.cost.toFixed(4)}</strong></span>
                 </div>`
-            ).join('') || '<p class="text-muted small">No generations yet</p>';
+            ).join('') || `<p class="text-muted small">${i18n.t('analytics.noGenerations')}</p>`;
             const recentIcons = {
                 page_view: 'fa-eye', item_view: 'fa-image', booking: 'fa-shopping-bag',
                 ai_generation: 'fa-palette', follow: 'fa-user-plus',
@@ -997,63 +1197,63 @@
                     <span class="flex-grow-1">${esc(e.name)}</span>
                     <span class="text-muted" style="font-size:11px">${e.at ? e.at.substring(0,16) : ''}</span>
                 </div>`
-            ).join('') || '<p class="text-muted small">No activity yet</p>';
+            ).join('') || `<p class="text-muted small">${i18n.t('analytics.noActivity')}</p>`;
 
             el.innerHTML = `
                 <!-- Stat cards -->
                 <div class="stat-grid mb-3">
                     <div class="stat-card">
                         <div class="stat-val">${d.followers}</div>
-                        <div class="stat-lbl"><i class="fas fa-user-friends me-1"></i>Followers</div>
+                        <div class="stat-lbl"><i class="fas fa-user-friends me-1"></i>${i18n.t('analytics.followers')}</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-val">${d.page_views}</div>
-                        <div class="stat-lbl"><i class="fas fa-eye me-1"></i>Page Views</div>
+                        <div class="stat-lbl"><i class="fas fa-eye me-1"></i>${i18n.t('analytics.pageViews')}</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-val">${d.item_views}</div>
-                        <div class="stat-lbl"><i class="fas fa-image me-1"></i>Item Views</div>
+                        <div class="stat-lbl"><i class="fas fa-image me-1"></i>${i18n.t('analytics.itemViews')}</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-val">${d.total_bookings}</div>
-                        <div class="stat-lbl"><i class="fas fa-shopping-bag me-1"></i>Bookings</div>
+                        <div class="stat-lbl"><i class="fas fa-shopping-bag me-1"></i>${i18n.t('analytics.bookings')}</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-val">${d.ai_generations}</div>
-                        <div class="stat-lbl"><i class="fas fa-palette me-1"></i>AI Generations</div>
+                        <div class="stat-lbl"><i class="fas fa-palette me-1"></i>${i18n.t('analytics.aiGenerations')}</div>
                     </div>
                     <div class="stat-card stat-card--cost">
                         <div class="stat-val">$${(d.estimated_ai_cost || 0).toFixed(3)}</div>
-                        <div class="stat-lbl"><i class="fas fa-dollar-sign me-1"></i>AI Spend</div>
+                        <div class="stat-lbl"><i class="fas fa-dollar-sign me-1"></i>${i18n.t('analytics.aiSpend')}</div>
                     </div>
                 </div>
                 <!-- Bookings breakdown -->
                 <div class="form-card mb-3">
-                    <h6 class="mb-2"><i class="fas fa-shopping-bag me-1"></i>Bookings by Status</h6>
-                    <div>${bookingBadges || '<span class="text-muted small">No bookings yet</span>'}</div>
+                    <h6 class="mb-2"><i class="fas fa-shopping-bag me-1"></i>${i18n.t('analytics.bookingsByStatus')}</h6>
+                    <div>${bookingBadges || `<span class="text-muted small">${i18n.t('analytics.noBookings')}</span>`}</div>
                 </div>
                 <!-- Two columns on desktop -->
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="form-card h-100">
-                            <h6 class="mb-2"><i class="fas fa-fire me-1"></i>Top Viewed Items</h6>
+                            <h6 class="mb-2"><i class="fas fa-fire me-1"></i>${i18n.t('analytics.topItems')}</h6>
                             ${topItems}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-card h-100">
-                            <h6 class="mb-2"><i class="fas fa-palette me-1"></i>AI Cost per Post</h6>
+                            <h6 class="mb-2"><i class="fas fa-palette me-1"></i>${i18n.t('analytics.aiCostPerPost')}</h6>
                             ${aiPosts}
                         </div>
                     </div>
                 </div>
                 <!-- Recent activity -->
                 <div class="form-card mt-3">
-                    <h6 class="mb-2"><i class="fas fa-stream me-1"></i>Recent Activity</h6>
+                    <h6 class="mb-2"><i class="fas fa-stream me-1"></i>${i18n.t('analytics.recentActivity')}</h6>
                     ${recent}
                 </div>`;
         } catch(e) {
-            el.innerHTML = '<p class="text-muted text-center py-4">Could not load analytics.</p>';
+            el.innerHTML = `<p class="text-muted text-center py-4">${i18n.t('analytics.loadFailed')}</p>`;
         }
     }
 
@@ -1092,7 +1292,7 @@
     document.getElementById('logoInput').addEventListener('change', async function() {
         if (!this.files.length) return;
         const statusEl = document.getElementById('brandingStatus');
-        statusEl.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Analyzing logo…</div>';
+        statusEl.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> ${i18n.t('post.analyzingLogo')}</div>`;
         const fd = new FormData();
         fd.append('logo', this.files[0]);
         try {
@@ -1111,20 +1311,24 @@
 
     async function loadLogoAsImage() {
         const data = await api('/api/branding');
-        if (!data.logo_path) { alert('No logo uploaded yet. Go to Settings → Brand Identity.'); return; }
+        if (!data.logo_path) { alert(i18n.t('post.noLogoYet')); return; }
         try {
             const res = await fetch(data.logo_path);
             const blob = await res.blob();
             croppedBlobs.post = blob;
             uploadedImageUrl = '';
+            originalImageUrl = '';
             const url = URL.createObjectURL(blob);
+            _postOriginalBlobUrl = url;
             document.getElementById('postImagePreview').innerHTML =
                 `<img src="${url}" class="img-fluid rounded" style="max-height:200px">`;
             document.getElementById('aiImageResult').innerHTML =
-                '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> Analyzing logo…</div>';
+                `<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> ${i18n.t('post.analyzingLogo')}</div>`;
             aiAnalyzeImage();
+            showImageSelectionSection(url);
+            aiGenerateAdImage();
         } catch(e) {
-            alert('Could not load logo. Try again.');
+            alert(i18n.t('post.couldNotLoadLogo'));
         }
     }
 
@@ -1147,6 +1351,103 @@
 
     function _adVal(cls) {
         return document.querySelector('.' + cls + '.btn-primary')?.dataset.val || '';
+    }
+
+    /* ── New Post flow helpers ─────────────────────────────────── */
+    let _postOriginalBlobUrl = '';
+    let _allSuggestionUrls = [];
+
+    function showImageSelectionSection(originalUrl) {
+        const section = document.getElementById('imageSelectionSection');
+        section.style.display = '';
+        const grid = document.getElementById('imageSelectionGrid');
+        // Show original image as first option + loading placeholder for AI suggestions
+        grid.innerHTML = `
+            <p class="small text-muted mb-2">${i18n.t('post.chooseImageHint')}</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px" id="imgSelectItems">
+                <div class="ad-suggestion-item text-center" data-url="${originalUrl}" data-type="original">
+                    <div class="small fw-semibold text-muted mb-1"><i class="fas fa-camera me-1"></i>${i18n.t('post.original')}</div>
+                    <img src="${originalUrl}" class="img-fluid rounded mb-1" style="max-height:150px;width:100%;object-fit:contain;background:#f8f9fa;cursor:pointer" onclick="selectPostImage('${originalUrl}','original')">
+                    <button class="btn btn-sm btn-outline-primary w-100" onclick="selectPostImage('${originalUrl}','original')"><i class="fas fa-check me-1"></i>${i18n.t('post.ai.use')}</button>
+                </div>
+                <div id="aiSuggestionsLoading" class="d-flex align-items-center justify-content-center" style="min-height:120px">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm text-primary mb-1"></div>
+                        <div class="small text-muted">${i18n.t('post.generatingSuggestions')}</div>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function renderSuggestionsInGrid(urls) {
+        const loading = document.getElementById('aiSuggestionsLoading');
+        if (loading) loading.remove();
+        const grid = document.getElementById('imgSelectItems');
+        if (!grid) return;
+        urls.forEach(url => {
+            if (grid.querySelector(`[data-url="${url}"]`)) return; // skip duplicates
+            const div = document.createElement('div');
+            div.className = 'ad-suggestion-item text-center';
+            div.dataset.url = url;
+            div.innerHTML = `
+                <div class="small fw-semibold text-muted mb-1"><i class="fas fa-wand-magic-sparkles me-1"></i>AI</div>
+                <img src="${url}" class="img-fluid rounded mb-1" style="max-height:150px;width:100%;object-fit:contain;background:#f8f9fa;cursor:pointer" onclick="selectPostImage('${url}','ai')">
+                <button class="btn btn-sm btn-outline-primary w-100" onclick="selectPostImage('${url}','ai')"><i class="fas fa-check me-1"></i>${i18n.t('post.ai.use')}</button>`;
+            grid.appendChild(div);
+        });
+    }
+
+    function selectPostImage(url, type) {
+        uploadedImageUrl = url;
+        // Highlight selection in grid
+        document.querySelectorAll('#imgSelectItems .ad-suggestion-item').forEach(item => {
+            const sel = item.dataset.url === url;
+            item.classList.toggle('selected', sel);
+            const btn = item.querySelector('button');
+            if (!btn) return;
+            if (sel) {
+                btn.innerHTML = `<i class="fas fa-check-circle me-1"></i>${i18n.t('post.ai.selected')}`;
+                btn.className = 'btn btn-sm btn-primary w-100';
+            } else {
+                btn.innerHTML = `<i class="fas fa-check me-1"></i>${i18n.t('post.ai.use')}`;
+                btn.className = 'btn btn-sm btn-outline-primary w-100';
+            }
+        });
+        // Show chosen image preview
+        document.getElementById('chosenImageSection').style.display = '';
+        document.getElementById('chosenImagePreview').innerHTML =
+            `<img src="${url}" class="img-fluid rounded" style="max-height:280px">`;
+        // Reveal remaining sections
+        _revealPostSections();
+        // Update text editor if open
+        _showTextEditor();
+    }
+
+    function _revealPostSections() {
+        ['adCopySection','detailsSection','addTextSection','publishSection'].forEach(id => {
+            document.getElementById(id).style.display = '';
+        });
+        // Auto-generate ad copy if title and body are empty (from AI analysis)
+        const title = document.getElementById('postTitle').value.trim();
+        const body = document.getElementById('postBody').value.trim();
+        if (!title && !body) {
+            // will be populated by aiAnalyzeImage callback
+        }
+    }
+
+    function _hidePostSections() {
+        ['imageSelectionSection','chosenImageSection','adCopySection','detailsSection','addTextSection','publishSection'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+    }
+
+    function openTextEditor() {
+        const wrap = document.getElementById('textEditorToggleWrap');
+        wrap.style.display = '';
+        // Auto-load canvas with the chosen image
+        teLoadImage();
+        // Scroll to editor
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /* ── Business Profile ─────────────────────────────────────── */
@@ -1206,7 +1507,7 @@
             const cam = document.getElementById('postImageCamera');
             const gal = document.getElementById('postImage');
             if (!cam.files.length && !gal.files.length) {
-                alert('Please take a photo or select an image first'); return;
+                alert(i18n.t('post.selectImageFirst')); return;
             }
         }
         const fd = new FormData();
@@ -1217,18 +1518,32 @@
             const gal = document.getElementById('postImage');
             fd.append('image', cam.files.length ? cam.files[0] : gal.files[0]);
         }
+        fd.append('language', i18n.locale);
         const res = await fetch(BASE + '/api/ai/analyze-image', { method: 'POST', body: fd });
         const data = await res.json();
         const el = document.getElementById('aiImageResult');
         if (data.items && data.items.length) {
             const item = data.items[0];
             el.innerHTML = `<div class="alert alert-info small py-2">
-                <strong>AI Detected:</strong> ${esc(item.name)}<br>
-                ${esc(item.description)}<br>
-                Suggested price: $${item.suggested_price}
-                <br><button class="btn btn-sm btn-outline-primary mt-1" onclick="document.getElementById('postTitle').value='${esc(item.name)}'; document.getElementById('postPrice').value=${item.suggested_price}">Use Suggestion</button>
+                <strong>${i18n.t('post.ai.detected')}:</strong> ${esc(item.name)} — $${item.suggested_price}
             </div>`;
+            // Auto-populate Ad Copy fields
+            document.getElementById('postTitle').value = item.name || '';
+            document.getElementById('postBody').value = item.description || '';
+            document.getElementById('postPrice').value = item.suggested_price || '';
+            // Also trigger ad copy generation for richer text
+            aiGenerateCopyAuto(item.name);
         }
+    }
+
+    async function aiGenerateCopyAuto(productName) {
+        try {
+            const res = await api('/api/ai/generate-copy', { method: 'POST', body: { name: productName || 'Amazing Product', language: i18n.locale, tone: 'engaging' } });
+            if (res.headline && res.body) {
+                document.getElementById('postTitle').value = res.headline;
+                document.getElementById('postBody').value = res.body + (res.hashtags ? '\n' + res.hashtags.join(' ') : '');
+            }
+        } catch(e) { /* silent — user can manually edit */ }
     }
 
     async function aiGenerateAdImage() {
@@ -1236,7 +1551,7 @@
         const cam = document.getElementById('postImageCamera');
         const gal = document.getElementById('postImage');
         if (!blob && !cam.files.length && !gal.files.length) {
-            alert('Please take a photo or select an image first'); return;
+            alert(i18n.t('post.selectImageFirst')); return;
         }
 
         // Upload original first so we always keep it
@@ -1261,63 +1576,72 @@
         fd.append('text_effect',    'none');
         fd.append('add_frame',      document.getElementById('adFrameToggle').checked ? 'true' : 'false');
 
-        const el = document.getElementById('aiAdImageResult');
-        el.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Generating 3 ad suggestions…</div>';
+        // Show loading in the selection grid (or if first run, the section was already set up)
+        const selSection = document.getElementById('imageSelectionSection');
+        if (selSection.style.display === 'none') {
+            showImageSelectionSection(_postOriginalBlobUrl || originalImageUrl);
+        }
+        // Add loading indicator
+        let loadingEl = document.getElementById('aiSuggestionsLoading');
+        if (!loadingEl) {
+            const grid = document.getElementById('imgSelectItems');
+            if (grid) {
+                const div = document.createElement('div');
+                div.id = 'aiSuggestionsLoading';
+                div.className = 'd-flex align-items-center justify-content-center';
+                div.style.minHeight = '120px';
+                div.innerHTML = `<div class="text-center"><div class="spinner-border spinner-border-sm text-primary mb-1"></div><div class="small text-muted">${i18n.t('post.generatingMore')}</div></div>`;
+                grid.appendChild(div);
+            }
+        }
 
         try {
             const res = await fetch(BASE + '/api/ai/generate-ad-image', { method: 'POST', body: fd });
             const data = await res.json();
             if (data.error) {
-                el.innerHTML = `<div class="alert alert-warning small py-2">${esc(data.error)}</div>`;
+                const loading = document.getElementById('aiSuggestionsLoading');
+                if (loading) loading.innerHTML = `<div class="small text-warning">${esc(data.error)}</div>`;
                 return;
             }
             const urls = data.urls || [];
-            el.innerHTML = `
-                <div class="alert alert-success small py-2">
-                    <p class="mb-2 fw-bold text-center">Choose an Ad Image</p>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
-                        ${urls.map(url => `
-                            <div class="ad-suggestion-item text-center" data-url="${url}">
-                                <img src="${url}" class="img-fluid rounded mb-1" style="max-height:150px;width:100%;object-fit:contain;background:#f8f9fa;cursor:zoom-in" onclick="openAdPreview('${url}','new')">
-                                <button class="btn btn-sm btn-outline-primary w-100 use-btn" onclick="useAdImage('${url}')"><i class="fas fa-check me-1"></i>Use</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
+            _allSuggestionUrls = [..._allSuggestionUrls, ...urls.filter(u => !_allSuggestionUrls.includes(u))];
+            renderSuggestionsInGrid(urls);
         } catch (err) {
-            el.innerHTML = '<div class="alert alert-warning small py-2">Failed to generate images. Try again later.</div>';
+            const loading = document.getElementById('aiSuggestionsLoading');
+            if (loading) loading.innerHTML = `<div class="small text-warning">${i18n.t('post.failedGenImages')}</div>`;
         }
     }
 
     function useAdImage(url) {
-        uploadedImageUrl = url;
-        document.getElementById('postImagePreview').innerHTML = `<img src="${url}" class="img-fluid rounded" style="max-height:200px">`;
-        // Highlight selected suggestion, keep all 3 visible
-        document.querySelectorAll('#aiAdImageResult .ad-suggestion-item').forEach(item => {
-            const sel = item.dataset.url === url;
-            item.classList.toggle('selected', sel);
-            const btn = item.querySelector('.use-btn');
-            if (!btn) return;
-            if (sel) {
-                btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected';
-                btn.className = 'btn btn-sm btn-primary w-100 use-btn';
-            } else {
-                btn.innerHTML = '<i class="fas fa-check me-1"></i>Use';
-                btn.className = 'btn btn-sm btn-outline-primary w-100 use-btn';
-            }
-        });
+        selectPostImage(url, 'ai');
     }
 
-    async function aiGenerateCopy() {
+    function _showTextEditor() {
+        // If text editor is already visible and open, reload canvas with new image
+        const wrap = document.getElementById('textEditorToggleWrap');
+        if (wrap.style.display !== 'none' && wrap.style.display !== '') {
+            teLoadImage();
+        }
+    }
+
+    async function aiGenerateCopy(tone) {
+        tone = tone || 'engaging';
         const name = document.getElementById('postTitle').value || 'Amazing Product';
-        const res = await api('/api/ai/generate-copy', { method: 'POST', body: { name } });
+        const description = document.getElementById('postBody').value || '';
+        const price = document.getElementById('postPrice').value || '';
         const el = document.getElementById('aiCopyResult');
-        el.innerHTML = `<div class="alert alert-info small py-2">
-            <strong>${esc(res.headline)}</strong><br>
-            ${esc(res.body)}<br>
-            <em>${(res.hashtags || []).join(' ')}</em>
-            <br><button class="btn btn-sm btn-outline-primary mt-1" onclick="document.getElementById('postBody').value=\`${esc(res.headline)}\\n${esc(res.body)}\\n${(res.hashtags || []).join(' ')}\`">Use Copy</button>
-        </div>`;
+        el.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div> ${i18n.t('post.ai.generatingCopy')}</div>`;
+        try {
+            const res = await api('/api/ai/generate-copy', { method: 'POST', body: { name, description, price, language: i18n.locale, tone } });
+            el.innerHTML = `<div class="alert alert-info small py-2">
+                <strong>${esc(res.headline)}</strong><br>
+                ${esc(res.body)}<br>
+                <em>${(res.hashtags || []).join(' ')}</em>
+                <br><button class="btn btn-sm btn-outline-primary mt-1" onclick="document.getElementById('postTitle').value='${esc(res.headline)}'; document.getElementById('postBody').value=\`${esc(res.body)}\\n${(res.hashtags || []).join(' ')}\`">${i18n.t('post.ai.useCopy')}</button>
+            </div>`;
+        } catch(e) {
+            el.innerHTML = `<div class="alert alert-warning small py-2">${i18n.t('common.error')}</div>`;
+        }
     }
 
     async function aiGenerateEvent() {
@@ -1375,13 +1699,11 @@
         return prevImg ? prevImg.src : '';
     }
 
-    document.getElementById('textEditorSection')?.addEventListener('shown.bs.collapse', function() {
-        teLoadImage();
-    });
+    // Text editor no longer uses Bootstrap collapse — opened via openTextEditor()
 
     function teLoadImage() {
         const url = _teGetImageUrl();
-        if (!url) { alert('Upload or generate an image first'); return; }
+        if (!url) { alert(i18n.t('post.uploadFirst')); return; }
 
         const wrapEl = document.getElementById('textEditorWrap');
         const canvasEl = document.getElementById('textEditorCanvas');
@@ -1486,6 +1808,109 @@
         _teCanvas.setActiveObject(text);
         _teCanvas.renderAll();
         teUpdateLayers();
+    }
+
+    async function teAIBrandFont(btn) {
+        if (!_teCanvas) { teLoadImage(); return; }
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        try {
+            const brandData = await api('/api/branding');
+            if (!brandData.logo_path) {
+                alert(i18n.t('post.noLogoForBrand'));
+                return;
+            }
+            // Map brand font_style to closest Google Font
+            const fontMap = {
+                'serif': 'Playfair Display', 'sans-serif': 'Montserrat', 'display': 'Bebas Neue',
+                'script': 'Lobster', 'handwritten': 'Dancing Script', 'modern': 'Poppins',
+                'bold': 'Archivo Black', 'elegant': 'Raleway', 'classic': 'Georgia',
+            };
+            const brandFont = brandData.font_style ? (fontMap[brandData.font_style.toLowerCase()] || 'Montserrat') : 'Montserrat';
+            document.getElementById('teFont').value = brandFont;
+            // Set brand color if available
+            const brandColors = Array.isArray(brandData.brand_colors) && brandData.brand_colors.length ? brandData.brand_colors : [];
+            if (brandColors.length) {
+                document.getElementById('teColor').value = brandColors[0];
+            }
+            // Now generate AI text with brand font applied
+            await teAIText(btn);
+        } catch(e) {
+            alert(i18n.t('post.couldNotLoadBrand'));
+        } finally {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        }
+    }
+
+    async function teAIText(btn) {
+        if (!_teCanvas) { teLoadImage(); return; }
+
+        const name = document.getElementById('postTitle').value || 'Amazing Product';
+        const description = document.getElementById('postBody').value || '';
+        const price = document.getElementById('postPrice').value || '';
+        const postType = document.getElementById('postType').value || 'product';
+
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const res = await api('/api/ai/generate-text-overlay', {
+                method: 'POST',
+                body: { name, description, price, post_type: postType, language: i18n.locale, tone: 'engaging' }
+            });
+
+            if (res.error) { alert(res.error); return; }
+
+            const cW = _teCanvas.width;
+            const cH = _teCanvas.height;
+            const pad = cW * 0.08; // 8% padding on each side
+            const maxTextW = cW - pad * 2;
+            const font = document.getElementById('teFont').value;
+            const color = document.getElementById('teColor').value;
+
+            const layers = [
+                { text: res.headline || name, fontSize: 48, top: cH * 0.12, weight: 'bold' },
+                { text: res.tagline || '',     fontSize: 26, top: cH * 0.72, weight: 'normal' },
+                { text: res.cta || 'Shop Now',  fontSize: 30, top: cH * 0.84, weight: 'bold' },
+            ];
+
+            layers.forEach(cfg => {
+                if (!cfg.text) return;
+                _teTextCount++;
+                let fs = cfg.fontSize;
+                const t = new fabric.IText(cfg.text, {
+                    left: cW / 2,
+                    top: cfg.top,
+                    originX: 'center',
+                    fontFamily: font,
+                    fontSize: fs,
+                    fill: color,
+                    fontWeight: cfg.weight,
+                    textAlign: 'center',
+                    editable: true,
+                    _teEffect: 'shadow',
+                });
+                // Shrink font until text fits within canvas width minus padding
+                _teCanvas.add(t);
+                while (t.getScaledWidth() > maxTextW && fs > 12) {
+                    fs -= 2;
+                    t.set('fontSize', fs);
+                    t.setCoords();
+                }
+                _teApplyEffect(t);
+            });
+
+            _teCanvas.renderAll();
+            teUpdateLayers();
+        } catch (err) {
+            alert(i18n.t('post.failedGenText'));
+        } finally {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        }
     }
 
     function teUpdateStyle() {
@@ -1618,18 +2043,19 @@
         const uploadData = await uploadRes.json();
         if (uploadData.url) {
             uploadedImageUrl = uploadData.url;
-            document.getElementById('postImagePreview').innerHTML =
-                `<img src="${uploadData.url}" class="img-fluid rounded" style="max-height:200px">`;
-            bootstrap.Collapse.getInstance(document.getElementById('textEditorSection'))?.hide();
+            // Update the chosen image preview
+            document.getElementById('chosenImagePreview').innerHTML =
+                `<img src="${uploadData.url}" class="img-fluid rounded" style="max-height:280px">`;
+            // Collapse the text editor
+            document.getElementById('textEditorToggleWrap').style.display = 'none';
         }
     }
 
     /* ── Restore original image button ─────────────────────────── */
     function restoreOriginalImage() {
-        if (!originalImageUrl) { alert(i18n.t('common.noOriginal')); return; }
-        uploadedImageUrl = originalImageUrl;
-        document.getElementById('postImagePreview').innerHTML =
-            `<img src="${originalImageUrl}" class="img-fluid rounded" style="max-height:200px">`;
+        const origUrl = originalImageUrl || _postOriginalBlobUrl;
+        if (!origUrl) { alert(i18n.t('common.noOriginal')); return; }
+        selectPostImage(origUrl, 'original');
     }
 
     /* ── Ad image preview lightbox ─────────────────────────────── */

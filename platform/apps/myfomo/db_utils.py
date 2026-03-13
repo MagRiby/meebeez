@@ -112,6 +112,7 @@ def _ensure_myfomo_tables(conn):
     # Migrate posts table — keep original photo alongside AI-edited version
     for _col, _def in [
         ('original_image_path', "TEXT DEFAULT ''"),
+        ('featured', "INTEGER DEFAULT 0"),
     ]:
         c.execute(
             f"ALTER TABLE posts ADD COLUMN IF NOT EXISTS {_col} {_def}"

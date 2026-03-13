@@ -182,11 +182,21 @@ def home_data():
                 "FROM store_settings WHERE id=1"
             ).fetchone()
             if row:
+                # Fetch featured published posts
+                try:
+                    feat_rows = conn.execute(
+                        "SELECT id, title, image_path, price FROM posts "
+                        "WHERE featured=1 AND status='published' ORDER BY id DESC LIMIT 10"
+                    ).fetchall()
+                    featured_posts = [dict(r) for r in feat_rows]
+                except Exception:
+                    featured_posts = []
                 return {
                     "logo_path": row["logo_path"] or "",
                     "brand_colors": json.loads(row["brand_colors"] or "[]"),
                     "category": row["category"] or "general",
                     "tagline": row["business_tagline"] or "",
+                    "featured_posts": featured_posts,
                 }
         except Exception:
             pass

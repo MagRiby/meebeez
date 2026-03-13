@@ -35,14 +35,13 @@
             return dict[key] ?? fallback ?? key;
         },
 
-        /** Change locale, reload translations, re-apply to DOM. */
+        /** Change locale, save preference, and reload the page. */
         async setLocale(code) {
             if (!SUPPORTED.includes(code)) return;
             _locale = code;
             localStorage.setItem('locale', code);
-            await _loadDict(code);
-            _applyDir();
-            _translateDOM();
+            // Reload page so all dynamic content (JS-generated HTML, selects, alerts) updates
+            window.location.reload();
         },
 
         /** Initialise (called automatically on DOMContentLoaded). */

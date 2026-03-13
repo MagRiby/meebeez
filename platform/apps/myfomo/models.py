@@ -35,6 +35,7 @@ class Post(TenantBase):
     sale_ends_at = Column(DateTime)
     status = Column(String(50), nullable=False, default="draft")  # draft | published | archived
     ai_generated = Column(Integer, default=0)
+    featured = Column(Integer, default=0)
     created_at = Column(DateTime)
     bookings = relationship("Booking", backref="post")
 
