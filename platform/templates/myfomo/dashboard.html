@@ -821,7 +821,7 @@
         const _statusKey = { published: 'dashboard.published', draft: 'dashboard.draft', archived: 'dashboard.archived' };
         const _typeKey = { product: 'post.product', announcement: 'post.announcement' };
         el.innerHTML = posts.map(p => `
-            <div class="post-card">
+            <div class="post-card" id="post-${p.id}">
                 ${p.image_path ? `<img src="${p.image_path}" alt="" style="cursor:zoom-in" onclick="openAdPreview('${p.image_path}','feed')">` : ''}
                 ${p.original_image_path && p.original_image_path !== p.image_path ? `<div class="d-flex align-items-center gap-1 mb-1"><img src="${p.original_image_path}" style="height:28px;width:28px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6" title="${i18n.t('common.originalPhoto')}"><span class="text-muted" style="font-size:10px">${i18n.t('common.originalSaved')}</span></div>` : ''}
                 <div class="d-flex justify-content-between align-items-start">
@@ -851,8 +851,17 @@
         renderFeaturedCarousel(featured);
     }
 
+    function scrollToPost(postId) {
+        const card = document.getElementById('post-' + postId);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.boxShadow = '0 0 0 3px #667eea';
+            setTimeout(() => { card.style.boxShadow = ''; }, 2000);
+        }
+    }
+
     function _featuredSlideHtml(p) {
-        return `<div class="featured-slide" onclick="openAdPreview('${p.image_path || ''}','feed')">
+        return `<div class="featured-slide" onclick="scrollToPost(${p.id})">
             ${p.image_path
                 ? `<img src="${p.image_path}" alt="${esc(p.title)}">`
                 : `<div style="width:200px;height:150px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image fa-2x text-muted"></i></div>`}

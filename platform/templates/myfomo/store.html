@@ -401,7 +401,7 @@
     }
 
     function _storeSlideHtml(p) {
-        return `<div class="featured-slide" onclick="openPhoto('${p.image_path || ''}', ${p.id}, '${esc(p.title)}')">
+        return `<div class="featured-slide" onclick="scrollToPost(${p.id})">
             ${p.image_path
                 ? `<img src="${p.image_path}" alt="${esc(p.title)}">`
                 : `<div style="width:200px;height:150px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image fa-2x text-muted"></i></div>`}
@@ -410,6 +410,15 @@
                 ${p.price ? `<div class="fs-price">$${Number(p.price).toFixed(2)}</div>` : ''}
             </div>
         </div>`;
+    }
+
+    function scrollToPost(postId) {
+        const card = document.getElementById('post-' + postId);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.boxShadow = '0 0 0 3px var(--brand-primary)';
+            setTimeout(() => { card.style.boxShadow = ''; }, 2000);
+        }
     }
 
     /* ── Store feed ────────────────────────────────────────────── */
@@ -641,11 +650,25 @@
         const params = new URLSearchParams(window.location.search);
         const itemId = params.get('item');
         if (itemId) {
-            const card = document.getElementById('post-' + itemId);
-            if (card) {
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                card.style.boxShadow = '0 0 0 4px #e53e3e';
-            }
+            // Wait for feed images to load so layout is settled before scrolling
+            const imgs = document.querySelectorAll('#storePosts img');
+            const loaded = () => {
+                const card = document.getElementById('post-' + itemId);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.style.boxShadow = '0 0 0 4px var(--brand-primary, #e53e3e)';
+                    setTimeout(() => { card.style.boxShadow = ''; }, 2500);
+                }
+            };
+            if (!imgs.length) { loaded(); return; }
+            let pending = imgs.length;
+            const done = () => { if (--pending <= 0) loaded(); };
+            imgs.forEach(img => {
+                if (img.complete) done();
+                else { img.addEventListener('load', done); img.addEventListener('error', done); }
+            });
+            // Fallback in case some images hang
+            setTimeout(loaded, 3000);
         }
     });
 

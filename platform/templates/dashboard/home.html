@@ -23,8 +23,6 @@
         body {
             background: var(--bg);
             font-family: 'Segoe UI', system-ui, sans-serif;
-            padding-bottom: calc(20px + var(--safe-bottom));
-            min-height: 100vh;
         }
 
         /* ── Top navbar ───────────────────────────────────────── */
@@ -34,9 +32,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: sticky;
-            top: 0;
             z-index: 200;
+            flex-shrink: 0;
         }
         .platform-nav .brand { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
         .platform-nav .brand span { color: var(--accent); }
@@ -55,12 +52,11 @@
 
         /* ── Search bar ───────────────────────────────────────── */
         .search-wrap {
-            position: sticky;
-            top: 55px;
             z-index: 150;
             background: #fff;
             border-bottom: 1px solid var(--border);
             padding: 10px 16px 8px;
+            flex-shrink: 0;
         }
         .search-input-row { position: relative; }
         .search-input-row .si-icon {
@@ -96,93 +92,84 @@
         .s-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
         /* ── Layout ───────────────────────────────────────────── */
-        .page-body { display: flex; min-height: calc(100vh - 55px); }
+        html { height: 100%; }
+        body { height: 100%; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+        .page-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
         /* ── Main content ─────────────────────────────────────── */
-        .main-content { flex: 1; padding: 20px 16px; overflow: hidden; min-width: 0; }
+        .main-content { flex: 1; padding: 20px 16px; overflow-y: auto; min-width: 0; overscroll-behavior: contain; }
 
         /* ── Category section ─────────────────────────────────── */
-        .cat-section { margin-bottom: 28px; }
-        .cat-header {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 14px; padding-bottom: 8px;
-            border-bottom: 2px solid var(--border);
-        }
-        .cat-icon-lg {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 17px; flex-shrink: 0;
-        }
-        .cat-label { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+        .cat-section { margin-bottom: 16px; }
+        .biz-card.cat-hidden { display: none; }
 
         /* ── Business cards ───────────────────────────────────── */
         .biz-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
         }
         .biz-card {
-            background: #fff; border-radius: 16px; overflow: hidden;
+            background: #fff; border-radius: 14px; overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
             cursor: pointer;
             transition: transform 0.15s, box-shadow 0.15s;
         }
-        .biz-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .biz-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
         .biz-card-banner {
-            height: 80px;
+            height: 28px;
             display: flex; align-items: center; justify-content: center;
             position: relative;
         }
         .biz-card-logo {
-            width: 56px; height: 56px; border-radius: 14px;
+            width: 30px; height: 30px; border-radius: 8px;
             object-fit: contain; background: rgba(255,255,255,0.9);
-            padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            position: absolute; bottom: -20px; left: 16px;
+            padding: 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+            position: absolute; bottom: -10px; left: 10px;
         }
         .biz-card-logo-placeholder {
-            width: 56px; height: 56px; border-radius: 14px;
+            width: 30px; height: 30px; border-radius: 8px;
             background: rgba(255,255,255,0.85);
             display: flex; align-items: center; justify-content: center;
-            font-size: 22px;
-            position: absolute; bottom: -20px; left: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-size: 13px;
+            position: absolute; bottom: -10px; left: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
         }
-        .biz-card-body { padding: 28px 16px 14px; }
+        .biz-card-body { padding: 14px 12px 10px; }
         .biz-card-name {
-            font-size: 15px; font-weight: 700; color: var(--text-primary);
-            margin-bottom: 3px; white-space: nowrap;
+            font-size: 14px; font-weight: 700; color: var(--text-primary);
+            margin-bottom: 1px; white-space: nowrap;
             overflow: hidden; text-overflow: ellipsis;
         }
         .biz-card-tagline {
-            font-size: 12px; color: var(--text-secondary);
+            font-size: 11px; color: var(--text-secondary);
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
-        .biz-card-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+        .biz-card-meta { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
         .biz-card-btn {
-            display: inline-block; font-size: 12px; font-weight: 600;
-            padding: 5px 14px; border-radius: 20px;
+            display: inline-block; font-size: 11px; font-weight: 600;
+            padding: 4px 12px; border-radius: 20px;
             background: var(--accent); color: #fff; border: none; cursor: pointer;
         }
 
         /* ── Featured carousel in biz cards ────────────────────── */
         .biz-featured-wrap {
-            margin: 10px -16px 8px;
-            padding: 10px 0;
-            background: linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.08) 100%);
-            border-radius: 10px;
+            margin: 6px -12px 6px;
+            padding: 6px 0 4px;
+            background: rgba(0,0,0,0.04);
+            border-radius: 8px;
             overflow: hidden;
         }
         .biz-featured-wrap h6 {
-            font-size: 11px; font-weight: 700; color: var(--text-secondary);
+            font-size: 9px; font-weight: 700; color: var(--text-secondary);
             text-transform: uppercase; letter-spacing: 0.5px;
-            padding: 0 12px; margin-bottom: 6px;
+            padding: 0 10px; margin-bottom: 4px;
         }
-        .biz-featured-wrap h6 i { color: #fbbf24; }
+        .biz-featured-wrap h6 i { color: #fbbf24; font-size: 9px; }
         .biz-featured-track {
-            display: flex; gap: 10px; width: max-content;
+            display: flex; gap: 0; width: max-content;
             animation: bizFeatScroll var(--scroll-duration, 15s) linear infinite;
-            padding: 0 12px;
         }
         .biz-featured-track:hover,
         .biz-featured-track.paused { animation-play-state: paused; }
@@ -191,19 +178,20 @@
             100% { transform: translateX(-50%); }
         }
         .biz-feat-item {
-            flex: 0 0 140px; border-radius: 10px; overflow: hidden;
-            background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.1); cursor: pointer;
+            flex: 0 0 100px; border-radius: 8px; overflow: hidden;
+            background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;
+            margin-left: 8px;
         }
         .biz-feat-item img {
-            width: 140px; height: 100px; object-fit: cover; display: block;
+            width: 100px; height: 70px; object-fit: cover; display: block;
         }
-        .biz-feat-item .bf-body { padding: 5px 8px; }
+        .biz-feat-item .bf-body { padding: 3px 6px; }
         .biz-feat-item .bf-title {
-            font-size: 11px; font-weight: 700;
+            font-size: 10px; font-weight: 600;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .biz-feat-item .bf-price {
-            font-size: 12px; font-weight: 700; color: var(--accent);
+            font-size: 10px; font-weight: 700; color: var(--accent);
         }
 
         /* ── Right category sidebar ───────────────────────────── */
@@ -211,10 +199,9 @@
             width: 64px; background: #fff;
             border-left: 1px solid var(--border);
             display: flex; flex-direction: column;
-            align-items: center; padding: 16px 0; gap: 6px;
-            position: sticky; top: 55px;
-            height: calc(100vh - 55px);
+            align-items: center; padding: 10px 0; gap: 4px;
             overflow-y: auto; flex-shrink: 0;
+            overscroll-behavior: contain;
         }
         .cat-pill {
             width: 46px; height: 46px; border-radius: 12px;
@@ -409,7 +396,7 @@
             <div class="biz-feat-item" onclick="event.stopPropagation(); openItem('${esc(slug)}','${esc(appType)}',${p.id})">
                 ${p.image_path
                     ? `<img src="${esc(p.image_path)}" alt="${esc(p.title)}">`
-                    : `<div style="width:140px;height:100px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image text-muted"></i></div>`}
+                    : `<div style="width:100px;height:70px;background:#e9ecef;display:flex;align-items:center;justify-content:center"><i class="fas fa-image text-muted"></i></div>`}
                 <div class="bf-body">
                     <div class="bf-title">${esc(p.title)}</div>
                     ${p.price ? `<div class="bf-price">$${Number(p.price).toFixed(2)}</div>` : ''}
@@ -436,90 +423,75 @@
             return;
         }
 
-        const groups = {};
-        businesses.forEach(biz => {
-            const cat = biz.category || 'general';
-            if (!groups[cat]) groups[cat] = [];
-            groups[cat].push(biz);
-        });
-
+        // Collect unique categories
+        const catSet = new Set();
+        businesses.forEach(biz => catSet.add(biz.category || 'general'));
         const catOrder = ['restaurants', 'food', 'clothing', 'care', 'learning',
                           'education', 'services', 'shopping', 'general'];
-        const presentCats = catOrder.filter(c => groups[c]);
-        Object.keys(groups).forEach(c => { if (!presentCats.includes(c)) presentCats.push(c); });
+        const presentCats = catOrder.filter(c => catSet.has(c));
+        catSet.forEach(c => { if (!presentCats.includes(c)) presentCats.push(c); });
 
-        if (presentCats.length) setActiveCategory(presentCats[0]);
         renderSidebar(presentCats);
+        setActiveCategory('all');
 
-        homeView.innerHTML = '';
-        presentCats.forEach(cat => {
-            const meta = CATEGORIES[cat] || CATEGORIES.general;
-            const section = document.createElement('div');
-            section.className = 'cat-section';
-            section.id = 'cat-' + cat;
-            section.innerHTML = `
-                <div class="cat-header">
-                    <div class="cat-icon-lg" style="background:${meta.bg};color:${meta.color}">
-                        <i class="${meta.icon}"></i>
-                    </div>
-                    <span class="cat-label">${meta.label}</span>
+        // Render a single flat grid with data-cat on each card
+        homeView.innerHTML = '<div class="biz-grid" id="clientGrid"></div>';
+        const grid = document.getElementById('clientGrid');
+
+        businesses.forEach(biz => {
+            const cat = biz.category || 'general';
+            const p = primaryColor(biz.brand_colors);
+            const s = secondaryColor(biz.brand_colors);
+            const txt = contrastColor(p);
+            const catMeta = CATEGORIES[cat] || CATEGORIES.general;
+            const logoHtml = biz.logo_path
+                ? `<img class="biz-card-logo" src="${esc(biz.logo_path)}" alt="">`
+                : `<div class="biz-card-logo-placeholder"><i class="${catMeta.icon}" style="color:${catMeta.color}"></i></div>`;
+            const featHtml = _bizFeaturedHtml(biz.featured_posts, biz.slug, biz.app_type);
+            const card = document.createElement('div');
+            card.className = 'biz-card';
+            card.dataset.cat = cat;
+            card.onclick = () => openBusiness(biz.slug, biz.app_type);
+            card.innerHTML = `
+                <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
+                    ${logoHtml}
                 </div>
-                <div class="biz-grid">
-                    ${groups[cat].map(biz => {
-                        const p = primaryColor(biz.brand_colors);
-                        const s = secondaryColor(biz.brand_colors);
-                        const txt = contrastColor(p);
-                        const catMeta = CATEGORIES[biz.category] || CATEGORIES.general;
-                        const logoHtml = biz.logo_path
-                            ? `<img class="biz-card-logo" src="${esc(biz.logo_path)}" alt="">`
-                            : `<div class="biz-card-logo-placeholder"><i class="${catMeta.icon}" style="color:${catMeta.color}"></i></div>`;
-                        const featHtml = _bizFeaturedHtml(biz.featured_posts, biz.slug, biz.app_type);
-                        return `
-                            <div class="biz-card" onclick="openBusiness('${esc(biz.slug)}','${esc(biz.app_type)}')">
-                                <div class="biz-card-banner" style="background:linear-gradient(135deg,${p} 0%,${s} 100%)">
-                                    ${logoHtml}
-                                </div>
-                                <div class="biz-card-body">
-                                    <div class="biz-card-name">${esc(biz.name)}</div>
-                                    <div class="biz-card-tagline">${esc(biz.tagline || '')}</div>
-                                    ${featHtml}
-                                    <button class="biz-card-btn" style="background:${p};color:${txt}">Open</button>
-                                </div>
-                            </div>`;
-                    }).join('')}
+                <div class="biz-card-body">
+                    <div class="biz-card-name">${esc(biz.name)}</div>
+                    <div class="biz-card-tagline">${esc(biz.tagline || '')}</div>
+                    ${featHtml}
+                    <button class="biz-card-btn" style="background:${p};color:${txt}">Open</button>
                 </div>`;
-            homeView.appendChild(section);
+            grid.appendChild(card);
         });
-
-        // Update active sidebar item on scroll
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(e => { if (e.isIntersecting) setActiveCategory(e.target.id.replace('cat-', '')); });
-        }, { threshold: 0.3 });
-        document.querySelectorAll('.cat-section').forEach(s => observer.observe(s));
     }
 
     function renderSidebar(categories) {
         const sb = document.getElementById('catSidebar');
         sb.style.display = '';
         sb.innerHTML = '';
-        // Adjust sticky offset now that search bar is visible
-        const navH = document.getElementById('mainNav').offsetHeight;
-        const searchH = document.getElementById('searchWrap').offsetHeight;
-        sb.style.top = (navH + searchH) + 'px';
-        sb.style.height = `calc(100vh - ${navH + searchH}px)`;
+
+        // "All" pill at the top
+        const allPill = document.createElement('a');
+        allPill.href = '#';
+        allPill.className = 'cat-pill active';
+        allPill.dataset.cat = 'all';
+        allPill.innerHTML = '<i class="fas fa-th"></i><span class="cat-pill-label">All</span>';
+        allPill.addEventListener('click', e => { e.preventDefault(); filterByCategory('all'); });
+        sb.appendChild(allPill);
+
+        const topDiv = document.createElement('div');
+        topDiv.className = 'cat-divider';
+        sb.appendChild(topDiv);
 
         categories.forEach((cat, i) => {
             const meta = CATEGORIES[cat] || CATEGORIES.general;
             const pill = document.createElement('a');
-            pill.href = '#cat-' + cat;
-            pill.className = 'cat-pill' + (_activeCategory === cat ? ' active' : '');
+            pill.href = '#';
+            pill.className = 'cat-pill';
             pill.dataset.cat = cat;
             pill.innerHTML = `<i class="${meta.icon}"></i><span class="cat-pill-label">${meta.label}</span>`;
-            pill.addEventListener('click', e => {
-                e.preventDefault();
-                setActiveCategory(cat);
-                document.getElementById('cat-' + cat)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
+            pill.addEventListener('click', e => { e.preventDefault(); filterByCategory(cat); });
             sb.appendChild(pill);
             if (i < categories.length - 1) {
                 const div = document.createElement('div');
@@ -527,6 +499,19 @@
                 sb.appendChild(div);
             }
         });
+    }
+
+    function filterByCategory(cat) {
+        setActiveCategory(cat);
+        document.querySelectorAll('#clientGrid .biz-card').forEach(card => {
+            if (cat === 'all' || card.dataset.cat === cat) {
+                card.classList.remove('cat-hidden');
+            } else {
+                card.classList.add('cat-hidden');
+            }
+        });
+        // Scroll main content back to top
+        document.getElementById('mainContent').scrollTop = 0;
     }
 
     function setActiveCategory(cat) {
